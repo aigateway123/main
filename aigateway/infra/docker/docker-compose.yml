@@ -1,0 +1,89 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: nova-ai-gateway-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nova_ai_gateway}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-nova_ai_gateway}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nova-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: nova-ai-gateway-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nova-network
+
+  gateway:
+    build:
+      context: ../../backend
+      args:
+        SERVICE_NAME: gateway
+    container_name: nova-ai-gateway-gateway
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    environment:
+      SERVICE_NAME: gateway
+      PORT: "8080"
+      APP_ENV: ${APP_ENV:-development}
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-postgres}
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-nova_ai_gateway}?sslmode=disable
+      REDIS_URL: redis:6379
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - nova-network
+
+  admin:
+    build:
+      context: ../../admin
+    container_name: nova-ai-gateway-admin
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_PORT:-8088}:80"
+    depends_on:
+      gateway:
+        condition: service_healthy
+    networks:
+      - nova-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  nova-network:
+    driver: bridge

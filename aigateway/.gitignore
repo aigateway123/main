@@ -1,0 +1,34 @@
+# OS
+.DS_Store
+
+# Environment
+.env
+.env.development
+.env.test
+.env.production
+!.env.example
+
+# Backend
+backend/bin/
+backend/tmp/
+backend/coverage.out
+backend/vendor/
+
+# Frontend
+admin/node_modules/
+admin/dist/
+admin/.vite/
+admin/coverage/
+
+# Logs
+*.log
+logs/
+
+# IDE
+.idea/
+.vscode/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
