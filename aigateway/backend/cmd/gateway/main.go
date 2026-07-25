@@ -102,6 +102,8 @@ func main() {
 	mux.HandleFunc("POST /api/v1/auth/login", authCtrl.HandleLogin)
 
 	// OpenAI-compatible chat completions (API Key auth, not JWT)
+	// Support both standard OpenAI path and our /api/v1 path
+	mux.HandleFunc("POST /v1/chat/completions", chatCtrl.HandleChatCompletions)
 	mux.HandleFunc("POST /api/v1/chat/completions", chatCtrl.HandleChatCompletions)
 
 	// Protected routes (JWT required)
