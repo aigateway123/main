@@ -65,8 +65,9 @@ async function handleSave() {
     }
     showForm.value = false
     await load()
-  } catch (e) {
-    alert('保存失败')
+  } catch (e: any) {
+    const msg = e?.response?.data?.message || '保存失败'
+    alert(msg)
   }
 }
 

@@ -69,7 +69,7 @@ func (s *ApiKeyService) ListByUser(ctx context.Context, userID int64) ([]*dto.Ap
 		return nil, ErrInternal
 	}
 
-	var result []*dto.ApiKeyResponse
+	result := make([]*dto.ApiKeyResponse, 0, len(keys))
 	for _, key := range keys {
 		result = append(result, &dto.ApiKeyResponse{
 			ID:              key.ID,
