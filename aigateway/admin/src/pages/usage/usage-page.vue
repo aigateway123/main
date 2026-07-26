@@ -37,63 +37,86 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="page">
-    <div class="page-header">
-      <h1>Usage Logs</h1>
+  <div class="p-6 space-y-6 bg-page min-h-full">
+    <!-- Header -->
+    <div class="flex items-center justify-between bg-white p-4 rounded-lg border border-border">
+      <div>
+        <h2 class="text-base font-bold text-text-primary">请求日志</h2>
+        <p class="text-xs text-text-secondary mt-0.5">秒级实时网关转发日志、延迟响应与异常报错排查</p>
+      </div>
     </div>
 
-    <div class="table-wrap">
-      <table v-if="logs.length > 0">
-        <thead>
-          <tr>
-            <th>Model</th><th>Provider</th><th>Input Token</th><th>Output Token</th>
-            <th>延迟</th><th>成本</th><th>状态</th><th>时间</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="log in logs" :key="log.id">
-            <td><code>{{ log.modelCode }}</code></td>
-            <td>{{ log.providerName }}</td>
-            <td>{{ log.inputTokens.toLocaleString() }}</td>
-            <td>{{ log.outputTokens.toLocaleString() }}</td>
-            <td>{{ log.latencyMs }}ms</td>
-            <td>¥{{ log.costAmount.toFixed(6) }}</td>
-            <td><span :class="['badge', log.requestStatus === 'success' ? 'badge-active' : 'badge-revoked']">{{ log.requestStatus }}</span></td>
-            <td class="time-cell">{{ log.createdAt }}</td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-else-if="!loading" class="empty">暂无请求日志</p>
-      <p v-else class="empty">加载中...</p>
-    </div>
+    <!-- Table -->
+    <div class="bg-white rounded-lg border border-border p-5 space-y-4">
+      <div class="overflow-x-auto rounded border border-border">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-[#f8f9fa] border-b border-border text-text-secondary font-semibold h-10">
+              <th class="px-4 py-2">Model</th>
+              <th class="px-4 py-2">Provider</th>
+              <th class="px-4 py-2">Input Token</th>
+              <th class="px-4 py-2">Output Token</th>
+              <th class="px-4 py-2">延迟</th>
+              <th class="px-4 py-2">成本</th>
+              <th class="px-4 py-2">状态</th>
+              <th class="px-4 py-2">时间</th>
+            </tr>
+          </thead>
+          <tbody v-if="!loading && logs.length > 0" class="divide-y divide-border">
+            <tr
+              v-for="(log, index) in logs"
+              :key="log.id"
+              :class="['h-12 transition-colors hover:bg-[#eff6ff]/60', index % 2 === 0 ? 'bg-white' : 'bg-[#fafbfc]']"
+            >
+              <td class="px-4 py-2 font-mono font-medium text-text-primary">
+                <code class="bg-[#f8f9fa] px-1.5 py-0.5 rounded text-[11px]">{{ log.modelCode }}</code>
+              </td>
+              <td class="px-4 py-2 text-text-primary">{{ log.providerName }}</td>
+              <td class="px-4 py-2 text-text-secondary">{{ log.inputTokens.toLocaleString() }}</td>
+              <td class="px-4 py-2 text-text-secondary">{{ log.outputTokens.toLocaleString() }}</td>
+              <td class="px-4 py-2 font-mono text-text-primary">{{ log.latencyMs }}ms</td>
+              <td class="px-4 py-2 font-mono font-medium text-text-primary">¥{{ log.costAmount.toFixed(6) }}</td>
+              <td class="px-4 py-2">
+                <span
+                  :class="[
+                    'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border',
+                    log.requestStatus === 'success'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60'
+                      : 'bg-rose-50 text-rose-700 border-rose-200/60',
+                  ]"
+                >
+                  {{ log.requestStatus }}
+                </span>
+              </td>
+              <td class="px-4 py-2 text-text-secondary text-[11px] font-mono">{{ log.createdAt }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="loading" class="py-10 text-center text-text-secondary text-xs">加载中...</div>
+        <div v-else-if="logs.length === 0" class="py-10 text-center text-text-secondary text-xs">暂无请求日志</div>
+      </div>
 
-    <div v-if="totalPages > 1" class="pagination">
-      <button :disabled="page <= 1" @click="prevPage">上一页</button>
-      <span>{{ page }} / {{ totalPages }}</span>
-      <button :disabled="page >= totalPages" @click="nextPage">下一页</button>
+      <!-- Pagination -->
+      <div
+        v-if="totalPages > 1"
+        class="flex items-center gap-3 text-xs text-text-secondary mt-4"
+      >
+        <button
+          class="h-8 px-3 border border-[#cbd5e1] rounded text-text-btn bg-white hover:bg-slate-50 text-xs font-medium transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          :disabled="page <= 1"
+          @click="prevPage"
+        >
+          上一页
+        </button>
+        <span>{{ page }} / {{ totalPages }}</span>
+        <button
+          class="h-8 px-3 border border-[#cbd5e1] rounded text-text-btn bg-white hover:bg-slate-50 text-xs font-medium transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          :disabled="page >= totalPages"
+          @click="nextPage"
+        >
+          下一页
+        </button>
+      </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.page { max-width: 1100px; }
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.page-header h1 { margin: 0; font-size: 24px; }
-
-.table-wrap { background: #1e293b; border-radius: 12px; overflow: hidden; }
-table { width: 100%; border-collapse: collapse; }
-th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid #334155; }
-th { font-size: 12px; color: #94a3b8; font-weight: 600; }
-td { font-size: 13px; }
-.time-cell { font-size: 12px; color: #64748b; white-space: nowrap; }
-.badge { padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-.badge-active { background: #065f46; color: #6ee7b7; }
-.badge-revoked { background: #7f1d1d; color: #fca5a5; }
-code { background: #0f172a; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
-.empty { padding: 40px; text-align: center; color: #64748b; }
-
-.pagination { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 16px; }
-.pagination button { padding: 8px 16px; border: 1px solid #475569; border-radius: 6px; background: transparent; color: #cbd5e1; cursor: pointer; }
-.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
-.pagination span { color: #94a3b8; font-size: 14px; }
-</style>

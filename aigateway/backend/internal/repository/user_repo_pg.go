@@ -19,14 +19,14 @@ func NewPostgresUserRepository(pool *pgxpool.Pool) *PostgresUserRepository {
 }
 
 const (
-	userColumns = "id, organization_id, email, nickname, user_status, password_hash, created_at, updated_at, deleted_at"
+	userColumns = "id, organization_id, email, nickname, user_status, password_hash, role_id, quota_balance, created_at, updated_at, deleted_at"
 )
 
 func (r *PostgresUserRepository) scanUser(row pgx.Row) (*entity.User, error) {
 	var u entity.User
 	err := row.Scan(
 		&u.ID, &u.OrganizationID, &u.Email, &u.Nickname,
-		&u.UserStatus, &u.PasswordHash, &u.CreatedAt, &u.UpdatedAt, &u.DeletedAt,
+		&u.UserStatus, &u.PasswordHash, &u.RoleID, &u.QuotaBalance, &u.CreatedAt, &u.UpdatedAt, &u.DeletedAt,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -38,13 +38,13 @@ func (r *PostgresUserRepository) scanUser(row pgx.Row) (*entity.User, error) {
 }
 
 func (r *PostgresUserRepository) Create(ctx context.Context, user *entity.User) error {
-	query := `INSERT INTO users (email, nickname, password_hash, user_status, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+	query := `INSERT INTO users (email, nickname, password_hash, user_status, role_id, quota_balance, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, created_at, updated_at`
 
 	now := time.Now()
 	err := r.pool.QueryRow(ctx, query,
-		user.Email, user.Nickname, user.PasswordHash, user.UserStatus, now, now,
+		user.Email, user.Nickname, user.PasswordHash, user.UserStatus, user.RoleID, user.QuotaBalance, now, now,
 	).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		if isPgDuplicateError(err) {

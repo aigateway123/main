@@ -17,6 +17,7 @@ type ModelResponse struct {
 	ModelCode   string `json:"modelCode"`
 	ModelStatus string `json:"modelStatus"`
 	CreatedAt   string `json:"createdAt"`
+	CreatedTime int64  `json:"-"`
 	UpdatedAt   string `json:"updatedAt"`
 }
 

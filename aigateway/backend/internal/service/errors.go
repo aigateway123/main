@@ -4,6 +4,7 @@ import "errors"
 
 var (
 	ErrInternal             = errors.New("internal error")
+	ErrInvalidArgument      = errors.New("invalid argument")
 	ErrEmailExists          = errors.New("email already exists")
 	ErrDuplicateName        = errors.New("name already exists")
 	ErrDuplicateModelCode   = errors.New("model code already exists")
@@ -20,4 +21,6 @@ var (
 	ErrApiKeyDisabled       = errors.New("api key is disabled")
 	ErrNoProviderBound      = errors.New("no provider bound to this model")
 	ErrNoProviderAvailable  = errors.New("no available provider")
+	ErrQuotaExceeded        = errors.New("quota balance is insufficient")
+	ErrModelForbidden       = errors.New("model is not authorized for this user")
 )

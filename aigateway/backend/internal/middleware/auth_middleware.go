@@ -22,7 +22,7 @@ func AuthMiddleware(authSvc *service.AuthService, logger *slog.Logger) func(http
 
 			parts := strings.Split(authHeader, " ")
 			if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
-				writeAuthError(w, "AUTH002", "invalid authorization format")
+				writeAuthError(w, "AUTH006", "invalid authorization format")
 				return
 			}
 
@@ -31,7 +31,7 @@ func AuthMiddleware(authSvc *service.AuthService, logger *slog.Logger) func(http
 			// Try JWT validation first (for admin routes)
 			userID, email, err := authSvc.ValidateAccessToken(token)
 			if err != nil {
-				writeAuthError(w, "AUTH002", "invalid or expired token")
+				writeAuthError(w, "AUTH006", "invalid or expired token")
 				return
 			}
 
@@ -54,7 +54,7 @@ func ApiKeyMiddleware(authSvc *service.AuthService, logger *slog.Logger) func(ht
 
 			parts := strings.Split(authHeader, " ")
 			if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
-				writeAuthError(w, "AUTH002", "invalid authorization format")
+				writeAuthError(w, "AUTH006", "invalid authorization format")
 				return
 			}
 
@@ -63,7 +63,7 @@ func ApiKeyMiddleware(authSvc *service.AuthService, logger *slog.Logger) func(ht
 			// Try JWT validation
 			userID, email, err := authSvc.ValidateAccessToken(token)
 			if err != nil {
-				writeAuthError(w, "AUTH002", "invalid or expired token")
+				writeAuthError(w, "AUTH006", "invalid or expired token")
 				return
 			}
 

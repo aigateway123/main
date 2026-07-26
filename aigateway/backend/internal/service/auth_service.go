@@ -20,6 +20,7 @@ import (
 type AuthService struct {
 	userRepo    repository.UserRepository
 	sessionRepo repository.SessionRepository
+	rbacSvc     *RBACService
 	logger      *slog.Logger
 	jwtSecret   string
 }
@@ -27,12 +28,14 @@ type AuthService struct {
 func NewAuthService(
 	userRepo repository.UserRepository,
 	sessionRepo repository.SessionRepository,
+	rbacSvc *RBACService,
 	logger *slog.Logger,
 	jwtSecret string,
 ) *AuthService {
 	return &AuthService{
 		userRepo:    userRepo,
 		sessionRepo: sessionRepo,
+		rbacSvc:     rbacSvc,
 		logger:      logger,
 		jwtSecret:   jwtSecret,
 	}
@@ -72,6 +75,8 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (*
 		UserID:       user.ID,
 		Email:        user.Email,
 		Nickname:     user.Nickname,
+		Role:         "",
+		QuotaBalance: user.QuotaBalance,
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil
@@ -101,10 +106,20 @@ func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Au
 		return nil, ErrInternal
 	}
 
+	roleName := ""
+	if s.rbacSvc != nil {
+		_, rn, err := s.rbacSvc.GetUserRole(ctx, user.ID)
+		if err == nil {
+			roleName = rn
+		}
+	}
+
 	return &dto.AuthResponse{
 		UserID:       user.ID,
 		Email:        user.Email,
 		Nickname:     user.Nickname,
+		Role:         roleName,
+		QuotaBalance: user.QuotaBalance,
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil
@@ -116,6 +131,38 @@ func (s *AuthService) ValidateAccessToken(token string) (int64, string, error) {
 
 func (s *AuthService) GetUser(ctx context.Context, userID int64) (*entity.User, error) {
 	return s.userRepo.GetByID(ctx, userID)
+}
+
+func (s *AuthService) GetProfile(ctx context.Context, userID int64) (*dto.ProfileResponse, error) {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, ErrUserNotFound
+	}
+	if user.UserStatus != "active" {
+		return nil, ErrUserDisabled
+	}
+
+	roleName := ""
+	var permissions []string
+	if s.rbacSvc != nil {
+		_, rn, err := s.rbacSvc.GetUserRole(ctx, user.ID)
+		if err == nil {
+			roleName = rn
+		}
+		perms, err := s.rbacSvc.ListUserPermissions(ctx, user.ID)
+		if err == nil {
+			permissions = perms
+		}
+	}
+
+	return &dto.ProfileResponse{
+		UserID:       user.ID,
+		Email:        user.Email,
+		Nickname:     user.Nickname,
+		Role:         roleName,
+		QuotaBalance: user.QuotaBalance,
+		Permissions:  permissions,
+	}, nil
 }
 
 func (s *AuthService) generateAccessToken(userID int64, email string) (string, error) {

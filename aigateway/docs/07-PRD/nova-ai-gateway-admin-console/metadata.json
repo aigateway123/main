@@ -1,0 +1,6 @@
+{
+  "name": "Nova AI Gateway Admin Console",
+  "description": "Nova AI Gateway Admin Management Portal prototype with B2B SaaS white design system, responsive navigation, and complete 10-view interactive management features.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

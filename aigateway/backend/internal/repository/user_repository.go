@@ -68,3 +68,33 @@ func (r *InMemoryUserRepository) GetByID(_ context.Context, id int64) (*entity.U
 	}
 	return user, nil
 }
+
+// ListAll returns a copy of all non-deleted users (used by AdminUserRepository).
+func (r *InMemoryUserRepository) ListAll(_ context.Context) []*entity.User {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	out := make([]*entity.User, 0, len(r.users))
+	for _, u := range r.users {
+		if u.DeletedAt == nil {
+			// copy
+			cp := *u
+			out = append(out, &cp)
+		}
+	}
+	return out
+}
+
+// UpdateUser updates an existing user in the in-memory store (used by AdminUserRepository).
+func (r *InMemoryUserRepository) UpdateUser(_ context.Context, user *entity.User) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, exists := r.users[user.ID]; !exists {
+		return ErrUserNotFound
+	}
+	user.UpdatedAt = time.Now()
+	r.users[user.ID] = user
+	r.byMail[user.Email] = user
+	return nil
+}

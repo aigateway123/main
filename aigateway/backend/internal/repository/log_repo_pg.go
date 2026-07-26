@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"aigateway/backend/internal/entity"
@@ -149,4 +150,176 @@ func (r *PostgresRequestLogRepository) Stats(ctx context.Context, userID int64) 
 		return nil, err
 	}
 	return stats, nil
+}
+
+func (r *PostgresRequestLogRepository) ListByUserIDFiltered(ctx context.Context, userID int64, offset, limit int, startDate, endDate, modelCode string) ([]*entity.RequestLog, int, error) {
+	args := []interface{}{userID}
+	whereClause := "WHERE user_id = $1"
+	argIdx := 2
+
+	if modelCode != "" {
+		whereClause += fmt.Sprintf(" AND model_code = $%d", argIdx)
+		args = append(args, modelCode)
+		argIdx++
+	}
+	if startDate != "" {
+		whereClause += fmt.Sprintf(" AND created_at >= $%d::timestamp", argIdx)
+		args = append(args, startDate)
+		argIdx++
+	}
+	if endDate != "" {
+		whereClause += fmt.Sprintf(" AND created_at < ($%d::timestamp + INTERVAL '1 day')", argIdx)
+		args = append(args, endDate)
+		argIdx++
+	}
+
+	countQuery := `SELECT COUNT(*) FROM request_logs ` + whereClause
+	var total int
+	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	dataQuery := `SELECT ` + logColumns + ` FROM request_logs ` + whereClause + ` ORDER BY created_at DESC LIMIT $` + fmt.Sprintf("%d", argIdx) + ` OFFSET $` + fmt.Sprintf("%d", argIdx+1)
+	args = append(args, limit, offset)
+	rows, err := r.pool.Query(ctx, dataQuery, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var result []*entity.RequestLog
+	for rows.Next() {
+		var l entity.RequestLog
+		err := rows.Scan(&l.ID, &l.UserID, &l.ApiKeyID, &l.ModelID, &l.ProviderID,
+			&l.ModelCode, &l.ProviderName, &l.InputTokens, &l.OutputTokens,
+			&l.LatencyMs, &l.CostAmount, &l.RequestStatus, &l.CreatedAt)
+		if err != nil {
+			return nil, 0, err
+		}
+		result = append(result, &l)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+	return result, total, nil
+}
+
+func (r *PostgresRequestLogRepository) AdminStats(ctx context.Context) (*AdminUsageStats, error) {
+	today := time.Now().Truncate(24 * time.Hour)
+
+	stats := &AdminUsageStats{}
+
+	// Basic stats
+	err := r.pool.QueryRow(ctx, `
+		SELECT
+			COALESCE(COUNT(*), 0),
+			COALESCE(SUM(input_tokens + output_tokens), 0),
+			COALESCE(SUM(cost_amount), 0),
+			COALESCE(SUM(CASE WHEN created_at >= $1 THEN 1 ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN created_at >= $1 THEN input_tokens + output_tokens ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN created_at >= $1 THEN cost_amount ELSE 0 END), 0)
+		FROM request_logs
+	`, today).Scan(&stats.TotalRequests, &stats.TotalTokens, &stats.TotalCost,
+		&stats.TodayRequests, &stats.TodayTokens, &stats.TodayCost)
+	if err != nil {
+		return nil, err
+	}
+
+	// Count users
+	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM users WHERE deleted_at IS NULL`).Scan(&stats.TotalUsers); err != nil {
+		return nil, err
+	}
+
+	// Count active users (have at least one log today)
+	if err := r.pool.QueryRow(ctx, `SELECT COUNT(DISTINCT user_id) FROM request_logs WHERE created_at >= $1`, today).Scan(&stats.ActiveUsers); err != nil {
+		return nil, err
+	}
+
+	// Cost by model
+	rows, err := r.pool.Query(ctx, `
+		SELECT model_code, COALESCE(SUM(cost_amount), 0), COUNT(*)
+		FROM request_logs
+		GROUP BY model_code
+		ORDER BY SUM(cost_amount) DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	stats.CostByModel = make([]CostByModelItem, 0)
+	for rows.Next() {
+		var item CostByModelItem
+		if err := rows.Scan(&item.ModelCode, &item.TotalCost, &item.TotalRequests); err != nil {
+			return nil, err
+		}
+		stats.CostByModel = append(stats.CostByModel, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+func (r *PostgresRequestLogRepository) AdminList(ctx context.Context, offset, limit int, filterUserID int64, startDate, endDate, status string) ([]*entity.RequestLog, int, error) {
+	args := []interface{}{}
+	whereClause := ""
+	argIdx := 1
+
+	if filterUserID > 0 {
+		whereClause += fmt.Sprintf(" WHERE l.user_id = $%d", argIdx)
+		args = append(args, filterUserID)
+		argIdx++
+	} else {
+		whereClause += " WHERE 1=1"
+	}
+
+	if status != "" {
+		whereClause += fmt.Sprintf(" AND l.request_status = $%d", argIdx)
+		args = append(args, status)
+		argIdx++
+	}
+	if startDate != "" {
+		whereClause += fmt.Sprintf(" AND l.created_at >= $%d::timestamp", argIdx)
+		args = append(args, startDate)
+		argIdx++
+	}
+	if endDate != "" {
+		whereClause += fmt.Sprintf(" AND l.created_at < ($%d::timestamp + INTERVAL '1 day')", argIdx)
+		args = append(args, endDate)
+		argIdx++
+	}
+
+	countQuery := `SELECT COUNT(*) FROM request_logs l` + whereClause
+	var total int
+	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	dataQuery := `SELECT l.` + logColumns + ` FROM request_logs l` + whereClause +
+		` ORDER BY l.created_at DESC LIMIT $` + fmt.Sprintf("%d", argIdx) + ` OFFSET $` + fmt.Sprintf("%d", argIdx+1)
+	args = append(args, limit, offset)
+
+	rows, err := r.pool.Query(ctx, dataQuery, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var result []*entity.RequestLog
+	for rows.Next() {
+		var l entity.RequestLog
+		err := rows.Scan(&l.ID, &l.UserID, &l.ApiKeyID, &l.ModelID, &l.ProviderID,
+			&l.ModelCode, &l.ProviderName, &l.InputTokens, &l.OutputTokens,
+			&l.LatencyMs, &l.CostAmount, &l.RequestStatus, &l.CreatedAt)
+		if err != nil {
+			return nil, 0, err
+		}
+		result = append(result, &l)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+	return result, total, nil
 }

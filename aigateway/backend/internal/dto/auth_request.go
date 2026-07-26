@@ -15,6 +15,17 @@ type AuthResponse struct {
 	UserID       int64  `json:"userId"`
 	Email        string `json:"email"`
 	Nickname     string `json:"nickname"`
+	Role         string `json:"role"`
+	QuotaBalance float64 `json:"quotaBalance"`
 	AccessToken  string `json:"accessToken"`
 	RefreshToken string `json:"refreshToken,omitempty"`
+}
+
+type ProfileResponse struct {
+	UserID       int64    `json:"userId"`
+	Email        string   `json:"email"`
+	Nickname     string   `json:"nickname"`
+	Role         string   `json:"role"`
+	QuotaBalance float64  `json:"quotaBalance"`
+	Permissions  []string `json:"permissions"`
 }

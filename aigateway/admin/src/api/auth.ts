@@ -4,6 +4,8 @@ export interface AuthResponse {
   userId: number
   email: string
   nickname: string
+  role?: string
+  quotaBalance?: number
   accessToken: string
   refreshToken?: string
 }
@@ -19,6 +21,15 @@ export interface LoginRequest {
   password: string
 }
 
+export interface ProfileResponse {
+  userId: number
+  email: string
+  nickname: string
+  role?: string
+  quotaBalance?: number
+  permissions?: string[]
+}
+
 export async function registerApi(data: RegisterRequest): Promise<AuthResponse> {
   const res = await httpClient.post('/api/v1/auth/register', data)
   return res.data.data
@@ -29,7 +40,7 @@ export async function loginApi(data: LoginRequest): Promise<AuthResponse> {
   return res.data.data
 }
 
-export async function getProfileApi(): Promise<{ userId: number; email: string; nickname: string }> {
+export async function getProfileApi(): Promise<ProfileResponse> {
   const res = await httpClient.get('/api/v1/auth/profile')
   return res.data.data
 }

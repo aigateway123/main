@@ -12,4 +12,6 @@ var (
 	ErrProviderNotFound   = errors.New("provider not found")
 	ErrModelNotFound      = errors.New("model not found")
 	ErrBindingNotFound    = errors.New("binding not found")
+	ErrRoleNotFound       = errors.New("role not found")
+	ErrPricingNotFound    = errors.New("pricing not found")
 )

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
 
 	"aigateway/backend/internal/dto"
 	"aigateway/backend/internal/entity"
@@ -14,6 +15,7 @@ type ModelService struct {
 	modelRepo   repository.ModelRepository
 	bindingRepo repository.ModelBindingRepository
 	providerRepo repository.ProviderRepository
+	pricingRepo repository.ModelPricingRepository
 	logger      *slog.Logger
 }
 
@@ -21,13 +23,15 @@ func NewModelService(
 	modelRepo repository.ModelRepository,
 	bindingRepo repository.ModelBindingRepository,
 	providerRepo repository.ProviderRepository,
+	pricingRepo repository.ModelPricingRepository,
 	logger *slog.Logger,
 ) *ModelService {
 	return &ModelService{
-		modelRepo:   modelRepo,
-		bindingRepo: bindingRepo,
+		modelRepo:    modelRepo,
+		bindingRepo:  bindingRepo,
 		providerRepo: providerRepo,
-		logger:      logger,
+		pricingRepo:  pricingRepo,
+		logger:       logger,
 	}
 }
 
@@ -43,6 +47,21 @@ func (s *ModelService) Create(ctx context.Context, req *dto.CreateModelRequest) 
 			return nil, ErrDuplicateModelCode
 		}
 		return nil, ErrInternal
+	}
+
+	// Auto-create default pricing for the new model
+	defaultPricing := &entity.ModelPricing{
+		ModelID:             m.ID,
+		PricingType:         "flat",
+		PricePerInputToken:  0,
+		PricePerOutputToken: 0,
+		Currency:            "USD",
+		PricingStatus:       "pending",
+		UpdatedAt:           time.Now(),
+	}
+	if _, err := s.pricingRepo.Upsert(ctx, defaultPricing); err != nil {
+		s.logger.Error("failed to create default pricing for model", "modelID", m.ID, "error", err)
+		// Non-fatal: model is already created, pricing can be configured later
 	}
 
 	return toModelResponse(m), nil
@@ -148,6 +167,7 @@ func toModelResponse(m *entity.Model) *dto.ModelResponse {
 		ModelCode:   m.ModelCode,
 		ModelStatus: m.ModelStatus,
 		CreatedAt:   m.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		CreatedTime: m.CreatedAt.Unix(),
 		UpdatedAt:   m.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 }

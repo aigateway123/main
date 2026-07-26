@@ -9,6 +9,8 @@ type User struct {
 	Nickname       string     `json:"nickname"`
 	PasswordHash   string     `json:"-"`
 	UserStatus     string     `json:"userStatus"`
+	RoleID         *int64     `json:"roleId"`
+	QuotaBalance   float64    `json:"quotaBalance"`
 	CreatedAt      time.Time  `json:"createdAt"`
 	UpdatedAt      time.Time  `json:"updatedAt"`
 	DeletedAt      *time.Time `json:"deletedAt,omitempty"`

@@ -20,34 +20,7 @@ func NewAuthController(svc *service.AuthService, logger *slog.Logger) *AuthContr
 }
 
 func (c *AuthController) HandleRegister(w http.ResponseWriter, r *http.Request) {
-	var req dto.RegisterRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "VALID001", "invalid request body")
-		return
-	}
-
-	if req.Email == "" || req.Password == "" {
-		writeError(w, http.StatusBadRequest, "VALID001", "email and password are required")
-		return
-	}
-
-	result, err := c.svc.Register(r.Context(), &req)
-	if err != nil {
-		c.logger.Error("register failed", "error", err)
-		switch err {
-		case service.ErrEmailExists:
-			writeError(w, http.StatusConflict, "AUTH005", "email already exists")
-		default:
-			writeError(w, http.StatusInternalServerError, "GATEWAY001", "registration failed")
-		}
-		return
-	}
-
-	writeJSON(w, http.StatusCreated, types.APIResponse[*dto.AuthResponse]{
-		Code:    0,
-		Message: "success",
-		Data:    result,
-	})
+	writeError(w, http.StatusGone, "AUTH007", "Registration is no longer supported. Please contact admin.")
 }
 
 func (c *AuthController) HandleLogin(w http.ResponseWriter, r *http.Request) {
@@ -66,8 +39,10 @@ func (c *AuthController) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		c.logger.Error("login failed", "error", err)
 		switch err {
-		case service.ErrInvalidCredentials, service.ErrUserDisabled:
-			writeError(w, http.StatusUnauthorized, "AUTH001", "invalid email or password")
+		case service.ErrInvalidCredentials:
+			writeError(w, http.StatusUnauthorized, "AUTH006", "invalid email or password")
+		case service.ErrUserDisabled:
+			writeError(w, http.StatusUnauthorized, "AUTH003", "account is disabled")
 		default:
 			writeError(w, http.StatusInternalServerError, "GATEWAY001", "login failed")
 		}
@@ -84,23 +59,24 @@ func (c *AuthController) HandleLogin(w http.ResponseWriter, r *http.Request) {
 func (c *AuthController) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(ctxKeyUserID).(int64)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "AUTH002", "unauthorized")
+		writeError(w, http.StatusUnauthorized, "AUTH001", "missing authentication")
 		return
 	}
 
-	user, err := c.svc.GetUser(r.Context(), userID)
+	profile, err := c.svc.GetProfile(r.Context(), userID)
 	if err != nil {
-		writeError(w, http.StatusNotFound, "AUTH002", "user not found")
+		switch err {
+		case service.ErrUserDisabled:
+			writeError(w, http.StatusUnauthorized, "AUTH003", "account is disabled")
+		default:
+			writeError(w, http.StatusNotFound, "AUTH002", "user not found")
+		}
 		return
 	}
 
-	writeJSON(w, http.StatusOK, types.APIResponse[map[string]interface{}]{
+	writeJSON(w, http.StatusOK, types.APIResponse[*dto.ProfileResponse]{
 		Code:    0,
 		Message: "success",
-		Data: map[string]interface{}{
-			"userId":   user.ID,
-			"email":    user.Email,
-			"nickname": user.Nickname,
-		},
+		Data:    profile,
 	})
 }
