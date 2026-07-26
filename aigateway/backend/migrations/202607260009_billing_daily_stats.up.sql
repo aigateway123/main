@@ -30,8 +30,8 @@ CREATE INDEX IF NOT EXISTS idx_bds_date_model ON billing_daily_stats(stat_date, 
 -- ============================================================
 -- 2. Add request_logs composite indexes for report queries
 -- ============================================================
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_rl_user_date ON request_logs(user_id, created_at);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_rl_model_date ON request_logs(model_code, created_at);
+CREATE INDEX IF NOT EXISTS idx_rl_user_date ON request_logs(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_rl_model_date ON request_logs(model_code, created_at);
 
 -- ============================================================
 -- 3. Add new permission code admin:billing:report
