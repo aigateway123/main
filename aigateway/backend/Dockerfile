@@ -1,6 +1,8 @@
 # Stage 1: Build
 FROM golang:1.22-alpine AS builder
 ARG SERVICE_NAME=gateway
+ARG GOPROXY=https://goproxy.cn,direct
+ENV GOPROXY=${GOPROXY}
 WORKDIR /app
 COPY . .
 RUN go mod download
