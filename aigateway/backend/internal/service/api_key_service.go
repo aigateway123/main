@@ -59,7 +59,7 @@ func (s *ApiKeyService) Create(ctx context.Context, userID int64, req *dto.Creat
 		FullKey:         rawKey,
 		PermissionScope: key.PermissionScope,
 		KeyStatus:       key.KeyStatus,
-		CreatedAt:       key.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		CreatedAt:       key.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}, nil
 }
 
@@ -77,7 +77,7 @@ func (s *ApiKeyService) ListByUser(ctx context.Context, userID int64) ([]*dto.Ap
 			KeyPrefix:       key.KeyPrefix,
 			PermissionScope: key.PermissionScope,
 			KeyStatus:       key.KeyStatus,
-			CreatedAt:       key.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			CreatedAt:       key.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		})
 	}
 	return result, nil

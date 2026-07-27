@@ -71,7 +71,7 @@ func (s *PricingService) GetByModelID(ctx context.Context, modelID int64) (*dto.
 			PricingType:   "flat",
 			Currency:      "USD",
 			PricingStatus: "pending",
-			UpdatedAt:     m.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			UpdatedAt:     m.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		}, nil
 	}
 	return toAdminPricingItem(m, p), nil
@@ -127,7 +127,7 @@ func toAdminPricingItem(m *entity.Model, p *entity.ModelPricing) *dto.AdminPrici
 		OffpeakPricePerInput:  p.OffpeakPricePerInput,
 		OffpeakPricePerOutput: p.OffpeakPricePerOutput,
 		PricingStatus:         p.PricingStatus,
-		UpdatedAt:             p.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:             p.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }
 

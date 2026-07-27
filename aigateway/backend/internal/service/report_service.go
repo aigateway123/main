@@ -287,7 +287,7 @@ func (s *ReportService) GetUserUsageDetail(ctx context.Context, userID int64, pa
 	items := make([]*dto.UsageDetailItem, 0, len(logs))
 	for _, l := range logs {
 		items = append(items, &dto.UsageDetailItem{
-			Timestamp:    l.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			Timestamp:    l.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 			ModelName:    l.ModelCode,
 			InputTokens:  l.InputTokens,
 			OutputTokens: l.OutputTokens,

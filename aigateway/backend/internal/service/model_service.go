@@ -166,8 +166,8 @@ func toModelResponse(m *entity.Model) *dto.ModelResponse {
 		ModelName:   m.ModelName,
 		ModelCode:   m.ModelCode,
 		ModelStatus: m.ModelStatus,
-		CreatedAt:   m.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		CreatedAt:   m.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		CreatedTime: m.CreatedAt.Unix(),
-		UpdatedAt:   m.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:   m.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }

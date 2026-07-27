@@ -61,7 +61,7 @@ func (s *AdminUserService) ListStudents(ctx context.Context, page int, pageSize 
 			Role:         roleName,
 			UserStatus:   u.UserStatus,
 			QuotaBalance: u.QuotaBalance,
-			CreatedAt:    u.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			CreatedAt:    u.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		})
 	}
 	return result, total, nil
@@ -116,7 +116,7 @@ func (s *AdminUserService) CreateStudent(ctx context.Context, req *dto.AdminCrea
 		Role:         "Student",
 		UserStatus:   user.UserStatus,
 		QuotaBalance: user.QuotaBalance,
-		CreatedAt:    user.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		CreatedAt:    user.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}, nil
 }
 
@@ -176,8 +176,8 @@ func (s *AdminUserService) GetStudentDetail(ctx context.Context, userID int64) (
 		QuotaBalance: u.QuotaBalance,
 		TotalSpent:   totalSpent,
 		TotalRequests: totalRequests,
-		CreatedAt:    u.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt:    u.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		CreatedAt:    u.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:    u.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}, nil
 }
 
@@ -215,7 +215,7 @@ func (s *AdminUserService) GetStudentModels(ctx context.Context, userID int64) (
 	allModels := make([]*dto.AdminModelWithAuthFlag, 0, len(models))
 	authorizedModels := make([]*dto.AdminAuthorizedModelItem, 0, len(authorizedIDs))
 
-	now := time.Now().Format("2006-01-02T15:04:05Z")
+	now := time.Now().Format("2006-01-02T15:04:05Z07:00")
 	for _, m := range models {
 		_, ok := authorizedSet[m.ID]
 		allModels = append(allModels, &dto.AdminModelWithAuthFlag{

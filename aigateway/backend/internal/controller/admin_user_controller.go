@@ -183,7 +183,7 @@ func (c *AdminUserController) HandleGetQuota(w http.ResponseWriter, r *http.Requ
 			"id":        lastTx.ID,
 			"amount":    lastTx.Amount,
 			"type":      lastTx.Type,
-			"createdAt": lastTx.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			"createdAt": lastTx.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		}
 	}
 

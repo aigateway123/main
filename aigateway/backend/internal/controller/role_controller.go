@@ -38,7 +38,7 @@ func (c *RoleController) HandleListRoles(w http.ResponseWriter, r *http.Request)
 			"description":     role.Description,
 			"isSystem":        role.IsSystem,
 			"permissionCount": permCount,
-			"createdAt":       role.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			"createdAt":       role.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		})
 	}
 
@@ -86,7 +86,7 @@ func (c *RoleController) HandleCreateRole(w http.ResponseWriter, r *http.Request
 			"name":        role.Name,
 			"description": role.Description,
 			"isSystem":    role.IsSystem,
-			"createdAt":   role.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			"createdAt":   role.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		},
 	})
 }
