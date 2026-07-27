@@ -7,6 +7,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-nova_ai_gateway}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      TZ: Asia/Shanghai
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -53,6 +54,7 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-nova_ai_gateway}?sslmode=disable
       REDIS_URL: redis:6379
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
+      TZ: Asia/Shanghai
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,6 +76,8 @@ services:
     restart: unless-stopped
     ports:
       - "${ADMIN_PORT:-8088}:80"
+    environment:
+      TZ: Asia/Shanghai
     depends_on:
       gateway:
         condition: service_healthy
