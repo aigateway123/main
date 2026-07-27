@@ -8,7 +8,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server ./cmd/${SERVICE_NAME}
 
 # Stage 2: Run
 FROM alpine:3.19
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates tzdata
+ENV TZ=Asia/Shanghai
 WORKDIR /app
 COPY --from=builder /app/server .
 COPY --from=builder /app/migrations ./migrations
