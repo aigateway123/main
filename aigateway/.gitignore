@@ -19,6 +19,10 @@ admin/node_modules/
 admin/dist/
 admin/.vite/
 admin/coverage/
+portal/node_modules/
+portal/dist/
+portal/.vite/
+portal/coverage/
 
 # Logs
 *.log
