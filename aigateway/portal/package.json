@@ -1,0 +1,28 @@
+{
+  "name": "nova-ai-gateway-portal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3001",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "autoprefixer": "^10.5.4",
+    "lucide-vue-next": "^0.577.0",
+    "postcss": "^8.5.23",
+    "tailwindcss": "^3.4.19",
+    "tailwindcss-animate": "^1.0.7",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.20",
+    "@types/node": "^22.10.1",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "typescript": "^5.7.3",
+    "vite": "^6.3.5",
+    "vue-tsc": "^2.2.2"
+  }
+}

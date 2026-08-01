@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import {
   listModelsApi, createModelApi, updateModelApi, deleteModelApi,
   bindProviderApi, getModelApi, type ModelResponse, type ModelDetailResponse,
+  type UpdateModelRequest,
 } from '@/api/models'
 import { listProvidersApi, type ProviderResponse } from '@/api/providers'
 
@@ -12,14 +13,17 @@ const modelDetails = ref<Record<number, ModelDetailResponse>>({})
 const loading = ref(false)
 const showForm = ref(false)
 const editingId = ref<number | null>(null)
-const form = ref({ modelName: '', modelCode: '', modelStatus: 'active' })
-const bindForm = ref({ providerId: 0, weight: 100 })
+const form = ref({ modelName: '', modelCode: '', modelStatus: 'active', modelType: 'chat' })
+const bindForm = ref({ providerId: 0, weight: 100, apiPathOverride: '' })
 const showBind = ref(false)
+
+// 模型类型筛选
+const filterModelType = ref('')
 
 async function load() {
   loading.value = true
   try {
-    models.value = await listModelsApi()
+    models.value = await listModelsApi(filterModelType.value || undefined)
     providers.value = await listProvidersApi()
     const details: Record<number, ModelDetailResponse> = {}
     for (const m of models.value) {
@@ -30,31 +34,50 @@ async function load() {
 }
 
 function openCreate() {
-  editingId.value = null; form.value = { modelName: '', modelCode: '', modelStatus: 'active' }; showForm.value = true
+  editingId.value = null; form.value = { modelName: '', modelCode: '', modelStatus: 'active', modelType: 'chat' }; showForm.value = true
 }
 function openEdit(m: ModelResponse) {
-  editingId.value = m.id; form.value = { modelName: m.modelName, modelCode: m.modelCode, modelStatus: m.modelStatus }; showForm.value = true
+  editingId.value = m.id; form.value = { modelName: m.modelName, modelCode: m.modelCode, modelStatus: m.modelStatus, modelType: m.modelType }; showForm.value = true
 }
 async function handleSave() {
   try {
-    if (editingId.value) { await updateModelApi(editingId.value, form.value) }
-    else { await createModelApi(form.value) }
+    if (editingId.value) {
+      const payload: UpdateModelRequest = { modelName: form.value.modelName, modelStatus: form.value.modelStatus }
+      await updateModelApi(editingId.value, payload)
+    } else {
+      await createModelApi({ modelName: form.value.modelName, modelCode: form.value.modelCode, modelType: form.value.modelType })
+    }
     showForm.value = false; await load()
-  } catch (e: any) { alert(e?.response?.data?.message || '保存失败') }
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { message?: string } } }
+    alert(err?.response?.data?.message || '保存失败')
+  }
 }
 function handleBind(modelId: number) {
-  bindForm.value = { providerId: 0, weight: 100 }; showBind.value = true; editingId.value = modelId
+  bindForm.value = { providerId: 0, weight: 100, apiPathOverride: '' }; showBind.value = true; editingId.value = modelId
 }
 async function confirmBind() {
   if (!bindForm.value.providerId) return
   try {
-    await bindProviderApi(editingId.value!, { providerId: bindForm.value.providerId, weight: bindForm.value.weight })
+    await bindProviderApi(editingId.value!, {
+      providerId: bindForm.value.providerId,
+      weight: bindForm.value.weight,
+      ...(bindForm.value.apiPathOverride ? { apiPathOverride: bindForm.value.apiPathOverride } : {}),
+    })
     showBind.value = false; await load()
   } catch { alert('绑定失败') }
 }
 async function handleDelete(id: number, name: string) {
   if (!confirm(`确定删除 Model「${name}」？`)) return
   try { await deleteModelApi(id); await load() } catch { alert('删除失败') }
+}
+
+function getModelTypeTag(type?: string) {
+  switch (type) {
+    case 'image': return { label: '🖼️ 图片', cls: 'bg-purple-50 text-purple-700 border-purple-200/60' }
+    case 'embedding': return { label: '🧩 向量', cls: 'bg-amber-50 text-amber-700 border-amber-200/60' }
+    default: return { label: '💬 对话', cls: 'bg-blue-50 text-blue-700 border-blue-200/60' }
+  }
 }
 
 onMounted(load)
@@ -84,6 +107,21 @@ onMounted(load)
       </button>
     </div>
 
+    <!-- Filter Bar -->
+    <div class="bg-white rounded-lg border border-border p-4">
+      <div class="flex items-center gap-3">
+        <label class="text-xs font-semibold text-text-primary">模型类型：</label>
+        <select v-model="filterModelType"
+          class="h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary w-40"
+          @change="load">
+          <option value="">全部</option>
+          <option value="chat">💬 对话</option>
+          <option value="image">🖼️ 图片</option>
+          <option value="embedding">🧩 向量</option>
+        </select>
+      </div>
+    </div>
+
     <!-- Form Modal -->
     <Teleport to="body">
       <div v-if="showForm" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4" @click.self="showForm = false">
@@ -102,8 +140,18 @@ onMounted(load)
             </div>
             <div class="space-y-1.5">
               <label class="text-xs font-semibold text-text-primary">编码</label>
-              <input v-model="form.modelCode" type="text" placeholder="gpt-4o-mini"
-                class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
+              <input v-model="form.modelCode" type="text" placeholder="gpt-4o-mini" :disabled="!!editingId"
+                class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary disabled:bg-slate-50 disabled:text-text-secondary" />
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-xs font-semibold text-text-primary">模型类型</label>
+              <select v-model="form.modelType" :disabled="!!editingId"
+                class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary disabled:bg-slate-50 disabled:text-text-secondary">
+                <option value="chat">💬 文本对话</option>
+                <option value="image">🖼️ 图片生成</option>
+                <option value="embedding">🧩 向量嵌入</option>
+              </select>
+              <p v-if="editingId" class="text-[10px] text-text-secondary mt-0.5">创建后不可修改模型类型</p>
             </div>
             <div v-if="editingId" class="space-y-1.5">
               <label class="text-xs font-semibold text-text-primary">状态</label>
@@ -149,6 +197,12 @@ onMounted(load)
               <input v-model.number="bindForm.weight" type="number"
                 class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
             </div>
+            <div class="space-y-1.5">
+              <label class="text-xs font-semibold text-text-primary">API 路径覆盖 <span class="text-text-secondary font-normal">(可选)</span></label>
+              <input v-model="bindForm.apiPathOverride" type="text" placeholder="如 /v1/images/generations"
+                class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
+              <p class="text-[10px] text-text-secondary mt-0.5">为空则使用 Provider 默认 API 路径</p>
+            </div>
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-border">
               <button type="button"
                 class="h-9 px-4 border border-[#cbd5e1] text-text-btn bg-white hover:bg-slate-50 font-medium text-xs rounded-btn transition-colors cursor-pointer"
@@ -168,7 +222,7 @@ onMounted(load)
         <table class="w-full text-left text-xs border-collapse">
           <thead>
             <tr class="bg-[#f8f9fa] border-b border-border text-text-secondary font-semibold h-10">
-              <th class="px-4 py-2">名称</th><th class="px-4 py-2">编码</th><th class="px-4 py-2">状态</th><th class="px-4 py-2">绑定的 Provider</th><th class="px-4 py-2">操作</th>
+              <th class="px-4 py-2">名称</th><th class="px-4 py-2">编码</th><th class="px-4 py-2">类型</th><th class="px-4 py-2">状态</th><th class="px-4 py-2">绑定的 Provider</th><th class="px-4 py-2">操作</th>
             </tr>
           </thead>
           <tbody v-if="!loading && models.length > 0" class="divide-y divide-border">
@@ -180,6 +234,15 @@ onMounted(load)
               <td class="px-4 py-2 font-bold text-text-primary">{{ m.modelName }}</td>
               <td class="px-4 py-2">
                 <code class="bg-[#f8f9fa] px-1.5 py-0.5 rounded text-[11px]">{{ m.modelCode }}</code>
+              </td>
+              <td class="px-4 py-2">
+                <span
+                  v-if="m.modelType"
+                  :class="['inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border', getModelTypeTag(m.modelType).cls]"
+                >
+                  {{ getModelTypeTag(m.modelType).label }}
+                </span>
+                <span v-else class="text-text-secondary">—</span>
               </td>
               <td class="px-4 py-2">
                 <span

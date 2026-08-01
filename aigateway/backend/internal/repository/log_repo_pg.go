@@ -24,21 +24,32 @@ func NewPostgresRequestLogRepository(pool *pgxpool.Pool) *PostgresRequestLogRepo
 
 const (
 	logColumns = "id, user_id, api_key_id, model_id, provider_id, model_code, provider_name, " +
-		"input_tokens, output_tokens, latency_ms, cost_amount, request_status, created_at"
+		"input_tokens, output_tokens, latency_ms, cost_amount, request_status, model_type, usage_unit, usage_amount, created_at"
 )
 
 func (r *PostgresRequestLogRepository) Create(ctx context.Context, log *entity.RequestLog) error {
 	query := `INSERT INTO request_logs
 		(user_id, api_key_id, model_id, provider_id, model_code, provider_name,
-		 input_tokens, output_tokens, latency_ms, cost_amount, request_status, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		 input_tokens, output_tokens, latency_ms, cost_amount, request_status,
+		 model_type, usage_unit, usage_amount, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 		RETURNING id, created_at`
+
+	modelType := log.ModelType
+	if modelType == "" {
+		modelType = "chat"
+	}
+	usageUnit := log.UsageUnit
+	if usageUnit == "" {
+		usageUnit = "token"
+	}
 
 	now := time.Now()
 	err := r.pool.QueryRow(ctx, query,
 		log.UserID, log.ApiKeyID, log.ModelID, log.ProviderID,
 		log.ModelCode, log.ProviderName, log.InputTokens, log.OutputTokens,
-		log.LatencyMs, log.CostAmount, log.RequestStatus, now,
+		log.LatencyMs, log.CostAmount, log.RequestStatus,
+		modelType, usageUnit, log.UsageAmount, now,
 	).Scan(&log.ID, &log.CreatedAt)
 	if err != nil {
 		return err
@@ -72,7 +83,8 @@ func (r *PostgresRequestLogRepository) List(ctx context.Context, userID int64, o
 		err := rows.Scan(
 			&l.ID, &l.UserID, &l.ApiKeyID, &l.ModelID, &l.ProviderID,
 			&l.ModelCode, &l.ProviderName, &l.InputTokens, &l.OutputTokens,
-			&l.LatencyMs, &l.CostAmount, &l.RequestStatus, &l.CreatedAt,
+			&l.LatencyMs, &l.CostAmount, &l.RequestStatus,
+			&l.ModelType, &l.UsageUnit, &l.UsageAmount, &l.CreatedAt,
 		)
 		if err != nil {
 			return nil, 0, err
@@ -113,7 +125,8 @@ func (r *PostgresRequestLogRepository) Recent(ctx context.Context, userID int64,
 		err := rows.Scan(
 			&l.ID, &l.UserID, &l.ApiKeyID, &l.ModelID, &l.ProviderID,
 			&l.ModelCode, &l.ProviderName, &l.InputTokens, &l.OutputTokens,
-			&l.LatencyMs, &l.CostAmount, &l.RequestStatus, &l.CreatedAt,
+			&l.LatencyMs, &l.CostAmount, &l.RequestStatus,
+			&l.ModelType, &l.UsageUnit, &l.UsageAmount, &l.CreatedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -192,7 +205,8 @@ func (r *PostgresRequestLogRepository) ListByUserIDFiltered(ctx context.Context,
 		var l entity.RequestLog
 		err := rows.Scan(&l.ID, &l.UserID, &l.ApiKeyID, &l.ModelID, &l.ProviderID,
 			&l.ModelCode, &l.ProviderName, &l.InputTokens, &l.OutputTokens,
-			&l.LatencyMs, &l.CostAmount, &l.RequestStatus, &l.CreatedAt)
+			&l.LatencyMs, &l.CostAmount, &l.RequestStatus,
+			&l.ModelType, &l.UsageUnit, &l.UsageAmount, &l.CreatedAt)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -312,7 +326,8 @@ func (r *PostgresRequestLogRepository) AdminList(ctx context.Context, offset, li
 		var l entity.RequestLog
 		err := rows.Scan(&l.ID, &l.UserID, &l.ApiKeyID, &l.ModelID, &l.ProviderID,
 			&l.ModelCode, &l.ProviderName, &l.InputTokens, &l.OutputTokens,
-			&l.LatencyMs, &l.CostAmount, &l.RequestStatus, &l.CreatedAt)
+			&l.LatencyMs, &l.CostAmount, &l.RequestStatus,
+			&l.ModelType, &l.UsageUnit, &l.UsageAmount, &l.CreatedAt)
 		if err != nil {
 			return nil, 0, err
 		}

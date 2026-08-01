@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"aigateway/backend/internal/entity"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserRepository interface {
@@ -22,11 +24,34 @@ type InMemoryUserRepository struct {
 }
 
 func NewInMemoryUserRepository() *InMemoryUserRepository {
-	return &InMemoryUserRepository{
+	r := &InMemoryUserRepository{
 		users:  make(map[int64]*entity.User),
 		byMail: make(map[string]*entity.User),
 		nextID: 1,
 	}
+
+	// Seed default admin user for development
+	hash, err := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
+	if err == nil {
+		now := time.Now()
+		adminRoleID := int64(1)
+		adminUser := &entity.User{
+			ID:           r.nextID,
+			Email:        "admin@test.com",
+			Nickname:     "Admin",
+			PasswordHash: string(hash),
+			UserStatus:   "active",
+			RoleID:       &adminRoleID,
+			QuotaBalance: 1000000,
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		}
+		r.nextID++
+		r.users[adminUser.ID] = adminUser
+		r.byMail[adminUser.Email] = adminUser
+	}
+
+	return r
 }
 
 func (r *InMemoryUserRepository) Create(_ context.Context, user *entity.User) error {

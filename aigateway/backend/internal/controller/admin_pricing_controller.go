@@ -62,6 +62,14 @@ func (c *AdminPricingController) HandleGet(w http.ResponseWriter, r *http.Reques
 	})
 }
 
+func (c *AdminPricingController) HandleGetTemplates(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, types.APIResponse[[]*dto.PricingTemplate]{
+		Code:    0,
+		Message: "success",
+		Data:    []*dto.PricingTemplate{},
+	})
+}
+
 func (c *AdminPricingController) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("modelId")
 	modelID, err := strconv.ParseInt(idStr, 10, 64)

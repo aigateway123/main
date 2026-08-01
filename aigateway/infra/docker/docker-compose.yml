@@ -80,6 +80,18 @@ services:
     networks:
       - nova-network
 
+  portal:
+    build:
+      context: ../../portal
+      args:
+        VITE_ADMIN_URL: ${VITE_ADMIN_URL:-http://101.200.198.113:8088}
+    container_name: nova-ai-gateway-portal
+    restart: unless-stopped
+    ports:
+      - "${PORTAL_PORT:-8082}:80"
+    networks:
+      - nova-network
+
 volumes:
   postgres_data:
   redis_data:

@@ -24,11 +24,28 @@ type InMemoryProviderRepository struct {
 }
 
 func NewInMemoryProviderRepository() *InMemoryProviderRepository {
-	return &InMemoryProviderRepository{
+	r := &InMemoryProviderRepository{
 		items:  make(map[int64]*entity.Provider),
 		byName: make(map[string]*entity.Provider),
 		nextID: 1,
 	}
+
+	// Seed default providers for development
+	now := time.Now()
+	seedProviders := []*entity.Provider{
+		{ProviderName: "OpenAI", BaseURL: "https://api.openai.com", APIPath: "/v1/chat/completions", APIKeyRef: "OPENAI_API_KEY", Priority: 100, Weight: 100, IsEnabledFlag: true, CreatedAt: now, UpdatedAt: now},
+		{ProviderName: "DeepSeek", BaseURL: "https://api.deepseek.com", APIPath: "/v1/chat/completions", APIKeyRef: "DEEPSEEK_API_KEY", Priority: 90, Weight: 100, IsEnabledFlag: true, CreatedAt: now, UpdatedAt: now},
+		{ProviderName: "GLM", BaseURL: "https://open.bigmodel.cn/api/paas/v4", APIPath: "/v1/chat/completions", APIKeyRef: "GLM_API_KEY", Priority: 80, Weight: 100, IsEnabledFlag: true, CreatedAt: now, UpdatedAt: now},
+		{ProviderName: "Qwen", BaseURL: "https://dashscope.aliyuncs.com/compatible-mode", APIPath: "/v1/chat/completions", APIKeyRef: "QWEN_API_KEY", Priority: 70, Weight: 100, IsEnabledFlag: true, CreatedAt: now, UpdatedAt: now},
+	}
+	for _, p := range seedProviders {
+		p.ID = r.nextID
+		r.nextID++
+		r.items[p.ID] = p
+		r.byName[p.ProviderName] = p
+	}
+
+	return r
 }
 
 func (r *InMemoryProviderRepository) Create(_ context.Context, p *entity.Provider) error {

@@ -110,7 +110,7 @@ func (s *ReportService) GetByModel(ctx context.Context, startDate, endDate time.
 	}
 
 	// Enrich with model names.
-	models, err := s.modelRepo.List(ctx)
+	models, err := s.modelRepo.List(ctx, "")
 	if err != nil {
 		return nil, fmt.Errorf("list models: %w", err)
 	}

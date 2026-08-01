@@ -19,14 +19,14 @@ func NewPostgresModelBindingRepository(pool *pgxpool.Pool) *PostgresModelBinding
 }
 
 const (
-	bindingColumns = "id, model_id, provider_id, weight, binding_status, created_at, updated_at, deleted_at"
+	bindingColumns = "id, model_id, provider_id, weight, binding_status, api_path_override, created_at, updated_at, deleted_at"
 )
 
 func (r *PostgresModelBindingRepository) scanBinding(row pgx.Row) (*entity.ModelProviderBinding, error) {
 	var b entity.ModelProviderBinding
 	err := row.Scan(
 		&b.ID, &b.ModelID, &b.ProviderID, &b.Weight,
-		&b.BindingStatus, &b.CreatedAt, &b.UpdatedAt, &b.DeletedAt,
+		&b.BindingStatus, &b.APIPathOverride, &b.CreatedAt, &b.UpdatedAt, &b.DeletedAt,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -38,13 +38,13 @@ func (r *PostgresModelBindingRepository) scanBinding(row pgx.Row) (*entity.Model
 }
 
 func (r *PostgresModelBindingRepository) Create(ctx context.Context, b *entity.ModelProviderBinding) error {
-	query := `INSERT INTO model_provider_bindings (model_id, provider_id, weight, binding_status, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+	query := `INSERT INTO model_provider_bindings (model_id, provider_id, weight, binding_status, api_path_override, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id, created_at, updated_at`
 
 	now := time.Now()
 	err := r.pool.QueryRow(ctx, query,
-		b.ModelID, b.ProviderID, b.Weight, b.BindingStatus, now, now,
+		b.ModelID, b.ProviderID, b.Weight, b.BindingStatus, b.APIPathOverride, now, now,
 	).Scan(&b.ID, &b.CreatedAt, &b.UpdatedAt)
 	if err != nil {
 		return err
@@ -66,7 +66,7 @@ func (r *PostgresModelBindingRepository) ListByModelID(ctx context.Context, mode
 		var b entity.ModelProviderBinding
 		err := rows.Scan(
 			&b.ID, &b.ModelID, &b.ProviderID, &b.Weight,
-			&b.BindingStatus, &b.CreatedAt, &b.UpdatedAt, &b.DeletedAt,
+			&b.BindingStatus, &b.APIPathOverride, &b.CreatedAt, &b.UpdatedAt, &b.DeletedAt,
 		)
 		if err != nil {
 			return nil, err

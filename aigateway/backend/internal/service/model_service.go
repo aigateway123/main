@@ -36,9 +36,15 @@ func NewModelService(
 }
 
 func (s *ModelService) Create(ctx context.Context, req *dto.CreateModelRequest) (*dto.ModelResponse, error) {
+	modelType := "chat"
+	if req.ModelType != nil {
+		modelType = *req.ModelType
+	}
+
 	m := &entity.Model{
 		ModelName:   req.ModelName,
 		ModelCode:   req.ModelCode,
+		ModelType:   modelType,
 		ModelStatus: "active",
 	}
 
@@ -84,7 +90,9 @@ func (s *ModelService) GetByID(ctx context.Context, id int64) (*dto.ModelDetailR
 		if err != nil {
 			continue
 		}
-		providers = append(providers, toProviderResponse(p))
+		pr := toProviderResponse(p)
+		pr.APIPathOverride = b.APIPathOverride
+		providers = append(providers, pr)
 	}
 
 	return &dto.ModelDetailResponse{
@@ -93,8 +101,8 @@ func (s *ModelService) GetByID(ctx context.Context, id int64) (*dto.ModelDetailR
 	}, nil
 }
 
-func (s *ModelService) List(ctx context.Context) ([]*dto.ModelResponse, error) {
-	items, err := s.modelRepo.List(ctx)
+func (s *ModelService) List(ctx context.Context, modelType string) ([]*dto.ModelResponse, error) {
+	items, err := s.modelRepo.List(ctx, modelType)
 	if err != nil {
 		return nil, ErrInternal
 	}
@@ -117,10 +125,16 @@ func (s *ModelService) Delete(ctx context.Context, id int64) error {
 }
 
 func (s *ModelService) Update(ctx context.Context, id int64, req *dto.UpdateModelRequest) (*dto.ModelResponse, error) {
+	modelType := "chat"
+	if req.ModelType != nil {
+		modelType = *req.ModelType
+	}
+
 	m := &entity.Model{
 		ID:          id,
 		ModelName:   req.ModelName,
 		ModelCode:   req.ModelCode,
+		ModelType:   modelType,
 		ModelStatus: req.ModelStatus,
 	}
 
@@ -147,10 +161,11 @@ func (s *ModelService) BindProvider(ctx context.Context, modelID int64, req *dto
 	}
 
 	binding := &entity.ModelProviderBinding{
-		ModelID:       modelID,
-		ProviderID:    req.ProviderID,
-		Weight:        req.Weight,
-		BindingStatus: "active",
+		ModelID:         modelID,
+		ProviderID:      req.ProviderID,
+		Weight:          req.Weight,
+		APIPathOverride: req.APIPathOverride,
+		BindingStatus:   "active",
 	}
 
 	return s.bindingRepo.Create(ctx, binding)
@@ -165,6 +180,7 @@ func toModelResponse(m *entity.Model) *dto.ModelResponse {
 		ID:          m.ID,
 		ModelName:   m.ModelName,
 		ModelCode:   m.ModelCode,
+		ModelType:   m.ModelType,
 		ModelStatus: m.ModelStatus,
 		CreatedAt:   m.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		CreatedTime: m.CreatedAt.Unix(),

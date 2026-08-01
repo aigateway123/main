@@ -13,6 +13,7 @@ type UsageService struct {
 	logRepo    repository.RequestLogRepository
 	keyRepo    repository.ApiKeyRepository
 	providerRepo repository.ProviderRepository
+	policySvc  *PolicyService
 	logger     *slog.Logger
 }
 
@@ -20,12 +21,14 @@ func NewUsageService(
 	logRepo repository.RequestLogRepository,
 	keyRepo repository.ApiKeyRepository,
 	providerRepo repository.ProviderRepository,
+	policySvc *PolicyService,
 	logger *slog.Logger,
 ) *UsageService {
 	return &UsageService{
 		logRepo:    logRepo,
 		keyRepo:    keyRepo,
 		providerRepo: providerRepo,
+		policySvc:  policySvc,
 		logger:     logger,
 	}
 }
@@ -62,13 +65,29 @@ func (s *UsageService) Dashboard(ctx context.Context, userID int64) (*dto.Dashbo
 
 	stats.TotalCost = float64(int(stats.TotalCost*100)) / 100
 
+	// Calculate profit
+	todayProfit := float64(0)
+	totalProfit := float64(0)
+	profitMargin := float64(0)
+	if s.policySvc != nil {
+		profit, profitErr := s.policySvc.CalculateProfit(ctx, userID)
+		if profitErr == nil {
+			todayProfit = profit.TodayProfit
+			totalProfit = profit.TotalProfit
+			profitMargin = profit.ProfitMargin
+		}
+	}
+
 	return &dto.DashboardStatsResponse{
 		TodayRequests:   stats.TodayRequests,
 		TodayTokens:     stats.TodayTokens,
 		TodayCost:       stats.TodayCost,
+		TodayProfit:     todayProfit,
 		TotalRequests:   stats.TotalRequests,
 		TotalTokens:     stats.TotalTokens,
 		TotalCost:       stats.TotalCost,
+		TotalProfit:     totalProfit,
+		ProfitMargin:    profitMargin,
 		AverageLatency:  float64(int(stats.AverageLatency*100)) / 100,
 		ActiveApiKeys:   activeKeys,
 		ActiveProviders: activeProviders,

@@ -2,12 +2,21 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"time"
 
 	"aigateway/backend/internal/entity"
 	"aigateway/backend/internal/repository"
 )
+
+// UsageInfo holds usage information for cost computation.
+type UsageInfo struct {
+	InputTokens  int
+	OutputTokens int
+	ImageCount   int
+	Size         string
+}
 
 type BillingService struct {
 	userRepo          repository.UserRepository
@@ -80,6 +89,11 @@ func (s *BillingService) ComputeCost(ctx context.Context, modelID int64, inputTo
 		return 0, ErrInternal
 	}
 
+	// Handle non-token pricing units
+	if p.PricingUnit != "" && p.PricingUnit != "token" {
+		return 0, ErrInternal
+	}
+
 	inputPrice := p.PricePerInputToken
 	outputPrice := p.PricePerOutputToken
 
@@ -100,6 +114,48 @@ func (s *BillingService) ComputeCost(ctx context.Context, modelID int64, inputTo
 		cost = 0
 	}
 	return cost, nil
+}
+
+// ComputeImageCost calculates the cost for image generation based on pricing unit.
+func (s *BillingService) ComputeImageCost(ctx context.Context, modelID int64, imageCount int, size string, at time.Time) (float64, error) {
+	p, err := s.pricingRepo.GetByModelID(ctx, modelID)
+	if err != nil {
+		if errors.Is(err, repository.ErrPricingNotFound) {
+			return 0, ErrInternal
+		}
+		return 0, ErrInternal
+	}
+
+	return calculateImageCost(p, imageCount, size), nil
+}
+
+// calculateImageCost computes the cost for image generation.
+func calculateImageCost(pricing *entity.ModelPricing, imageCount int, size string) float64 {
+	if pricing.PricingUnit == "image_count" && pricing.UnitPrice != nil {
+		var unitPrice struct {
+			PerImage    float64            `json:"per_image"`
+			Resolutions map[string]float64 `json:"resolutions,omitempty"`
+		}
+		if err := json.Unmarshal(*pricing.UnitPrice, &unitPrice); err == nil {
+			price := unitPrice.PerImage
+			if unitPrice.Resolutions != nil {
+				if resolutionPrice, ok := unitPrice.Resolutions[size]; ok {
+					price = resolutionPrice
+				}
+			}
+			cost := price * float64(imageCount)
+			if cost < 0 {
+				cost = 0
+			}
+			return cost
+		}
+	}
+	// Fall back to output token price as a proxy for per-image cost
+	cost := float64(imageCount) * pricing.PricePerOutputToken
+	if cost < 0 {
+		cost = 0
+	}
+	return cost
 }
 
 func (s *BillingService) DeductAndRecord(ctx context.Context, log *entity.RequestLog, costAmount float64) error {

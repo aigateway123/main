@@ -15,15 +15,16 @@ import (
 )
 
 type ChatController struct {
-	routerSvc *service.RouterService
-	usageSvc  *service.UsageService
-	modelSvc  *service.ModelService
+	routerSvc  *service.RouterService
+	usageSvc   *service.UsageService
+	modelSvc   *service.ModelService
 	billingSvc *service.BillingService
-	logger    *slog.Logger
+	policySvc  *service.PolicyService
+	logger     *slog.Logger
 }
 
-func NewChatController(routerSvc *service.RouterService, usageSvc *service.UsageService, modelSvc *service.ModelService, billingSvc *service.BillingService, logger *slog.Logger) *ChatController {
-	return &ChatController{routerSvc: routerSvc, usageSvc: usageSvc, modelSvc: modelSvc, billingSvc: billingSvc, logger: logger}
+func NewChatController(routerSvc *service.RouterService, usageSvc *service.UsageService, modelSvc *service.ModelService, billingSvc *service.BillingService, policySvc *service.PolicyService, logger *slog.Logger) *ChatController {
+	return &ChatController{routerSvc: routerSvc, usageSvc: usageSvc, modelSvc: modelSvc, billingSvc: billingSvc, policySvc: policySvc, logger: logger}
 }
 
 type chatRequest struct {
@@ -94,7 +95,7 @@ func (c *ChatController) HandleChatCompletions(w http.ResponseWriter, r *http.Re
 	// Look up model for billing check (need modelID)
 	var chatModelID int64
 	if c.billingSvc != nil {
-		models, listErr := c.modelSvc.List(r.Context())
+		models, listErr := c.modelSvc.List(r.Context(), "")
 		if listErr == nil {
 			for _, m := range models {
 				if m.ModelCode == chatReq.Model {
@@ -109,6 +110,18 @@ func (c *ChatController) HandleChatCompletions(w http.ResponseWriter, r *http.Re
 				writeError(w, http.StatusForbidden, "MODEL_FORBIDDEN", "model is not authorized for this user")
 				return
 			}
+		}
+	}
+
+	// Policy Engine: Check quota for the requested model
+	if c.policySvc != nil {
+		if err := c.policySvc.CheckQuota(r.Context(), userID, chatReq.Model); err != nil {
+			if errors.Is(err, service.ErrQuotaExceeded) {
+				c.logger.Warn("policy quota exceeded", "userID", userID, "model", chatReq.Model)
+				writeError(w, http.StatusForbidden, "QUOTA_EXCEEDED", "quota exceeded for this model")
+				return
+			}
+			c.logger.Error("policy quota check failed", "error", err)
 		}
 	}
 
@@ -179,6 +192,16 @@ func (c *ChatController) HandleChatCompletions(w http.ResponseWriter, r *http.Re
 		// Parse token usage from the last SSE chunk
 		inputTokens, outputTokens := parseStreamUsage(streamBuf.Bytes())
 
+		// Policy Engine: Calculate cost
+		costAmount := 0.0
+		if c.policySvc != nil {
+			costAmount = c.policySvc.CalculateCost(r.Context(), target.ProviderID, target.ModelCode, inputTokens, outputTokens)
+			// Consume quota
+			if consumeErr := c.policySvc.ConsumeQuota(r.Context(), userID, chatReq.Model, inputTokens+outputTokens); consumeErr != nil {
+				c.logger.Error("quota consumption failed", "error", consumeErr)
+			}
+		}
+
 		// Billing for streaming (same logic as non-streaming)
 		logEntry := &entity.RequestLog{
 			UserID:        userID,
@@ -189,6 +212,7 @@ func (c *ChatController) HandleChatCompletions(w http.ResponseWriter, r *http.Re
 			ProviderName:  target.ProviderName,
 			InputTokens:   inputTokens,
 			OutputTokens:  outputTokens,
+			CostAmount:    costAmount,
 			LatencyMs:     latencyMs,
 			RequestStatus: "success",
 		}
@@ -217,18 +241,16 @@ func (c *ChatController) HandleChatCompletions(w http.ResponseWriter, r *http.Re
 	}
 
 	// Parse token usage
-	type providerResponse struct {
-		Usage *struct {
-			PromptTokens     int `json:"prompt_tokens"`
-			CompletionTokens int `json:"completion_tokens"`
-		} `json:"usage"`
-	}
-	inputTokens := 0
-	outputTokens := 0
-	var providerResp providerResponse
-	if parseErr := json.Unmarshal(providerBody, &providerResp); parseErr == nil && providerResp.Usage != nil {
-		inputTokens = providerResp.Usage.PromptTokens
-		outputTokens = providerResp.Usage.CompletionTokens
+	inputTokens, outputTokens := parseTokenUsage(providerBody)
+
+	// Policy Engine: Calculate cost
+	costAmount := 0.0
+	if c.policySvc != nil {
+		costAmount = c.policySvc.CalculateCost(r.Context(), target.ProviderID, target.ModelCode, inputTokens, outputTokens)
+		// Consume quota
+		if consumeErr := c.policySvc.ConsumeQuota(r.Context(), userID, chatReq.Model, inputTokens+outputTokens); consumeErr != nil {
+			c.logger.Error("quota consumption failed", "error", consumeErr)
+		}
 	}
 
 	// Compute cost and deduct (with billing)
@@ -241,6 +263,7 @@ func (c *ChatController) HandleChatCompletions(w http.ResponseWriter, r *http.Re
 		ProviderName:  target.ProviderName,
 		InputTokens:   inputTokens,
 		OutputTokens:  outputTokens,
+		CostAmount:    costAmount,
 		LatencyMs:     latencyMs,
 		RequestStatus: "success",
 	}
@@ -300,7 +323,7 @@ func (c *ChatController) HandleListOpenAIModels(w http.ResponseWriter, r *http.R
 	}
 
 	// List models
-	models, err := c.modelSvc.List(r.Context())
+	models, err := c.modelSvc.List(r.Context(), "")
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "GATEWAY001", "failed to list models")
 		return
@@ -321,6 +344,21 @@ func (c *ChatController) HandleListOpenAIModels(w http.ResponseWriter, r *http.R
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
+}
+
+// parseTokenUsage extracts token usage from a non-streaming provider response body.
+func parseTokenUsage(body []byte) (inputTokens, outputTokens int) {
+	type providerResponse struct {
+		Usage *struct {
+			PromptTokens     int `json:"prompt_tokens"`
+			CompletionTokens int `json:"completion_tokens"`
+		} `json:"usage"`
+	}
+	var resp providerResponse
+	if err := json.Unmarshal(body, &resp); err == nil && resp.Usage != nil {
+		return resp.Usage.PromptTokens, resp.Usage.CompletionTokens
+	}
+	return 0, 0
 }
 
 // parseStreamUsage extracts token usage from the last SSE data chunk.

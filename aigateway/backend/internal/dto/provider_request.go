@@ -21,14 +21,15 @@ type UpdateProviderRequest struct {
 }
 
 type ProviderResponse struct {
-	ID            int64  `json:"id"`
-	ProviderName  string `json:"providerName"`
-	BaseURL       string `json:"baseUrl"`
-	APIKeyRef     string `json:"apiKeyRef,omitempty"`
-	APIPath       string `json:"apiPath"`
-	Priority      int    `json:"priority"`
-	Weight        int    `json:"weight"`
-	IsEnabledFlag bool   `json:"isEnabledFlag"`
-	CreatedAt     string `json:"createdAt"`
-	UpdatedAt     string `json:"updatedAt"`
+	ID              int64   `json:"id"`
+	ProviderName    string  `json:"providerName"`
+	BaseURL         string  `json:"baseUrl"`
+	APIKeyRef       string  `json:"apiKeyRef,omitempty"`
+	APIPath         string  `json:"apiPath"`
+	Priority        int     `json:"priority"`
+	Weight          int     `json:"weight"`
+	IsEnabledFlag   bool    `json:"isEnabledFlag"`
+	APIPathOverride *string `json:"apiPathOverride,omitempty"`
+	CreatedAt       string  `json:"createdAt"`
+	UpdatedAt       string  `json:"updatedAt"`
 }

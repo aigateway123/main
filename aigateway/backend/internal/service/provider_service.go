@@ -106,7 +106,7 @@ func toProviderResponse(p *entity.Provider) *dto.ProviderResponse {
 		Priority:      p.Priority,
 		Weight:        p.Weight,
 		IsEnabledFlag: p.IsEnabledFlag,
-		CreatedAt:     p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt:     p.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		CreatedAt:     p.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:     p.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 }

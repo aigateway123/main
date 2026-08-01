@@ -30,95 +30,142 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="min-h-full w-full bg-page flex items-center justify-center p-6">
-    <div class="w-full max-w-[420px] bg-white rounded-lg border border-border shadow-sm p-8 space-y-6">
-      <!-- Brand Logo & Header -->
-      <div class="text-center space-y-2">
-        <div class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary text-white shadow-md mb-2">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-          </svg>
-        </div>
-        <h2 class="text-2xl font-bold text-text-primary tracking-tight">Nova AI Gateway</h2>
-        <p class="text-xs text-text-secondary">企业级 AI 大模型统一控制台与网关管理系统</p>
-      </div>
+  <div class="min-h-screen w-full flex">
+    <!-- Left Column (55%) - Brand Showcase -->
+    <div class="hidden lg:flex lg:w-[55%] bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-700 relative overflow-hidden flex-col justify-between">
+      <!-- Background decorative elements -->
+      <div class="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-white/5 rounded-full blur-[100px]" />
+      <div class="absolute bottom-[-5%] right-[-5%] w-[300px] h-[300px] bg-indigo-400/10 rounded-full blur-[80px]" />
 
-      <!-- Error -->
-      <div
-        v-if="error"
-        class="p-3 bg-red-50 border border-red-200 rounded text-xs text-red-600 font-medium text-center"
-      >
-        {{ error }}
-      </div>
+      <!-- Center Illustration -->
+      <div class="flex-1 flex items-center justify-center p-8">
+        <svg class="w-72 h-72" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Central node -->
+          <circle cx="150" cy="150" r="32" fill="white" fill-opacity="0.15" stroke="white" stroke-width="1.5" stroke-opacity="0.4" />
+          <circle cx="150" cy="150" r="12" fill="white" fill-opacity="0.5" />
+          <circle cx="150" cy="150" r="4" fill="white" />
 
-      <!-- Form -->
-      <form @submit.prevent="handleSubmit" class="space-y-4">
-        <div class="space-y-1.5 text-left">
-          <label class="text-xs font-semibold text-text-primary flex items-center gap-1.5">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-            </svg>
-            管理员邮箱
-          </label>
-          <input
-            v-model="email"
-            type="email"
-            placeholder="请输入管理员邮箱"
-            class="w-full h-10 px-3 text-sm bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-            required
-          />
-        </div>
+          <!-- Orbiting nodes -->
+          <circle cx="150" cy="75" r="10" fill="white" fill-opacity="0.25" stroke="white" stroke-width="1" stroke-opacity="0.3" />
+          <circle cx="225" cy="150" r="10" fill="white" fill-opacity="0.25" stroke="white" stroke-width="1" stroke-opacity="0.3" />
+          <circle cx="150" cy="225" r="10" fill="white" fill-opacity="0.25" stroke="white" stroke-width="1" stroke-opacity="0.3" />
+          <circle cx="75" cy="150" r="10" fill="white" fill-opacity="0.25" stroke="white" stroke-width="1" stroke-opacity="0.3" />
 
-        <div class="space-y-1.5 text-left">
-          <div class="flex items-center justify-between">
-            <label class="text-xs font-semibold text-text-primary flex items-center gap-1.5">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
-              密码
-            </label>
-            <a
-              href="#forgot"
-              class="text-[11px] text-primary hover:underline"
-              @click.prevent="showAlert('请联系系统高级管理员重置安全密钥')"
-            >
-              忘记密码？
-            </a>
-          </div>
-          <input
-            v-model="password"
-            type="password"
-            placeholder="请输入登录密码"
-            class="w-full h-10 px-3 text-sm bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-            required
-            minlength="6"
-          />
-        </div>
+          <!-- Outer nodes -->
+          <circle cx="150" cy="40" r="6" fill="white" fill-opacity="0.15" />
+          <circle cx="260" cy="110" r="6" fill="white" fill-opacity="0.15" />
+          <circle cx="260" cy="190" r="6" fill="white" fill-opacity="0.15" />
+          <circle cx="150" cy="260" r="6" fill="white" fill-opacity="0.15" />
+          <circle cx="40" cy="190" r="6" fill="white" fill-opacity="0.15" />
+          <circle cx="40" cy="110" r="6" fill="white" fill-opacity="0.15" />
 
-        <button
-          type="submit"
-          :disabled="loading"
-          class="w-full h-10 bg-primary hover:bg-blue-700 active:bg-blue-800 text-white font-medium text-sm rounded-btn transition-all flex items-center justify-center gap-2 shadow-xs disabled:opacity-70 mt-2 cursor-pointer"
-        >
-          <template v-if="loading">
-            <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            安全验证中...
-          </template>
-          <template v-else>
-            <span>登 录</span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-            </svg>
-          </template>
-        </button>
-      </form>
+          <!-- Connection lines - inner ring -->
+          <line x1="150" y1="75" x2="225" y2="150" stroke="white" stroke-width="1" stroke-opacity="0.2" />
+          <line x1="225" y1="150" x2="150" y2="225" stroke="white" stroke-width="1" stroke-opacity="0.2" />
+          <line x1="150" y1="225" x2="75" y2="150" stroke="white" stroke-width="1" stroke-opacity="0.2" />
+          <line x1="75" y1="150" x2="150" y2="75" stroke="white" stroke-width="1" stroke-opacity="0.2" />
 
-      <!-- Security Badge -->
-      <div class="pt-2 border-t border-border flex items-center justify-center gap-2 text-[11px] text-text-secondary">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <!-- Connection lines - outer ring -->
+          <line x1="150" y1="40" x2="260" y2="110" stroke="white" stroke-width="0.8" stroke-opacity="0.12" />
+          <line x1="260" y1="110" x2="260" y2="190" stroke="white" stroke-width="0.8" stroke-opacity="0.12" />
+          <line x1="260" y1="190" x2="150" y2="260" stroke="white" stroke-width="0.8" stroke-opacity="0.12" />
+          <line x1="150" y1="260" x2="40" y2="190" stroke="white" stroke-width="0.8" stroke-opacity="0.12" />
+          <line x1="40" y1="190" x2="40" y2="110" stroke="white" stroke-width="0.8" stroke-opacity="0.12" />
+          <line x1="40" y1="110" x2="150" y2="40" stroke="white" stroke-width="0.8" stroke-opacity="0.12" />
+
+          <!-- Gateway indicator bars -->
+          <rect x="142" y="130" width="16" height="4" rx="2" fill="white" fill-opacity="0.6" />
+          <rect x="142" y="140" width="16" height="4" rx="2" fill="white" fill-opacity="0.3" />
+          <rect x="142" y="150" width="16" height="4" rx="2" fill="white" fill-opacity="0.6" />
+
+          <!-- Orbital ring -->
+          <ellipse cx="150" cy="150" rx="90" ry="90" stroke="white" stroke-width="0.5" stroke-opacity="0.1" fill="none" stroke-dasharray="6 4" />
+          <ellipse cx="150" cy="150" rx="70" ry="70" stroke="white" stroke-width="0.5" stroke-opacity="0.15" fill="none" stroke-dasharray="4 6" />
         </svg>
-        <span>受系统高级鉴权策略保护 (B2B Multi-Tenant Safety)</span>
+      </div>
+
+      <!-- Bottom Brand Text -->
+      <div class="absolute bottom-0 left-0 p-12 space-y-6">
+        <div>
+          <h2 class="text-3xl font-bold text-white tracking-tight">Nova AI Gateway</h2>
+          <p class="text-white/60 text-sm mt-1">企业级 AI 网关平台</p>
+        </div>
+        <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/70">
+          <span>统一接入</span>
+          <span class="text-white/30">·</span>
+          <span>智能路由</span>
+          <span class="text-white/30">·</span>
+          <span>成本优化</span>
+          <span class="text-white/30">·</span>
+          <span>安全合规</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column (45%) - Login Form -->
+    <div class="w-full lg:w-[45%] bg-white flex items-center justify-center p-8">
+      <div class="w-full max-w-sm space-y-6">
+        <!-- Logo -->
+        <div class="text-center space-y-3">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-600/25 mx-auto">
+            <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-lg font-semibold text-slate-900">Nova</p>
+            <p class="text-sm text-slate-400">AI Gateway</p>
+          </div>
+        </div>
+
+        <!-- Title -->
+        <h1 class="text-xl font-semibold text-slate-900 tracking-tight text-center">登录到控制台</h1>
+
+        <!-- Error -->
+        <p v-if="error" class="text-sm text-red-600 text-center">{{ error }}</p>
+
+        <!-- Form -->
+        <form @submit.prevent="handleSubmit" class="space-y-5">
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium text-slate-700">邮箱</label>
+            <input
+              v-model="email"
+              type="email"
+              class="block w-full h-10 px-3 text-sm text-slate-900 bg-white border border-slate-200 rounded-lg outline-none transition-colors duration-150 focus:border-blue-400"
+              required
+            />
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="text-sm font-medium text-slate-700">密码</label>
+              <a
+                href="#forgot"
+                class="text-sm text-slate-400 hover:text-slate-600 transition-colors"
+                @click.prevent="showAlert('请联系系统管理员重置密码')"
+              >忘记密码？</a>
+            </div>
+            <input
+              v-model="password"
+              type="password"
+              class="block w-full h-10 px-3 text-sm text-slate-900 bg-white border border-slate-200 rounded-lg outline-none transition-colors duration-150 focus:border-blue-400"
+              required
+              minlength="6"
+            />
+          </div>
+
+          <button
+            type="submit"
+            :disabled="loading"
+            class="w-full h-10 rounded-lg bg-blue-600 text-white text-sm font-medium transition-colors duration-150 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            登录
+          </button>
+        </form>
+
+        <!-- Footer -->
+        <p class="text-xs text-slate-300 text-center pt-4">&copy; Nova AI Gateway 2026</p>
       </div>
     </div>
   </div>

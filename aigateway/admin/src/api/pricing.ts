@@ -6,6 +6,8 @@ export interface PricingResponse {
   modelName: string
   pricingType: string
   pricingStatus?: string  // "pending" | "active"
+  pricingUnit?: 'token' | 'image_count' | 'request'
+  unitPrice?: Record<string, unknown>
   pricePerInputToken?: number
   pricePerOutputToken?: number
   peakStart?: string
@@ -18,6 +20,8 @@ export interface PricingResponse {
 
 export interface UpdatePricingRequest {
   pricingType?: string
+  pricingUnit?: string
+  unitPrice?: Record<string, unknown>
   pricePerInputToken?: number
   pricePerOutputToken?: number
   peakStart?: string
@@ -26,6 +30,8 @@ export interface UpdatePricingRequest {
   peakPricePerOutputToken?: number
   offPeakPricePerInputToken?: number
   offPeakPricePerOutputToken?: number
+  pricingStatus?: string
+  currency?: string
 }
 
 export async function listPricing(): Promise<PricingResponse[]> {
@@ -34,12 +40,12 @@ export async function listPricing(): Promise<PricingResponse[]> {
 }
 
 export async function getPricing(modelId: number): Promise<PricingResponse> {
-  const res = await httpClient.get(`/api/v1/admin/pricing/${modelId}`)
+  const res = await httpClient.get(`/api/v1/admin/pricing/model/${modelId}`)
   return res.data.data
 }
 
 export async function updatePricing(modelId: number, data: UpdatePricingRequest): Promise<void> {
-  await httpClient.put(`/api/v1/admin/pricing/${modelId}`, data)
+  await httpClient.put(`/api/v1/admin/pricing/model/${modelId}`, data)
 }
 
 export interface PricingTemplate {

@@ -45,7 +45,8 @@ func (c *ModelController) HandleCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *ModelController) HandleList(w http.ResponseWriter, r *http.Request) {
-	items, err := c.svc.List(r.Context())
+	modelType := r.URL.Query().Get("modelType")
+	items, err := c.svc.List(r.Context(), modelType)
 	if err != nil {
 		c.logger.Error("list models failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "GATEWAY001", "list models failed")

@@ -23,4 +23,6 @@ var (
 	ErrNoProviderAvailable  = errors.New("no available provider")
 	ErrQuotaExceeded        = errors.New("quota balance is insufficient")
 	ErrModelForbidden       = errors.New("model is not authorized for this user")
+	ErrQuotaNotFound        = errors.New("quota not found")
+	ErrPricingNotFound      = errors.New("pricing not found")
 )

@@ -5,6 +5,7 @@ export interface ModelResponse {
   modelName: string
   modelCode: string
   modelStatus: string
+  modelType: 'chat' | 'image' | 'embedding'
   createdAt: string
   updatedAt: string
 }
@@ -26,21 +27,26 @@ export interface ModelDetailResponse {
 export interface CreateModelRequest {
   modelName: string
   modelCode: string
+  modelType?: string
 }
 
 export interface UpdateModelRequest {
-  modelName: string
-  modelCode: string
-  modelStatus: string
+  modelName?: string
+  modelCode?: string
+  modelStatus?: string
+  modelType?: string
 }
 
 export interface BindProviderRequest {
   providerId: number
   weight: number
+  apiPathOverride?: string
 }
 
-export async function listModelsApi(): Promise<ModelResponse[]> {
-  const res = await httpClient.get('/api/v1/models')
+export async function listModelsApi(modelType?: string): Promise<ModelResponse[]> {
+  const params: Record<string, string> = {}
+  if (modelType) params.modelType = modelType
+  const res = await httpClient.get('/api/v1/models', { params })
   return res.data.data
 }
 

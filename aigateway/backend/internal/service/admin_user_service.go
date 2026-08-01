@@ -207,7 +207,7 @@ func (s *AdminUserService) GetStudentModels(ctx context.Context, userID int64) (
 		authorizedSet[id] = struct{}{}
 	}
 
-	models, err := s.modelRepo.List(ctx)
+	models, err := s.modelRepo.List(ctx, "")
 	if err != nil {
 		return nil, nil, ErrInternal
 	}

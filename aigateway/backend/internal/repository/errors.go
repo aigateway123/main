@@ -14,4 +14,7 @@ var (
 	ErrBindingNotFound    = errors.New("binding not found")
 	ErrRoleNotFound       = errors.New("role not found")
 	ErrPricingNotFound    = errors.New("pricing not found")
+	ErrDuplicatePricing   = errors.New("duplicate pricing configuration")
+	ErrQuotaNotFound      = errors.New("quota not found")
+	ErrDuplicateQuota     = errors.New("duplicate quota configuration")
 )

@@ -1,0 +1,57 @@
+import type { PricingPlan } from '@/types'
+
+export const pricingPlans: PricingPlan[] = [
+  {
+    id: 'starter',
+    name: '入门版',
+    price: '免费',
+    period: '永久',
+    description: '适合个人开发者体验和测试',
+    features: [
+      '注册即送体验额度',
+      '10 个 API Key',
+      '基础模型访问权限',
+      '每日 10,000 次请求限制',
+      '社区支持',
+    ],
+    cta: '免费开始',
+    isPopular: false,
+  },
+  {
+    id: 'professional',
+    name: '专业版',
+    price: '¥299',
+    period: '/月',
+    description: '适合中小团队和生产环境',
+    features: [
+      '5,000,000 Tokens/月 基础配额',
+      '无限 API Key',
+      '全模型访问权限',
+      '语义缓存加速',
+      '智能故障切换',
+      '实时用量监控与告警',
+      '邮件技术支持',
+    ],
+    cta: '立即开通',
+    isPopular: true,
+    badge: '推荐',
+  },
+  {
+    id: 'enterprise',
+    name: '企业版',
+    price: '定制',
+    period: '',
+    description: '适合大规模企业和定制化需求',
+    features: [
+      '按需定制 Token 配额',
+      '专属 SLA 保障 (99.99%)',
+      '私有化部署可选',
+      '数据路由区域锁定',
+      '专属技术支持群 7×24h',
+      '月结账期与用量折扣',
+      '定制化模型路由策略',
+    ],
+    cta: '联系销售',
+    isPopular: false,
+  },
+]

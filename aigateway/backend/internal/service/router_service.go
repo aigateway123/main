@@ -148,6 +148,10 @@ func (s *RouterService) SelectProvider(ctx context.Context, modelCode string) (*
 		}
 
 		apiPath := provider.APIPath
+		// Use api_path_override if available
+		if binding.APIPathOverride != nil && *binding.APIPathOverride != "" {
+			apiPath = *binding.APIPathOverride
+		}
 		if apiPath == "" {
 			apiPath = "/v1/chat/completions"
 		}
@@ -238,6 +242,10 @@ func (s *RouterService) CallWithFallback(ctx context.Context, modelCode string, 
 	var lastErr error
 	for _, c := range candidates {
 		apiPath := c.provider.APIPath
+		// Use api_path_override if available
+		if c.binding.APIPathOverride != nil && *c.binding.APIPathOverride != "" {
+			apiPath = *c.binding.APIPathOverride
+		}
 		if apiPath == "" {
 			apiPath = "/v1/chat/completions"
 		}

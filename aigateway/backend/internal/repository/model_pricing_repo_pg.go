@@ -27,7 +27,7 @@ func (r *PostgresModelPricingRepository) List(ctx context.Context) ([]*entity.Mo
 			CASE WHEN peak_end IS NULL THEN NULL ELSE to_char(peak_end, 'HH24:MI:SS') END AS peak_end,
 			peak_price_per_input, peak_price_per_output,
 			offpeak_price_per_input, offpeak_price_per_output,
-			pricing_status,
+			pricing_status, pricing_unit, unit_price,
 			updated_at
 		FROM model_pricing
 		ORDER BY model_id ASC
@@ -60,7 +60,7 @@ func (r *PostgresModelPricingRepository) GetByModelID(ctx context.Context, model
 			CASE WHEN peak_end IS NULL THEN NULL ELSE to_char(peak_end, 'HH24:MI:SS') END AS peak_end,
 			peak_price_per_input, peak_price_per_output,
 			offpeak_price_per_input, offpeak_price_per_output,
-			pricing_status,
+			pricing_status, pricing_unit, unit_price,
 			updated_at
 		FROM model_pricing
 		WHERE model_id = $1
@@ -84,15 +84,15 @@ func (r *PostgresModelPricingRepository) Upsert(ctx context.Context, pricing *en
 			peak_start, peak_end,
 			peak_price_per_input, peak_price_per_output,
 			offpeak_price_per_input, offpeak_price_per_output,
-			pricing_status,
+			pricing_status, pricing_unit, unit_price,
 			updated_at
 		) VALUES (
 			$1, $2, $3, $4, $5,
 			$6::time, $7::time,
 			$8, $9,
 			$10, $11,
-			$12,
-			$13
+			$12, $13, $14,
+			$15
 		)
 		ON CONFLICT (model_id) DO UPDATE SET
 			pricing_type = EXCLUDED.pricing_type,
@@ -106,6 +106,8 @@ func (r *PostgresModelPricingRepository) Upsert(ctx context.Context, pricing *en
 			offpeak_price_per_input = EXCLUDED.offpeak_price_per_input,
 			offpeak_price_per_output = EXCLUDED.offpeak_price_per_output,
 			pricing_status = EXCLUDED.pricing_status,
+			pricing_unit = EXCLUDED.pricing_unit,
+			unit_price = EXCLUDED.unit_price,
 			updated_at = EXCLUDED.updated_at
 		RETURNING
 			id, model_id, pricing_type, price_per_input_token, price_per_output_token, currency,
@@ -113,7 +115,7 @@ func (r *PostgresModelPricingRepository) Upsert(ctx context.Context, pricing *en
 			CASE WHEN peak_end IS NULL THEN NULL ELSE to_char(peak_end, 'HH24:MI:SS') END AS peak_end,
 			peak_price_per_input, peak_price_per_output,
 			offpeak_price_per_input, offpeak_price_per_output,
-			pricing_status,
+			pricing_status, pricing_unit, unit_price,
 			updated_at
 	`
 
@@ -130,6 +132,8 @@ func (r *PostgresModelPricingRepository) Upsert(ctx context.Context, pricing *en
 		pricing.OffpeakPricePerInput,
 		pricing.OffpeakPricePerOutput,
 		pricing.PricingStatus,
+		pricing.PricingUnit,
+		pricing.UnitPrice,
 		now,
 	)
 
@@ -167,6 +171,8 @@ func scanModelPricing(row modelPricingScanner) (*entity.ModelPricing, error) {
 		&offpeakInput,
 		&offpeakOutput,
 		&p.PricingStatus,
+		&p.PricingUnit,
+		&p.UnitPrice,
 		&p.UpdatedAt,
 	)
 	if err != nil {
@@ -179,6 +185,10 @@ func scanModelPricing(row modelPricingScanner) (*entity.ModelPricing, error) {
 	p.PeakPricePerOutput = numericPtrToFloatPtr(&peakOutput)
 	p.OffpeakPricePerInput = numericPtrToFloatPtr(&offpeakInput)
 	p.OffpeakPricePerOutput = numericPtrToFloatPtr(&offpeakOutput)
+
+	if p.PricingUnit == "" {
+		p.PricingUnit = "token"
+	}
 
 	return &p, nil
 }

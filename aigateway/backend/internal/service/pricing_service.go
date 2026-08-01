@@ -21,7 +21,7 @@ func NewPricingService(pricingRepo repository.ModelPricingRepository, modelRepo 
 }
 
 func (s *PricingService) List(ctx context.Context) ([]*dto.AdminPricingItem, error) {
-	models, err := s.modelRepo.List(ctx)
+	models, err := s.modelRepo.List(ctx, "")
 	if err != nil {
 		return nil, ErrInternal
 	}
@@ -83,8 +83,13 @@ func (s *PricingService) UpdateByModelID(ctx context.Context, modelID int64, req
 		return nil, ErrModelNotFound
 	}
 
+	pricingUnit := req.PricingUnit
+	if pricingUnit == "" {
+		pricingUnit = "token"
+	}
+
 	pricingStatus := "pending"
-	if req.PricePerInputToken > 0 || req.PricePerOutputToken > 0 {
+	if req.PricePerInputToken > 0 || req.PricePerOutputToken > 0 || (pricingUnit != "token" && req.UnitPrice != nil) {
 		pricingStatus = "active"
 	}
 
@@ -94,6 +99,8 @@ func (s *PricingService) UpdateByModelID(ctx context.Context, modelID int64, req
 		PricePerInputToken:    req.PricePerInputToken,
 		PricePerOutputToken:   req.PricePerOutputToken,
 		Currency:              req.Currency,
+		PricingUnit:           pricingUnit,
+		UnitPrice:             req.UnitPrice,
 		PeakStart:             req.PeakStart,
 		PeakEnd:               req.PeakEnd,
 		PeakPricePerInput:     req.PeakPricePerInput,
@@ -111,6 +118,11 @@ func (s *PricingService) UpdateByModelID(ctx context.Context, modelID int64, req
 }
 
 func toAdminPricingItem(m *entity.Model, p *entity.ModelPricing) *dto.AdminPricingItem {
+	pricingUnit := p.PricingUnit
+	if pricingUnit == "" {
+		pricingUnit = "token"
+	}
+
 	return &dto.AdminPricingItem{
 		ID:                    p.ID,
 		ModelID:               p.ModelID,
@@ -120,6 +132,8 @@ func toAdminPricingItem(m *entity.Model, p *entity.ModelPricing) *dto.AdminPrici
 		PricePerInputToken:    p.PricePerInputToken,
 		PricePerOutputToken:   p.PricePerOutputToken,
 		Currency:              p.Currency,
+		PricingUnit:           pricingUnit,
+		UnitPrice:             p.UnitPrice,
 		PeakStart:             p.PeakStart,
 		PeakEnd:               p.PeakEnd,
 		PeakPricePerInput:     p.PeakPricePerInput,
