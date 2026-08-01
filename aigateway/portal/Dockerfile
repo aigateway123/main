@@ -1,7 +1,7 @@
 # Stage 1: Build
 FROM node:20-alpine AS builder
 WORKDIR /app
-ARG VITE_ADMIN_URL=http://101.200.198.113:8088
+ARG VITE_ADMIN_URL=http://admin.starnov.cn
 ENV VITE_ADMIN_URL=$VITE_ADMIN_URL
 COPY package.json package-lock.json ./
 RUN npm ci
