@@ -36,7 +36,7 @@ const docContent: DocContent = {
 </ul>
 
 <h2>开始使用</h2>
-<p>账号由管理员在控制台统一创建并分配额度。获取 API Key 后，只需将 SDK 的 <code>base_url</code> 指向 <code>https://api.novagateway.ai/v1</code>，即可像调用 OpenAI 一样发起请求。详见<a href="/docs">快速入门</a>。</p>
+<p>账号由管理员在控制台统一创建并分配额度。获取 API Key 后，只需将 SDK 的 <code>base_url</code> 指向 <code>http://api.starnov.cn/v1</code>，即可像调用 OpenAI 一样发起请求。详见<a href="/docs">快速入门</a>。</p>
 `,
         },
         {
@@ -163,7 +163,7 @@ const docContent: DocContent = {
 <p>Nova AI Gateway 完全兼容 OpenAI SDK，接入时只需修改 <code>api_key</code> 与 <code>base_url</code> 两个参数，其余用法与 OpenAI 官方一致：</p>
 <ul>
   <li><code>api_key</code>：在控制台创建的 <code>nv_sk-</code> 开头 API Key。</li>
-  <li><code>base_url</code>：<code>https://api.novagateway.ai/v1</code></li>
+  <li><code>base_url</code>：<code>http://api.starnov.cn/v1</code></li>
 </ul>
 
 <h2>Python</h2>
@@ -171,7 +171,7 @@ const docContent: DocContent = {
 
 client = OpenAI(
     api_key="nv_sk-xxxxxxxxxxxxxxxx",
-    base_url="https://api.novagateway.ai/v1",
+    base_url="http://api.starnov.cn/v1",
 )</code></pre>
 
 <h2>JavaScript / TypeScript</h2>
@@ -179,7 +179,7 @@ client = OpenAI(
 
 const client = new OpenAI({
     apiKey: "nv_sk-xxxxxxxxxxxxxxxx",
-    baseURL: "https://api.novagateway.ai/v1",
+    baseURL: "http://api.starnov.cn/v1",
 })</code></pre>
 
 <h2>Go</h2>
@@ -188,7 +188,7 @@ const client = new OpenAI({
 client := openai.NewClientWithConfig(
     openai.DefaultConfig(
         "nv_sk-xxxxxxxxxxxxxxxx",
-        "https://api.novagateway.ai/v1",
+        "http://api.starnov.cn/v1",
     ),
 )</code></pre>
 `,
@@ -198,7 +198,7 @@ client := openai.NewClientWithConfig(
           title: '发起首次调用',
           content: `
 <h2>使用 cURL 快速验证</h2>
-<pre><code>curl https://api.novagateway.ai/v1/chat/completions \\
+<pre><code>curl http://api.starnov.cn/v1/chat/completions \\
   -H "Authorization: Bearer nv_sk-xxxxxxxxxxxxxxxx" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -246,7 +246,7 @@ client := openai.NewClientWithConfig(
 
 client = OpenAI(
     api_key="nv_sk-xxxxxxxxxxxxxxxx",
-    base_url="https://api.novagateway.ai/v1"
+    base_url="http://api.starnov.cn/v1"
 )
 
 # 通过网关调用，自动路由至可用 Provider
@@ -261,7 +261,7 @@ print(response.choices[0].message.content)</code></pre>
 
 const client = new OpenAI({
     apiKey: "nv_sk-xxxxxxxxxxxxxxxx",
-    baseURL: "https://api.novagateway.ai/v1"
+    baseURL: "http://api.starnov.cn/v1"
 });
 
 const response = await client.chat.completions.create({
@@ -271,7 +271,7 @@ const response = await client.chat.completions.create({
 console.log(response.choices[0].message.content);</code></pre>
 
 <h2>cURL</h2>
-<pre><code>curl https://api.novagateway.ai/v1/chat/completions \\
+<pre><code>curl http://api.starnov.cn/v1/chat/completions \\
   -H "Authorization: Bearer nv_sk-xxxxxxxxxxxxxxxx" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -291,7 +291,7 @@ func main() {
     client := openai.NewClientWithConfig(
         openai.DefaultConfig(
             "nv_sk-xxxxxxxxxxxxxxxx",
-            "https://api.novagateway.ai/v1",
+            "http://api.starnov.cn/v1",
         ),
     )
 
@@ -367,21 +367,21 @@ func main() {
 <h2>通用配置三步</h2>
 <ol>
   <li>在控制台创建 API Key（<code>nv_sk-</code> 开头）。</li>
-  <li>在工具的「自定义 Provider / 自定义 Base URL」中填入：<code>https://api.novagateway.ai/v1</code>。</li>
+  <li>在工具的「自定义 Provider / 自定义 Base URL」中填入：<code>http://api.starnov.cn/v1</code>。</li>
   <li>填入 API Key，选择平台上已配置的模型（如 <code>deepseek-v4-pro</code>）即可使用。</li>
 </ol>
 
 <h2>示例：Cursor</h2>
 <ol>
   <li>打开 Settings → Models → OpenAI API Key，填入你的网关 API Key。</li>
-  <li>在 Base URL / Override Base URL 处填写 <code>https://api.novagateway.ai/v1</code>。</li>
+  <li>在 Base URL / Override Base URL 处填写 <code>http://api.starnov.cn/v1</code>。</li>
   <li>选择或输入模型名称（与平台上配置一致），即可开始对话。</li>
 </ol>
 
 <h2>示例：ChatBox / LobeChat</h2>
 <ol>
   <li>添加自定义模型提供商，协议选择 OpenAI 兼容。</li>
-  <li>API 域名 / Base URL 填 <code>https://api.novagateway.ai/v1</code>。</li>
+  <li>API 域名 / Base URL 填 <code>http://api.starnov.cn/v1</code>。</li>
   <li>填写 API Key 并选择模型，保存后即可使用。</li>
 </ol>
 
@@ -404,7 +404,7 @@ func main() {
           title: 'Chat Completions',
           content: `
 <h2>接口定义</h2>
-<pre><code>POST https://api.novagateway.ai/v1/chat/completions</code></pre>
+<pre><code>POST http://api.starnov.cn/v1/chat/completions</code></pre>
 <p>创建一次对话补全请求，兼容 OpenAI Chat Completions 规范，支持普通响应与流式（SSE）响应。</p>
 
 <h2>请求头</h2>
@@ -444,7 +444,7 @@ func main() {
 
 <h2>查询可用模型</h2>
 <p>使用 API Key 调用 <code>GET /v1/models</code> 可获取当前可用的模型列表（OpenAI 兼容格式）：</p>
-<pre><code>curl https://api.novagateway.ai/v1/models \\
+<pre><code>curl http://api.starnov.cn/v1/models \\
   -H "Authorization: Bearer nv_sk-xxxxxxxxxxxxxxxx"</code></pre>
 
 <h2>错误响应</h2>
@@ -566,7 +566,7 @@ data: [DONE]</code></pre>
 
 client = OpenAI(
     api_key="nv_sk-xxxxxxxxxxxxxxxx",
-    base_url="https://api.novagateway.ai/v1",
+    base_url="http://api.starnov.cn/v1",
 )
 
 stream = client.chat.completions.create(
@@ -585,7 +585,7 @@ for chunk in stream:
           title: '图像生成（Images）',
           content: `
 <h2>接口定义</h2>
-<pre><code>POST https://api.novagateway.ai/v1/images/generations</code></pre>
+<pre><code>POST http://api.starnov.cn/v1/images/generations</code></pre>
 <p>根据文本提示生成图像，兼容 OpenAI Images 接口规范。认证方式与 Chat Completions 一致，使用 <code>Authorization: Bearer nv_sk-xxx</code>。</p>
 
 <h2>请求参数</h2>
@@ -603,7 +603,7 @@ for chunk in stream:
 </table>
 
 <h2>cURL 示例</h2>
-<pre><code>curl https://api.novagateway.ai/v1/images/generations \\
+<pre><code>curl http://api.starnov.cn/v1/images/generations \\
   -H "Authorization: Bearer nv_sk-xxxxxxxxxxxxxxxx" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -634,7 +634,7 @@ for chunk in stream:
 
 client = OpenAI(
     api_key="nv_sk-xxxxxxxxxxxxxxxx",
-    base_url="https://api.novagateway.ai/v1",
+    base_url="http://api.starnov.cn/v1",
 )
 
 result = client.images.generate(
@@ -702,7 +702,7 @@ print(result.data[0].url)</code></pre>
           title: '接入问题',
           content: `
 <h2>如何接入 Nova AI Gateway？</h2>
-<p>只需 3 步：① 登录管理控制台获取 API Key；② 将 SDK 的 <code>base_url</code> 指向 <code>https://api.novagateway.ai/v1</code>；③ 传入 <code>model</code> 名称发起调用。完全兼容 OpenAI SDK，通常 5 分钟内即可完成接入。</p>
+<p>只需 3 步：① 登录管理控制台获取 API Key；② 将 SDK 的 <code>base_url</code> 指向 <code>http://api.starnov.cn/v1</code>；③ 传入 <code>model</code> 名称发起调用。完全兼容 OpenAI SDK，通常 5 分钟内即可完成接入。</p>
 
 <h2>账号如何开通？</h2>
 <p>平台不支持自主注册，账号由管理员在控制台统一创建并分配额度。如需开通请直接联系管理员或商务团队。</p>

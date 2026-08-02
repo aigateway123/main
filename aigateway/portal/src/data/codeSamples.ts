@@ -9,7 +9,7 @@ export const codeSamples: CodeSample[] = [
 
 client = OpenAI(
     api_key="nv_sk-xxxxxxxxxxxxxxxx",
-    base_url="https://api.novagateway.ai/v1"
+    base_url="http://api.starnov.cn/v1"
 )
 
 # 智能路由至最优模型
@@ -27,7 +27,7 @@ print(response.choices[0].message.content)`,
 
 const client = new OpenAI({
     apiKey: "nv_sk-xxxxxxxxxxxxxxxx",
-    baseURL: "https://api.novagateway.ai/v1"
+    baseURL: "http://api.starnov.cn/v1"
 });
 
 // 智能路由至最优模型
@@ -41,7 +41,7 @@ console.log(response.choices[0].message.content);`,
     lang: 'curl',
     label: 'cURL',
     filename: 'request.sh',
-    code: `curl https://api.novagateway.ai/v1/chat/completions \\
+    code: `curl http://api.starnov.cn/v1/chat/completions \\
   -H "Authorization: Bearer nv_sk-xxxxxxxxxxxxxxxx" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -64,7 +64,7 @@ func main() {
     client := openai.NewClientWithConfig(
         openai.DefaultConfig(
             "nv_sk-xxxxxxxxxxxxxxxx",
-            "https://api.novagateway.ai/v1",
+            "http://api.starnov.cn/v1",
         ),
     )
 

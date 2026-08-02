@@ -5,7 +5,7 @@ export const faqData: FaqItem[] = [
     id: 'faq-1',
     question: '如何接入 Nova AI Gateway？',
     answer:
-      '只需 3 步：① 登录 Admin 控制台获取 API Key；② 将您的请求 base_url 指向 https://api.novagateway.ai/v1；③ 传入 model 名称即可调用对应模型。完全兼容 OpenAI SDK，通常 5 分钟内即可完成接入。',
+      '只需 3 步：① 登录 Admin 控制台获取 API Key；② 将您的请求 base_url 指向 http://api.starnov.cn/v1；③ 传入 model 名称即可调用对应模型。完全兼容 OpenAI SDK，通常 5 分钟内即可完成接入。',
   },
   {
     id: 'faq-2',

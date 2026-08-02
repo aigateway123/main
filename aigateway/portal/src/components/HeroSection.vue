@@ -25,7 +25,7 @@ const handleCopy = () => {
 }
 
 const highlightUrl = (line: string) => {
-  const url = 'https://api.novagateway.ai/v1'
+  const url = 'http://api.starnov.cn/v1'
   if (line.includes(url)) {
     const parts = line.split(url)
     return {
@@ -151,7 +151,7 @@ const isComment = (line: string) => {
               <span class="whitespace-pre-wrap break-words" :class="isComment(line) ? 'text-slate-500 italic' : 'text-slate-300'">
                 <template v-if="highlightUrl(line).hasHighlight">
                   {{ highlightUrl(line).before }}
-                  <span class="bg-blue-600/30 text-blue-300 font-bold px-1 rounded border border-blue-500/40">"https://api.novagateway.ai/v1"</span>
+                  <span class="bg-blue-600/30 text-blue-300 font-bold px-1 rounded border border-blue-500/40">"http://api.starnov.cn/v1"</span>
                   {{ highlightUrl(line).after }}
                 </template>
                 <template v-else>
@@ -165,7 +165,7 @@ const isComment = (line: string) => {
           <div class="px-4 py-2.5 bg-slate-900/90 border-t border-slate-800 flex flex-wrap items-center justify-between text-xs text-slate-400">
             <div class="flex items-center gap-2">
               <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-              <span>全网 API 端点地址: <code class="text-blue-300 font-mono">https://api.novagateway.ai/v1</code></span>
+              <span>全网 API 端点地址: <code class="text-blue-300 font-mono">http://api.starnov.cn/v1</code></span>
             </div>
             <span class="text-slate-400">支持原生 OpenAI 客户端 / Python / JS / Go / LangChain</span>
           </div>
