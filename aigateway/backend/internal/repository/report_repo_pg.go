@@ -62,13 +62,29 @@ func (r *PostgresReportRepository) scanDailyStatsRows(rows pgx.Rows) ([]*entity.
 
 const dailyStatsColumns = "id, stat_date, user_id, model_id, request_count, input_tokens, output_tokens, total_revenue, created_at, updated_at"
 
+// beijingDayRange returns the [start, end) instants covering t's calendar day
+// in Asia/Shanghai. Making the timezone explicit keeps day-boundary grouping
+// correct regardless of the DB session timezone (which defaults to UTC).
+func beijingDayRange(t time.Time) (time.Time, time.Time) {
+	loc := time.FixedZone("Asia/Shanghai", 8*3600)
+	bt := t.In(loc)
+	start := time.Date(bt.Year(), bt.Month(), bt.Day(), 0, 0, 0, 0, loc)
+	return start, start.AddDate(0, 0, 1)
+}
+
+// beijingDateStr renders t as a date string in Asia/Shanghai, so stat_date
+// (a plain DATE column) can be compared without session-timezone ambiguity.
+func beijingDateStr(t time.Time) string {
+	return t.In(time.FixedZone("Asia/Shanghai", 8*3600)).Format("2006-01-02")
+}
+
 // GetDailyStats returns all aggregated stats within the date range.
 func (r *PostgresReportRepository) GetDailyStats(ctx context.Context, startDate, endDate time.Time) ([]*entity.BillingDailyStats, error) {
 	query := fmt.Sprintf(`SELECT %s FROM billing_daily_stats
-		WHERE stat_date >= $1 AND stat_date <= $2
+		WHERE stat_date >= $1::date AND stat_date <= $2::date
 		ORDER BY stat_date ASC`, dailyStatsColumns)
 
-	rows, err := r.pool.Query(ctx, query, startDate, endDate)
+	rows, err := r.pool.Query(ctx, query, beijingDateStr(startDate), beijingDateStr(endDate))
 	if err != nil {
 		return nil, err
 	}
@@ -78,10 +94,10 @@ func (r *PostgresReportRepository) GetDailyStats(ctx context.Context, startDate,
 // GetDailyStatsByUser returns stats grouped by user (summed across models).
 func (r *PostgresReportRepository) GetDailyStatsByUser(ctx context.Context, startDate, endDate time.Time) ([]*entity.BillingDailyStats, error) {
 	query := fmt.Sprintf(`SELECT %s FROM billing_daily_stats
-		WHERE stat_date >= $1 AND stat_date <= $2
+		WHERE stat_date >= $1::date AND stat_date <= $2::date
 		ORDER BY user_id, stat_date ASC`, dailyStatsColumns)
 
-	rows, err := r.pool.Query(ctx, query, startDate, endDate)
+	rows, err := r.pool.Query(ctx, query, beijingDateStr(startDate), beijingDateStr(endDate))
 	if err != nil {
 		return nil, err
 	}
@@ -91,10 +107,10 @@ func (r *PostgresReportRepository) GetDailyStatsByUser(ctx context.Context, star
 // GetDailyStatsByModel returns stats grouped by model (summed across users).
 func (r *PostgresReportRepository) GetDailyStatsByModel(ctx context.Context, startDate, endDate time.Time) ([]*entity.BillingDailyStats, error) {
 	query := fmt.Sprintf(`SELECT %s FROM billing_daily_stats
-		WHERE stat_date >= $1 AND stat_date <= $2
+		WHERE stat_date >= $1::date AND stat_date <= $2::date
 		ORDER BY model_id, stat_date ASC`, dailyStatsColumns)
 
-	rows, err := r.pool.Query(ctx, query, startDate, endDate)
+	rows, err := r.pool.Query(ctx, query, beijingDateStr(startDate), beijingDateStr(endDate))
 	if err != nil {
 		return nil, err
 	}
@@ -105,12 +121,12 @@ func (r *PostgresReportRepository) GetDailyStatsByModel(ctx context.Context, sta
 func (r *PostgresReportRepository) GetTodayRevenue(ctx context.Context) (float64, int, error) {
 	var revenue float64
 	var count int
-	today := time.Now().Format("2006-01-02")
+	start, end := beijingDayRange(time.Now())
 	err := r.pool.QueryRow(ctx, `
 		SELECT COALESCE(SUM(cost_amount), 0), COUNT(*)
 		FROM request_logs
-		WHERE created_at::date = $1
-	`, today).Scan(&revenue, &count)
+		WHERE created_at >= $1 AND created_at < $2
+	`, start, end).Scan(&revenue, &count)
 	return revenue, count, err
 }
 
@@ -119,18 +135,20 @@ func (r *PostgresReportRepository) GetCurrentMonthRevenue(ctx context.Context) (
 	var revenue float64
 	var count int
 	now := time.Now()
-	firstOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	loc := time.FixedZone("Asia/Shanghai", 8*3600)
+	firstOfMonth := time.Date(now.In(loc).Year(), now.In(loc).Month(), 1, 0, 0, 0, 0, loc)
 	err := r.pool.QueryRow(ctx, `
 		SELECT COALESCE(SUM(total_revenue), 0), COALESCE(SUM(request_count), 0)
 		FROM billing_daily_stats
-		WHERE stat_date >= $1 AND stat_date < $2
-	`, firstOfMonth, now).Scan(&revenue, &count)
+		WHERE stat_date >= $1::date AND stat_date < $2::date
+	`, beijingDateStr(firstOfMonth), beijingDateStr(now)).Scan(&revenue, &count)
 	return revenue, count, err
 }
 
 // RunDailyAggregation aggregates data from request_logs into billing_daily_stats (idempotent).
 func (r *PostgresReportRepository) RunDailyAggregation(ctx context.Context, statDate time.Time) error {
-	dateStr := statDate.Format("2006-01-02")
+	dateStr := statDate.In(time.FixedZone("Asia/Shanghai", 8*3600)).Format("2006-01-02")
+	start, end := beijingDayRange(statDate)
 
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -155,9 +173,9 @@ func (r *PostgresReportRepository) RunDailyAggregation(ctx context.Context, stat
 			COALESCE(SUM(output_tokens), 0),
 			COALESCE(SUM(cost_amount), 0)
 		FROM request_logs
-		WHERE created_at::date = $1
+		WHERE created_at >= $2 AND created_at < $3
 		GROUP BY user_id, model_id
-	`, dateStr); err != nil {
+	`, dateStr, start, end); err != nil {
 		return fmt.Errorf("insert aggregation: %w", err)
 	}
 
@@ -167,10 +185,10 @@ func (r *PostgresReportRepository) RunDailyAggregation(ctx context.Context, stat
 // GetUserDailyStats returns aggregated stats for a specific user over a date range.
 func (r *PostgresReportRepository) GetUserDailyStats(ctx context.Context, userID int64, startDate, endDate time.Time) ([]*entity.BillingDailyStats, error) {
 	query := fmt.Sprintf(`SELECT %s FROM billing_daily_stats
-		WHERE user_id = $1 AND stat_date >= $2 AND stat_date <= $3
+		WHERE user_id = $1 AND stat_date >= $2::date AND stat_date <= $3::date
 		ORDER BY stat_date ASC`, dailyStatsColumns)
 
-	rows, err := r.pool.Query(ctx, query, userID, startDate, endDate)
+	rows, err := r.pool.Query(ctx, query, userID, beijingDateStr(startDate), beijingDateStr(endDate))
 	if err != nil {
 		return nil, err
 	}
@@ -181,12 +199,12 @@ func (r *PostgresReportRepository) GetUserDailyStats(ctx context.Context, userID
 func (r *PostgresReportRepository) GetUserTodaySummary(ctx context.Context, userID int64) (float64, int, error) {
 	var revenue float64
 	var count int
-	today := time.Now().Format("2006-01-02")
+	start, end := beijingDayRange(time.Now())
 	err := r.pool.QueryRow(ctx, `
 		SELECT COALESCE(SUM(cost_amount), 0), COUNT(*)
 		FROM request_logs
-		WHERE user_id = $1 AND created_at::date = $2
-	`, userID, today).Scan(&revenue, &count)
+		WHERE user_id = $1 AND created_at >= $2 AND created_at < $3
+	`, userID, start, end).Scan(&revenue, &count)
 	return revenue, count, err
 }
 
@@ -195,11 +213,12 @@ func (r *PostgresReportRepository) GetCurrentMonthRevenueByUser(ctx context.Cont
 	var revenue float64
 	var count int
 	now := time.Now()
-	firstOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	loc := time.FixedZone("Asia/Shanghai", 8*3600)
+	firstOfMonth := time.Date(now.In(loc).Year(), now.In(loc).Month(), 1, 0, 0, 0, 0, loc)
 	err := r.pool.QueryRow(ctx, `
 		SELECT COALESCE(SUM(total_revenue), 0), COALESCE(SUM(request_count), 0)
 		FROM billing_daily_stats
-		WHERE user_id = $1 AND stat_date >= $2 AND stat_date < $3
-	`, userID, firstOfMonth, now).Scan(&revenue, &count)
+		WHERE user_id = $1 AND stat_date >= $2::date AND stat_date < $3::date
+	`, userID, beijingDateStr(firstOfMonth), beijingDateStr(now)).Scan(&revenue, &count)
 	return revenue, count, err
 }

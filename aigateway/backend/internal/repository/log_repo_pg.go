@@ -194,12 +194,12 @@ func (r *PostgresRequestLogRepository) ListByUserIDFiltered(ctx context.Context,
 		argIdx++
 	}
 	if startDate != "" {
-		whereClause += fmt.Sprintf(" AND created_at >= $%d::timestamp", argIdx)
+		whereClause += fmt.Sprintf(" AND created_at >= ($%d::timestamp AT TIME ZONE 'Asia/Shanghai')", argIdx)
 		args = append(args, startDate)
 		argIdx++
 	}
 	if endDate != "" {
-		whereClause += fmt.Sprintf(" AND created_at < ($%d::timestamp + INTERVAL '1 day')", argIdx)
+		whereClause += fmt.Sprintf(" AND created_at < (($%d::timestamp + INTERVAL '1 day') AT TIME ZONE 'Asia/Shanghai')", argIdx)
 		args = append(args, endDate)
 		argIdx++
 	}
@@ -313,12 +313,12 @@ func (r *PostgresRequestLogRepository) AdminList(ctx context.Context, offset, li
 		argIdx++
 	}
 	if startDate != "" {
-		whereClause += fmt.Sprintf(" AND l.created_at >= $%d::timestamp", argIdx)
+		whereClause += fmt.Sprintf(" AND l.created_at >= ($%d::timestamp AT TIME ZONE 'Asia/Shanghai')", argIdx)
 		args = append(args, startDate)
 		argIdx++
 	}
 	if endDate != "" {
-		whereClause += fmt.Sprintf(" AND l.created_at < ($%d::timestamp + INTERVAL '1 day')", argIdx)
+		whereClause += fmt.Sprintf(" AND l.created_at < (($%d::timestamp + INTERVAL '1 day') AT TIME ZONE 'Asia/Shanghai')", argIdx)
 		args = append(args, endDate)
 		argIdx++
 	}

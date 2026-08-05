@@ -299,12 +299,12 @@ func toPricingResponse(p *entity.Pricing) *dto.PricingResponse {
 		ProviderID:    p.ProviderID,
 		InputPrice:    p.InputPrice,
 		OutputPrice:   p.OutputPrice,
-		EffectiveFrom: p.EffectiveFrom.Format("2006-01-02T15:04:05Z"),
-		CreatedAt:     p.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt:     p.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		EffectiveFrom: p.EffectiveFrom.Format("2006-01-02T15:04:05Z07:00"),
+		CreatedAt:     p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:     p.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 	if p.EffectiveTo != nil {
-		resp.EffectiveTo = p.EffectiveTo.Format("2006-01-02T15:04:05Z")
+		resp.EffectiveTo = p.EffectiveTo.Format("2006-01-02T15:04:05Z07:00")
 	}
 	return resp
 }
@@ -319,8 +319,8 @@ func toQuotaResponse(q *entity.Quota) *dto.QuotaResponse {
 		UsedTokens:   q.UsedTokens,
 		UsedRequests: q.UsedRequests,
 		ResetPeriod:  q.ResetPeriod,
-		CreatedAt:    q.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt:    q.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		CreatedAt:    q.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:    q.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }
 
