@@ -33,7 +33,7 @@ const routes: RouteRecordRaw[] = [
     path: '/models',
     name: 'models',
     component: () => import('@/pages/models/models-page.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, permission: 'admin:model:manage' },
   },
   {
     path: '/usage',

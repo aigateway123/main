@@ -3,6 +3,7 @@ package controller
 import (
 	"log/slog"
 	"net/http"
+	"time"
 
 	"aigateway/backend/internal/dto"
 	"aigateway/backend/internal/service"
@@ -19,12 +20,30 @@ func NewReportController(reportSvc *service.ReportService, logger *slog.Logger) 
 	return &ReportController{reportSvc: reportSvc, logger: logger}
 }
 
+// parseReportDates resolves the date range for a report request.
+// It prioritizes the frontend `range` query (today/yesterday/7d/month),
+// then falls back to explicit startDate/endDate params.
+func parseReportDates(r *http.Request) (time.Time, time.Time, error) {
+	now := time.Now()
+	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+
+	switch r.URL.Query().Get("range") {
+	case "today":
+		return startOfDay, now, nil
+	case "yesterday":
+		yesterday := startOfDay.AddDate(0, 0, -1)
+		return yesterday, startOfDay, nil
+	case "7d":
+		return startOfDay.AddDate(0, 0, -6), now, nil
+	case "month":
+		return time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()), now, nil
+	}
+	return service.ParseDateRange(r.URL.Query().Get("startDate"), r.URL.Query().Get("endDate"))
+}
+
 // HandleSummary handles GET /api/v1/billing/report/summary
 func (c *ReportController) HandleSummary(w http.ResponseWriter, r *http.Request) {
-	startDateStr := r.URL.Query().Get("startDate")
-	endDateStr := r.URL.Query().Get("endDate")
-
-	startDate, endDate, err := service.ParseDateRange(startDateStr, endDateStr)
+	startDate, endDate, err := parseReportDates(r)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "REPORT001", err.Error())
 		return
@@ -46,10 +65,7 @@ func (c *ReportController) HandleSummary(w http.ResponseWriter, r *http.Request)
 
 // HandleRevenueTrend handles GET /api/v1/billing/report/revenue-trend
 func (c *ReportController) HandleRevenueTrend(w http.ResponseWriter, r *http.Request) {
-	startDateStr := r.URL.Query().Get("startDate")
-	endDateStr := r.URL.Query().Get("endDate")
-
-	startDate, endDate, err := service.ParseDateRange(startDateStr, endDateStr)
+	startDate, endDate, err := parseReportDates(r)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "REPORT001", err.Error())
 		return
@@ -71,10 +87,7 @@ func (c *ReportController) HandleRevenueTrend(w http.ResponseWriter, r *http.Req
 
 // HandleByModel handles GET /api/v1/billing/report/by-model
 func (c *ReportController) HandleByModel(w http.ResponseWriter, r *http.Request) {
-	startDateStr := r.URL.Query().Get("startDate")
-	endDateStr := r.URL.Query().Get("endDate")
-
-	startDate, endDate, err := service.ParseDateRange(startDateStr, endDateStr)
+	startDate, endDate, err := parseReportDates(r)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "REPORT001", err.Error())
 		return
@@ -96,10 +109,7 @@ func (c *ReportController) HandleByModel(w http.ResponseWriter, r *http.Request)
 
 // HandleByUser handles GET /api/v1/billing/report/by-user
 func (c *ReportController) HandleByUser(w http.ResponseWriter, r *http.Request) {
-	startDateStr := r.URL.Query().Get("startDate")
-	endDateStr := r.URL.Query().Get("endDate")
-
-	startDate, endDate, err := service.ParseDateRange(startDateStr, endDateStr)
+	startDate, endDate, err := parseReportDates(r)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "REPORT001", err.Error())
 		return
@@ -121,10 +131,7 @@ func (c *ReportController) HandleByUser(w http.ResponseWriter, r *http.Request) 
 
 // HandleExport handles GET /api/v1/billing/report/export
 func (c *ReportController) HandleExport(w http.ResponseWriter, r *http.Request) {
-	startDateStr := r.URL.Query().Get("startDate")
-	endDateStr := r.URL.Query().Get("endDate")
-
-	startDate, endDate, err := service.ParseDateRange(startDateStr, endDateStr)
+	startDate, endDate, err := parseReportDates(r)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "REPORT001", err.Error())
 		return

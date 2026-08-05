@@ -115,12 +115,17 @@ func (s *ReportService) GetByModel(ctx context.Context, startDate, endDate time.
 		return nil, fmt.Errorf("list models: %w", err)
 	}
 	modelNameByID := make(map[int64]string)
+	modelCodeByID := make(map[int64]string)
 	for _, m := range models {
 		modelNameByID[m.ID] = m.ModelName
+		modelCodeByID[m.ID] = m.ModelCode
 	}
 	for _, ms := range modelMap {
 		if name, ok := modelNameByID[ms.ModelID]; ok {
 			ms.ModelName = name
+		}
+		if code, ok := modelCodeByID[ms.ModelID]; ok {
+			ms.ModelCode = code
 		}
 	}
 
@@ -270,7 +275,7 @@ func (s *ReportService) GetUserUsageTrend(ctx context.Context, userID int64, day
 }
 
 // GetUserUsageDetail returns paginated usage detail for a specific user.
-func (s *ReportService) GetUserUsageDetail(ctx context.Context, userID int64, page, pageSize int) ([]*dto.UsageDetailItem, int64, error) {
+func (s *ReportService) GetUserUsageDetail(ctx context.Context, userID int64, page, pageSize int, startDate, endDate string) ([]*dto.UsageDetailItem, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -279,7 +284,7 @@ func (s *ReportService) GetUserUsageDetail(ctx context.Context, userID int64, pa
 	}
 	offset := (page - 1) * pageSize
 
-	logs, total, err := s.logRepo.ListByUserIDFiltered(ctx, userID, offset, pageSize, "", "", "")
+	logs, total, err := s.logRepo.ListByUserIDFiltered(ctx, userID, offset, pageSize, startDate, endDate, "")
 	if err != nil {
 		return nil, 0, fmt.Errorf("list user logs: %w", err)
 	}
@@ -287,11 +292,13 @@ func (s *ReportService) GetUserUsageDetail(ctx context.Context, userID int64, pa
 	items := make([]*dto.UsageDetailItem, 0, len(logs))
 	for _, l := range logs {
 		items = append(items, &dto.UsageDetailItem{
-			Timestamp:    l.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			ID:           l.ID,
+			ModelCode:    l.ModelCode,
 			ModelName:    l.ModelCode,
 			InputTokens:  l.InputTokens,
 			OutputTokens: l.OutputTokens,
-			Cost:         l.CostAmount,
+			CostAmount:   l.CostAmount,
+			CreatedAt:    l.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		})
 	}
 	return items, int64(total), nil

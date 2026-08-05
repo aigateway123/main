@@ -42,6 +42,38 @@ func RBACMiddleware(rbacSvc *service.RBACService, logger *slog.Logger) func(http
 }
 
 func requiredPermissionForAdminRoute(method string, path string) string {
+	if !strings.HasPrefix(path, "/api/v1/") {
+		return ""
+	}
+
+	// Model management: only roles with admin:model:manage can create/update/delete models or bind providers.
+	// Model listing stays open so all roles can discover available models.
+	if strings.HasPrefix(path, "/api/v1/models") || strings.HasPrefix(path, "/api/v1/bindings") {
+		switch method {
+		case http.MethodGet, http.MethodHead:
+			return ""
+		default:
+			return "admin:model:manage"
+		}
+	}
+
+	// Provider management: mutations require admin:provider:manage.
+	if strings.HasPrefix(path, "/api/v1/providers") {
+		switch method {
+		case http.MethodGet, http.MethodHead:
+			return ""
+		default:
+			return "admin:provider:manage"
+		}
+	}
+
+	// Billing report endpoints require admin:billing:report.
+	// Note: this must be checked BEFORE the /api/v1/admin/ guard below,
+	// because report routes live under /api/v1/billing/report.
+	if strings.HasPrefix(path, "/api/v1/billing/report") {
+		return "admin:billing:report"
+	}
+
 	if !strings.HasPrefix(path, "/api/v1/admin/") {
 		return ""
 	}
@@ -86,6 +118,20 @@ func requiredPermissionForAdminRoute(method string, path string) string {
 
 	if strings.HasPrefix(path, "/api/v1/admin/pricing") {
 		return "admin:pricing:manage"
+	}
+
+	if strings.HasPrefix(path, "/api/v1/admin/roles") || strings.HasPrefix(path, "/api/v1/admin/permissions") {
+		return "admin:role:manage"
+	}
+
+	if strings.HasPrefix(path, "/api/v1/admin/billing") {
+		if strings.HasSuffix(path, "/summary") {
+			return "admin:billing:view"
+		}
+		if strings.HasSuffix(path, "/usage") {
+			return "admin:billing:view"
+		}
+		return "admin:billing:view"
 	}
 
 	return ""

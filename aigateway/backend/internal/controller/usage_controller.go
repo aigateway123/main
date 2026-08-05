@@ -118,8 +118,15 @@ func (c *UsageController) HandleRecordLog(w http.ResponseWriter, r *http.Request
 	log.UserID = userID
 
 	if err := c.svc.RecordLog(r.Context(), &log); err != nil {
-		c.logger.Error("record log failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "GATEWAY001", "record log failed")
+		switch err {
+		case service.ErrModelNotFound:
+			writeError(w, http.StatusNotFound, "VALID001", "model not found: "+log.ModelCode)
+		case service.ErrNoProviderBound:
+			writeError(w, http.StatusBadRequest, "VALID001", "no active provider bound to model: "+log.ModelCode)
+		default:
+			c.logger.Error("record log failed", "error", err)
+			writeError(w, http.StatusInternalServerError, "GATEWAY001", "record log failed")
+		}
 		return
 	}
 

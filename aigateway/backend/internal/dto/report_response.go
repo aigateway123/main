@@ -21,11 +21,12 @@ type DailyTrendPoint struct {
 // ModelStats 模型维度统计
 type ModelStats struct {
 	ModelID      int64   `json:"modelId"`
+	ModelCode    string  `json:"modelCode"`
 	ModelName    string  `json:"modelName"`
 	RequestCount int     `json:"requestCount"`
 	InputTokens  int64   `json:"inputTokens"`
 	OutputTokens int64   `json:"outputTokens"`
-	Revenue      float64 `json:"revenue"`
+	Revenue      float64 `json:"totalRevenue"`
 }
 
 // UserStats 用户维度统计
@@ -33,7 +34,7 @@ type UserStats struct {
 	UserID       int64   `json:"userId"`
 	Email        string  `json:"email"`
 	RequestCount int     `json:"requestCount"`
-	Revenue      float64 `json:"revenue"`
+	Revenue      float64 `json:"totalRevenue"`
 }
 
 // UserUsageSummary 学生个人用量总览
@@ -45,9 +46,11 @@ type UserUsageSummary struct {
 
 // UsageDetailItem 学生个人用量明细项
 type UsageDetailItem struct {
-	Timestamp    string  `json:"timestamp"`
+	ID           int64   `json:"id"`
+	ModelCode    string  `json:"modelCode"`
 	ModelName    string  `json:"modelName"`
 	InputTokens  int     `json:"inputTokens"`
 	OutputTokens int     `json:"outputTokens"`
-	Cost         float64 `json:"cost"`
+	CostAmount   float64 `json:"costAmount"`
+	CreatedAt    string  `json:"createdAt"`
 }

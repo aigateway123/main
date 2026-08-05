@@ -107,7 +107,7 @@ async function handleSetModels() {
 async function handleToggleStatus(student: StudentResponse) {
   const newStatus = student.status === 'active' ? 'disabled' : 'active'
   const action = newStatus === 'active' ? '启用' : '禁用'
-  if (!confirm(`确定要${action}该学生吗？`)) return
+  if (!confirm(`确定要${action}该账号吗？`)) return
   try {
     await updateStudentStatus(student.userId, newStatus)
     await loadStudents()
@@ -155,7 +155,7 @@ onMounted(loadStudents)
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
-        创建学生
+        创建账号
       </button>
     </div>
 
@@ -217,7 +217,7 @@ onMounted(loadStudents)
           </tbody>
         </table>
         <div v-if="loading" class="py-10 text-center text-text-secondary text-xs">加载中...</div>
-        <div v-else-if="students.length === 0" class="py-10 text-center text-text-secondary text-xs">暂无学生数据</div>
+        <div v-else-if="students.length === 0" class="py-10 text-center text-text-secondary text-xs">暂无账号数据</div>
       </div>
 
       <!-- Pagination -->
@@ -236,20 +236,20 @@ onMounted(loadStudents)
       <div v-if="showCreate" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4" @click.self="showCreate = false">
         <div class="bg-white w-full max-w-md rounded-lg border border-border shadow-xl p-6 space-y-5 animate-in zoom-in-95 duration-150">
           <div class="flex items-start justify-between border-b border-border pb-3">
-            <h3 class="text-xl font-bold text-text-primary">创建学生账号</h3>
+            <h3 class="text-xl font-bold text-text-primary">创建账号</h3>
             <button class="text-text-secondary hover:text-text-primary p-1 rounded cursor-pointer" @click="showCreate = false">
               <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
           <form @submit.prevent="handleCreate" class="space-y-4">
             <div class="space-y-1.5">
-              <label class="text-xs font-semibold text-text-primary">学生邮箱</label>
-              <input v-model="createEmail" type="email" placeholder="student@university.edu.cn"
+              <label class="text-xs font-semibold text-text-primary">账号邮箱</label>
+              <input v-model="createEmail" type="email" placeholder="user@example.com"
                 class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" required />
             </div>
             <div class="space-y-1.5">
               <label class="text-xs font-semibold text-text-primary">初始化密码</label>
-              <input v-model="createPassword" type="password" placeholder="请设置学生的初始密码"
+              <input v-model="createPassword" type="password" placeholder="请设置该账号的初始密码"
                 class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" required />
             </div>
             <div class="space-y-1.5">
@@ -273,7 +273,7 @@ onMounted(loadStudents)
       <div v-if="showDetail && detailStudent" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4" @click.self="showDetail = false">
         <div class="bg-white w-full max-w-lg rounded-lg border border-border shadow-xl p-6 space-y-5 animate-in zoom-in-95 duration-150">
           <div class="flex items-start justify-between border-b border-border pb-3">
-            <h3 class="text-xl font-bold text-text-primary">学生详情及配额设置</h3>
+            <h3 class="text-xl font-bold text-text-primary">账号详情及配额设置</h3>
             <button class="text-text-secondary hover:text-text-primary p-1 rounded cursor-pointer" @click="showDetail = false">
               <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>

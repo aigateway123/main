@@ -155,7 +155,7 @@ function getIconSvg(icon: string): string {
                         : 'bg-rose-50 text-rose-700 border-rose-200/60',
                     ]"
                   >
-                    {{ log.requestStatus }}
+                    {{ log.requestStatus === 'success' ? '成功' : '失败' }}
                   </span>
                 </td>
                 <td class="px-4 py-2 text-text-secondary text-[11px] font-mono">{{ log.createdAt }}</td>

@@ -26,6 +26,7 @@ type BillingService struct {
 	billingRepo       repository.BillingRepository
 	adminUserRepo     repository.AdminUserRepository
 	logRepo           repository.RequestLogRepository
+	modelRepo         repository.ModelRepository
 }
 
 func NewBillingService(
@@ -36,6 +37,7 @@ func NewBillingService(
 	billingRepo repository.BillingRepository,
 	adminUserRepo repository.AdminUserRepository,
 	logRepo repository.RequestLogRepository,
+	modelRepo repository.ModelRepository,
 ) *BillingService {
 	return &BillingService{
 		userRepo:          userRepo,
@@ -45,6 +47,7 @@ func NewBillingService(
 		billingRepo:       billingRepo,
 		adminUserRepo:     adminUserRepo,
 		logRepo:           logRepo,
+		modelRepo:         modelRepo,
 	}
 }
 
@@ -52,6 +55,12 @@ func (s *BillingService) EnsureQuotaAvailable(ctx context.Context, userID int64)
 	u, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
 		return ErrUserNotFound
+	}
+	// Admin users are exempt from quota checks
+	if s.rbacSvc != nil {
+		if _, roleName, err := s.rbacSvc.GetUserRole(ctx, userID); err == nil && roleName == "Admin" {
+			return nil
+		}
 	}
 	if u.UserStatus != "active" {
 		return ErrUserDisabled
@@ -66,6 +75,13 @@ func (s *BillingService) CheckModelAccess(ctx context.Context, userID int64, mod
 	if s.rbacSvc != nil {
 		_, roleName, err := s.rbacSvc.GetUserRole(ctx, userID)
 		if err == nil && roleName == "Admin" {
+			return nil
+		}
+	}
+
+	// Public models are accessible by all roles
+	if s.modelRepo != nil {
+		if m, err := s.modelRepo.GetByID(ctx, modelID); err == nil && m.IsPublic {
 			return nil
 		}
 	}
@@ -219,6 +235,56 @@ func (s *BillingService) GetAdminUsage(ctx context.Context, userID int64, page, 
 		return nil, 0, ErrInternal
 	}
 	return logs, total, nil
+}
+
+// AdminUsageItem is a single billing detail record with resolved user email.
+type AdminUsageItem struct {
+	ID            int64   `json:"id"`
+	UserID        int64   `json:"userId"`
+	Email         string  `json:"email"`
+	ModelCode     string  `json:"modelCode"`
+	ModelName     string  `json:"modelName"`
+	InputTokens   int     `json:"inputTokens"`
+	OutputTokens  int     `json:"outputTokens"`
+	CostAmount    float64 `json:"costAmount"`
+	RequestStatus string  `json:"requestStatus"`
+	CreatedAt     string  `json:"createdAt"`
+}
+
+// GetAdminUsageItems returns admin billing detail records enriched with user emails.
+func (s *BillingService) GetAdminUsageItems(ctx context.Context, userID int64, page, pageSize int, startDate, endDate, status string) ([]*AdminUsageItem, int, error) {
+	logs, total, err := s.GetAdminUsage(ctx, userID, page, pageSize, startDate, endDate, status)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Resolve emails in bulk
+	emailByUserID := make(map[int64]string, len(logs))
+	for _, l := range logs {
+		if _, ok := emailByUserID[l.UserID]; ok {
+			continue
+		}
+		if u, err := s.userRepo.GetByID(ctx, l.UserID); err == nil {
+			emailByUserID[l.UserID] = u.Email
+		}
+	}
+
+	items := make([]*AdminUsageItem, 0, len(logs))
+	for _, l := range logs {
+		items = append(items, &AdminUsageItem{
+			ID:            l.ID,
+			UserID:        l.UserID,
+			Email:         emailByUserID[l.UserID],
+			ModelCode:     l.ModelCode,
+			ModelName:     l.ModelCode,
+			InputTokens:   l.InputTokens,
+			OutputTokens:  l.OutputTokens,
+			CostAmount:    l.CostAmount,
+			RequestStatus: l.RequestStatus,
+			CreatedAt:     l.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		})
+	}
+	return items, total, nil
 }
 
 func isWithinTimeRange(t time.Time, start string, end string) bool {

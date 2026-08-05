@@ -68,7 +68,7 @@ type mockModelRepo struct {
 func (m *mockModelRepo) Create(ctx context.Context, model *entity.Model) error { return nil }
 func (m *mockModelRepo) GetByID(ctx context.Context, id int64) (*entity.Model, error) { return nil, nil }
 func (m *mockModelRepo) GetByCode(ctx context.Context, code string) (*entity.Model, error) { return nil, nil }
-func (m *mockModelRepo) List(ctx context.Context) ([]*entity.Model, error) { return m.listFn() }
+func (m *mockModelRepo) List(ctx context.Context, _ string) ([]*entity.Model, error) { return m.listFn() }
 func (m *mockModelRepo) Update(ctx context.Context, model *entity.Model) error { return nil }
 func (m *mockModelRepo) Delete(ctx context.Context, id int64) error { return nil }
 

@@ -30,6 +30,9 @@ func (c *AdminUserController) HandleListUsers(w http.ResponseWriter, r *http.Req
 		pageSize = 20
 	}
 	search := r.URL.Query().Get("search")
+	if search == "" {
+		search = r.URL.Query().Get("keyword")
+	}
 	status := r.URL.Query().Get("status")
 
 	items, total, err := c.svc.ListStudents(r.Context(), page, pageSize, search, status)
@@ -49,6 +52,7 @@ func (c *AdminUserController) HandleListUsers(w http.ResponseWriter, r *http.Req
 		Message: "success",
 		Data: map[string]interface{}{
 			"items": items,
+			"total": total,
 			"pagination": map[string]int{
 				"page":       page,
 				"pageSize":   pageSize,
@@ -252,14 +256,26 @@ func (c *AdminUserController) HandleGetModels(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	writeJSON(w, http.StatusOK, types.APIResponse[map[string]interface{}]{
+	authorizedSet := make(map[int64]struct{}, len(authorizedModels))
+	for _, m := range authorizedModels {
+		authorizedSet[m.ModelID] = struct{}{}
+	}
+
+	items := make([]map[string]interface{}, 0, len(allModels))
+	for _, m := range allModels {
+		_, authorized := authorizedSet[m.ModelID]
+		items = append(items, map[string]interface{}{
+			"modelId":   m.ModelID,
+			"modelCode": m.ModelCode,
+			"modelName": m.ModelName,
+			"enabled":   authorized,
+		})
+	}
+
+	writeJSON(w, http.StatusOK, types.APIResponse[[]map[string]interface{}]{
 		Code:    0,
 		Message: "success",
-		Data: map[string]interface{}{
-			"userId":           id,
-			"authorizedModels": authorizedModels,
-			"allModels":        allModels,
-		},
+		Data:    items,
 	})
 }
 

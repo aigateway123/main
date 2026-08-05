@@ -15,10 +15,10 @@ type AdminPricingItem struct {
 	UnitPrice             *json.RawMessage `json:"unitPrice,omitempty"`
 	PeakStart             *string          `json:"peakStart"`
 	PeakEnd               *string          `json:"peakEnd"`
-	PeakPricePerInput     *float64         `json:"peakPricePerInput"`
-	PeakPricePerOutput    *float64         `json:"peakPricePerOutput"`
-	OffpeakPricePerInput  *float64         `json:"offpeakPricePerInput"`
-	OffpeakPricePerOutput *float64         `json:"offpeakPricePerOutput"`
+	PeakPricePerInput     *float64         `json:"peakPricePerInputToken"`
+	PeakPricePerOutput    *float64         `json:"peakPricePerOutputToken"`
+	OffpeakPricePerInput  *float64         `json:"offPeakPricePerInputToken"`
+	OffpeakPricePerOutput *float64         `json:"offPeakPricePerOutputToken"`
 	PricingStatus         string           `json:"pricingStatus"`
 	UpdatedAt             string           `json:"updatedAt"`
 }
@@ -32,10 +32,11 @@ type AdminUpdatePricingRequest struct {
 	UnitPrice             *json.RawMessage `json:"unitPrice,omitempty"`
 	PeakStart             *string          `json:"peakStart"`
 	PeakEnd               *string          `json:"peakEnd"`
-	PeakPricePerInput     *float64         `json:"peakPricePerInput"`
-	PeakPricePerOutput    *float64         `json:"peakPricePerOutput"`
-	OffpeakPricePerInput  *float64         `json:"offpeakPricePerInput"`
-	OffpeakPricePerOutput *float64         `json:"offpeakPricePerOutput"`
+	PeakPricePerInput     *float64         `json:"peakPricePerInputToken"`
+	PeakPricePerOutput    *float64         `json:"peakPricePerOutputToken"`
+	OffpeakPricePerInput  *float64         `json:"offPeakPricePerInputToken"`
+	OffpeakPricePerOutput *float64         `json:"offPeakPricePerOutputToken"`
+	PricingStatus         string           `json:"pricingStatus"`
 }
 
 type PricingTemplate struct {

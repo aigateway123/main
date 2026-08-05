@@ -71,8 +71,8 @@ function openEdit(item: PricingResponse) {
     pricePerOutputToken: item.pricePerOutputToken ?? 0,
     perImagePrice: (unitPrice?.per_image as number) ?? 0,
     resolutions,
-    peakStart: item.peakStart ?? '08:00',
-    peakEnd: item.peakEnd ?? '23:00',
+    peakStart: item.peakStart?.slice(0, 5) ?? '08:00',
+    peakEnd: item.peakEnd?.slice(0, 5) ?? '23:00',
     peakPricePerInputToken: item.peakPricePerInputToken ?? 0,
     peakPricePerOutputToken: item.peakPricePerOutputToken ?? 0,
     offPeakPricePerInputToken: item.offPeakPricePerInputToken ?? 0,
@@ -258,8 +258,8 @@ onMounted(() => { loadPricing(); loadTemplates() })
                   </template>
                   <template v-else>
                     <div class="text-[11px] leading-tight space-y-0.5">
-                      <div class="text-text-primary">Peak: ¥{{ item.peakPricePerInputToken?.toFixed(8) }} / ¥{{ item.peakPricePerOutputToken?.toFixed(8) }}</div>
-                      <div class="text-text-secondary">OffPeak: ¥{{ item.offPeakPricePerInputToken?.toFixed(8) }} / ¥{{ item.offPeakPricePerOutputToken?.toFixed(8) }}</div>
+                      <div class="text-text-primary">高峰: ¥{{ item.peakPricePerInputToken?.toFixed(8) }} / ¥{{ item.peakPricePerOutputToken?.toFixed(8) }}</div>
+                      <div class="text-text-secondary">低谷: ¥{{ item.offPeakPricePerInputToken?.toFixed(8) }} / ¥{{ item.offPeakPricePerOutputToken?.toFixed(8) }}</div>
                     </div>
                   </template>
                 </template>
@@ -360,22 +360,22 @@ onMounted(() => { loadPricing(); loadTemplates() })
                 </div>
                 <div class="grid grid-cols-2 gap-3 pt-2">
                   <div class="space-y-1">
-                    <label class="text-xs font-semibold text-text-primary">Peak Input 价</label>
+                    <label class="text-xs font-semibold text-text-primary">高峰 Input 价</label>
                     <input v-model.number="editForm.peakPricePerInputToken" type="number" step="1e-8"
                       class="w-full h-8 px-2.5 text-xs font-mono bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
                   </div>
                   <div class="space-y-1">
-                    <label class="text-xs font-semibold text-text-primary">Peak Output 价</label>
+                    <label class="text-xs font-semibold text-text-primary">高峰 Output 价</label>
                     <input v-model.number="editForm.peakPricePerOutputToken" type="number" step="1e-8"
                       class="w-full h-8 px-2.5 text-xs font-mono bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
                   </div>
                   <div class="space-y-1">
-                    <label class="text-xs font-semibold text-text-primary">OffPeak Input 价</label>
+                    <label class="text-xs font-semibold text-text-primary">低谷 Input 价</label>
                     <input v-model.number="editForm.offPeakPricePerInputToken" type="number" step="1e-8"
                       class="w-full h-8 px-2.5 text-xs font-mono bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
                   </div>
                   <div class="space-y-1">
-                    <label class="text-xs font-semibold text-text-primary">OffPeak Output 价</label>
+                    <label class="text-xs font-semibold text-text-primary">低谷 Output 价</label>
                     <input v-model.number="editForm.offPeakPricePerOutputToken" type="number" step="1e-8"
                       class="w-full h-8 px-2.5 text-xs font-mono bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
                   </div>

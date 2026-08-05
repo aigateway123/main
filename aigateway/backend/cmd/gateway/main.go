@@ -21,18 +21,22 @@ func main() {
 
 	// ---- Repositories (switchable by STORAGE_DRIVER) ----
 	var (
-		healthRepo      repository.HealthRepository
-		userRepo        repository.UserRepository
-		keyRepo         repository.ApiKeyRepository
-		sessionRepo     repository.SessionRepository
-		providerRepo    repository.ProviderRepository
-		modelRepo       repository.ModelRepository
-		bindingRepo     repository.ModelBindingRepository
-		logRepo         repository.RequestLogRepository
-		pricingRepo     repository.PricingRepository
-		quotaRepo       repository.QuotaRepository
+		healthRepo       repository.HealthRepository
+		userRepo         repository.UserRepository
+		keyRepo          repository.ApiKeyRepository
+		sessionRepo      repository.SessionRepository
+		providerRepo     repository.ProviderRepository
+		modelRepo        repository.ModelRepository
+		bindingRepo      repository.ModelBindingRepository
+		logRepo          repository.RequestLogRepository
+		pricingRepo      repository.PricingRepository
+		quotaRepo        repository.QuotaRepository
 		modelPricingRepo repository.ModelPricingRepository
-		rbacRepo        repository.RBACRepository
+		rbacRepo         repository.RBACRepository
+		billingRepo      repository.BillingRepository
+		adminUserRepo    repository.AdminUserRepository
+		userModelPermRepo repository.UserModelPermissionRepository
+		reportRepo       repository.ReportRepository
 	)
 
 	switch cfg.StorageDriver {
@@ -70,8 +74,12 @@ func main() {
 		logRepo = repository.NewPostgresRequestLogRepository(pool)
 		pricingRepo = repository.NewInMemoryPricingRepository()
 		quotaRepo = repository.NewInMemoryQuotaRepository()
-		modelPricingRepo = repository.NewInMemoryModelPricingRepository()
-		rbacRepo = repository.NewInMemoryRBACRepository()
+		modelPricingRepo = repository.NewPostgresModelPricingRepository(pool)
+		rbacRepo = repository.NewPostgresRBACRepository(pool)
+		billingRepo = repository.NewPostgresBillingRepository(pool)
+		adminUserRepo = repository.NewPostgresAdminUserRepository(pool)
+		userModelPermRepo = repository.NewPostgresUserModelPermissionRepository(pool)
+		reportRepo = repository.NewPostgresReportRepository(pool)
 
 	default: // "memory"
 		healthRepo = repository.NewStaticHealthRepository(cfg.ServiceName, cfg.AppEnv)
@@ -86,6 +94,10 @@ func main() {
 		quotaRepo = repository.NewInMemoryQuotaRepository()
 		modelPricingRepo = repository.NewInMemoryModelPricingRepository()
 		rbacRepo = repository.NewInMemoryRBACRepository()
+		billingRepo = repository.NewInMemoryBillingRepository(userRepo.(*repository.InMemoryUserRepository), logRepo.(*repository.InMemoryRequestLogRepository))
+		adminUserRepo = repository.NewInMemoryAdminUserRepository(userRepo.(*repository.InMemoryUserRepository))
+		userModelPermRepo = repository.NewInMemoryUserModelPermissionRepository()
+		reportRepo = repository.NewInMemoryReportRepository(logRepo.(*repository.InMemoryRequestLogRepository), userRepo.(*repository.InMemoryUserRepository))
 	}
 
 	// ---- Services ----
@@ -96,14 +108,12 @@ func main() {
 	providerSvc := service.NewProviderService(providerRepo, appLogger)
 	modelSvc := service.NewModelService(modelRepo, bindingRepo, providerRepo, modelPricingRepo, appLogger)
 	policySvc := service.NewPolicyService(pricingRepo, quotaRepo, providerRepo, logRepo, 2.0, appLogger)
-	usageSvc := service.NewUsageService(logRepo, keyRepo, providerRepo, policySvc, appLogger)
+	usageSvc := service.NewUsageService(logRepo, keyRepo, providerRepo, modelRepo, bindingRepo, policySvc, appLogger)
 	routerSvc := service.NewRouterService(modelRepo, bindingRepo, providerRepo, keyRepo, appLogger)
 	pricingSvc := service.NewPricingService(modelPricingRepo, modelRepo)
-
-	// Note: billingSvc is set to nil for now as the BillingService requires
-	// additional repositories (userModelPermRepo, billingRepo, adminUserRepo)
-	// that are not yet wired in the main function.
-	var billingSvc *service.BillingService
+	billingSvc := service.NewBillingService(userRepo, rbacSvc, userModelPermRepo, modelPricingRepo, billingRepo, adminUserRepo, logRepo, modelRepo)
+	reportSvc := service.NewReportService(reportRepo, modelRepo, userRepo, logRepo, appLogger)
+	adminUserSvc := service.NewAdminUserService(userRepo, adminUserRepo, rbacRepo, keyRepo, modelRepo, userModelPermRepo)
 
 	httpClient := &service.HTTPClient{Client: http.Client{Timeout: 120 * time.Second}}
 	imageSvc := service.NewImageService(
@@ -114,6 +124,7 @@ func main() {
 	// ---- Controllers ----
 	healthCtrl := controller.NewHealthController(healthSvc, appLogger)
 	authCtrl := controller.NewAuthController(authSvc, appLogger)
+	roleCtrl := controller.NewRoleController(rbacSvc, appLogger)
 	apiKeyCtrl := controller.NewApiKeyController(apiKeySvc, appLogger)
 	providerCtrl := controller.NewProviderController(providerSvc, appLogger)
 	modelCtrl := controller.NewModelController(modelSvc, appLogger)
@@ -122,6 +133,10 @@ func main() {
 	quotaCtrl := controller.NewQuotaController(policySvc, appLogger)
 	chatCtrl := controller.NewChatController(routerSvc, usageSvc, modelSvc, billingSvc, policySvc, appLogger)
 	imageCtrl := controller.NewImageHandler(imageSvc, routerSvc, usageSvc, modelSvc, billingSvc, policySvc, appLogger)
+	billingCtrl := controller.NewBillingController(billingSvc, appLogger)
+	billingCtrl.SetReportService(reportSvc)
+	reportCtrl := controller.NewReportController(reportSvc, appLogger)
+	adminUserCtrl := controller.NewAdminUserController(adminUserSvc, appLogger)
 
 	// ---- Router ----
 	mux := http.NewServeMux()
@@ -167,34 +182,75 @@ func main() {
 	protectedMux.HandleFunc("POST /api/v1/usage/logs", usageCtrl.HandleRecordLog)
 
 	// Admin: Pricing routes
+	adminPricingCtrl := controller.NewAdminPricingController(pricingSvc, appLogger)
 	protectedMux.HandleFunc("POST /api/v1/admin/pricing", pricingCtrl.HandleCreate)
-	protectedMux.HandleFunc("GET /api/v1/admin/pricing", pricingCtrl.HandleList)
+	protectedMux.HandleFunc("GET /api/v1/admin/pricing", adminPricingCtrl.HandleList)
 	protectedMux.HandleFunc("PUT /api/v1/admin/pricing/{id}", pricingCtrl.HandleUpdate)
 
 	// Admin: Model Pricing routes (by model ID)
-	adminPricingCtrl := controller.NewAdminPricingController(pricingSvc, appLogger)
 	protectedMux.HandleFunc("GET /api/v1/admin/pricing/templates", adminPricingCtrl.HandleGetTemplates)
 	protectedMux.HandleFunc("GET /api/v1/admin/pricing/model/{modelId}", adminPricingCtrl.HandleGet)
 	protectedMux.HandleFunc("PUT /api/v1/admin/pricing/model/{modelId}", adminPricingCtrl.HandleUpdate)
+
+	// Admin: User routes (账号管理)
+	protectedMux.HandleFunc("GET /api/v1/admin/users", adminUserCtrl.HandleListUsers)
+	protectedMux.HandleFunc("POST /api/v1/admin/users", adminUserCtrl.HandleCreateUser)
+	protectedMux.HandleFunc("GET /api/v1/admin/users/{id}", adminUserCtrl.HandleGetUser)
+	protectedMux.HandleFunc("PUT /api/v1/admin/users/{id}/status", adminUserCtrl.HandleUpdateStatus)
+	protectedMux.HandleFunc("GET /api/v1/admin/users/{id}/quota", adminUserCtrl.HandleGetQuota)
+	protectedMux.HandleFunc("PUT /api/v1/admin/users/{id}/quota", adminUserCtrl.HandleSetQuota)
+	protectedMux.HandleFunc("GET /api/v1/admin/users/{id}/models", adminUserCtrl.HandleGetModels)
+	protectedMux.HandleFunc("PUT /api/v1/admin/users/{id}/models", adminUserCtrl.HandleSetModels)
+
+	// Admin: Billing routes (账单明细)
+	protectedMux.HandleFunc("GET /api/v1/admin/billing/summary", billingCtrl.HandleAdminSummary)
+	protectedMux.HandleFunc("GET /api/v1/admin/billing/usage", billingCtrl.HandleAdminUsage)
+
+	// Admin: Billing report routes (账单报表)
+	protectedMux.HandleFunc("GET /api/v1/billing/report/summary", reportCtrl.HandleSummary)
+	protectedMux.HandleFunc("GET /api/v1/billing/report/revenue-trend", reportCtrl.HandleRevenueTrend)
+	protectedMux.HandleFunc("GET /api/v1/billing/report/by-model", reportCtrl.HandleByModel)
+	protectedMux.HandleFunc("GET /api/v1/billing/report/by-user", reportCtrl.HandleByUser)
+	protectedMux.HandleFunc("GET /api/v1/billing/report/export", reportCtrl.HandleExport)
+
+	// Personal usage routes (用量明细)
+	protectedMux.HandleFunc("GET /api/v1/billing/quota", billingCtrl.HandleGetQuota)
+	protectedMux.HandleFunc("GET /api/v1/billing/usage", billingCtrl.HandleGetUsage)
+	protectedMux.HandleFunc("GET /api/v1/billing/my/usage-summary", billingCtrl.HandleMyUsageSummary)
+	protectedMux.HandleFunc("GET /api/v1/billing/my/usage-trend", billingCtrl.HandleMyUsageTrend)
+	protectedMux.HandleFunc("GET /api/v1/billing/my/usage-detail", billingCtrl.HandleMyUsageDetail)
 
 	// Admin: Quota routes
 	protectedMux.HandleFunc("POST /api/v1/admin/quotas", quotaCtrl.HandleCreate)
 	protectedMux.HandleFunc("GET /api/v1/admin/quotas", quotaCtrl.HandleList)
 	protectedMux.HandleFunc("PATCH /api/v1/admin/quotas/{id}", quotaCtrl.HandleUpdate)
 
+	// Admin: Role & RBAC routes
+	protectedMux.HandleFunc("GET /api/v1/admin/roles", roleCtrl.HandleListRoles)
+	protectedMux.HandleFunc("POST /api/v1/admin/roles", roleCtrl.HandleCreateRole)
+	protectedMux.HandleFunc("GET /api/v1/admin/roles/{id}", roleCtrl.HandleGetRole)
+	protectedMux.HandleFunc("PUT /api/v1/admin/roles/{id}", roleCtrl.HandleUpdateRole)
+	protectedMux.HandleFunc("DELETE /api/v1/admin/roles/{id}", roleCtrl.HandleDeleteRole)
+	protectedMux.HandleFunc("PUT /api/v1/admin/roles/{id}/permissions", roleCtrl.HandleUpdateRolePermissions)
+	protectedMux.HandleFunc("GET /api/v1/admin/permissions", roleCtrl.HandleListPermissions)
+
 	authMiddleware := middleware.AuthMiddleware(authSvc, appLogger)
-	mux.Handle("/api/v1/auth/profile", authMiddleware(protectedMux))
-	mux.Handle("/api/v1/api-keys", authMiddleware(protectedMux))
-	mux.Handle("/api/v1/api-keys/", authMiddleware(protectedMux))
-	mux.Handle("/api/v1/providers", authMiddleware(protectedMux))
-	mux.Handle("/api/v1/providers/", authMiddleware(protectedMux))
-	mux.Handle("/api/v1/models", authMiddleware(protectedMux))
-	mux.Handle("/api/v1/models/", authMiddleware(protectedMux))
-	mux.Handle("/api/v1/bindings/", authMiddleware(protectedMux))
-	mux.Handle("/api/v1/dashboard", authMiddleware(protectedMux))
-	mux.Handle("/api/v1/dashboard/", authMiddleware(protectedMux))
-	mux.Handle("/api/v1/usage/", authMiddleware(protectedMux))
-	mux.Handle("/api/v1/admin/", authMiddleware(protectedMux))
+	rbacMiddleware := middleware.RBACMiddleware(rbacSvc, appLogger)
+	protected := authMiddleware(rbacMiddleware(protectedMux))
+	mux.Handle("/api/v1/auth/profile", protected)
+	mux.Handle("/api/v1/api-keys", protected)
+	mux.Handle("/api/v1/api-keys/", protected)
+	mux.Handle("/api/v1/providers", protected)
+	mux.Handle("/api/v1/providers/", protected)
+	mux.Handle("/api/v1/models", protected)
+	mux.Handle("/api/v1/models/", protected)
+	mux.Handle("/api/v1/bindings/", protected)
+	mux.Handle("/api/v1/dashboard", protected)
+	mux.Handle("/api/v1/dashboard/", protected)
+	mux.Handle("/api/v1/usage/", protected)
+	mux.Handle("/api/v1/billing", protected)
+	mux.Handle("/api/v1/billing/", protected)
+	mux.Handle("/api/v1/admin/", protected)
 
 	// ---- Middleware chain ----
 	handler := middleware.RequestLogMiddleware(appLogger)(mux)

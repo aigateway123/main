@@ -40,13 +40,13 @@ func NewInMemoryModelRepository() *InMemoryModelRepository {
 	// Seed default models for development
 	now := time.Now()
 	seedModels := []*entity.Model{
-		{ModelName: "GPT-4o Mini", ModelCode: "gpt-4o-mini", ModelType: "chat", ModelStatus: "active", CreatedAt: now, UpdatedAt: now},
-		{ModelName: "DeepSeek Chat", ModelCode: "deepseek-chat", ModelType: "chat", ModelStatus: "active", CreatedAt: now, UpdatedAt: now},
-		{ModelName: "GLM-4", ModelCode: "glm-4", ModelType: "chat", ModelStatus: "active", CreatedAt: now, UpdatedAt: now},
-		{ModelName: "Qwen Max", ModelCode: "qwen-max", ModelType: "chat", ModelStatus: "active", CreatedAt: now, UpdatedAt: now},
-		{ModelName: "GLM-Image", ModelCode: "glm-image", ModelType: "image", ModelStatus: "active", CreatedAt: now, UpdatedAt: now},
-		{ModelName: "Wan2.7-Image-Pro", ModelCode: "wan2.7-image-pro", ModelType: "image", ModelStatus: "active", CreatedAt: now, UpdatedAt: now},
-		{ModelName: "Qwen-Image-2.0", ModelCode: "qwen-image-2.0", ModelType: "image", ModelStatus: "active", CreatedAt: now, UpdatedAt: now},
+		{ModelName: "GPT-4o Mini", ModelCode: "gpt-4o-mini", ModelType: "chat", ModelStatus: "active", IsPublic: true, CreatedAt: now, UpdatedAt: now},
+		{ModelName: "DeepSeek Chat", ModelCode: "deepseek-chat", ModelType: "chat", ModelStatus: "active", IsPublic: true, CreatedAt: now, UpdatedAt: now},
+		{ModelName: "GLM-4", ModelCode: "glm-4", ModelType: "chat", ModelStatus: "active", IsPublic: true, CreatedAt: now, UpdatedAt: now},
+		{ModelName: "Qwen Max", ModelCode: "qwen-max", ModelType: "chat", ModelStatus: "active", IsPublic: true, CreatedAt: now, UpdatedAt: now},
+		{ModelName: "GLM-Image", ModelCode: "glm-image", ModelType: "image", ModelStatus: "active", IsPublic: true, CreatedAt: now, UpdatedAt: now},
+		{ModelName: "Wan2.7-Image-Pro", ModelCode: "wan2.7-image-pro", ModelType: "image", ModelStatus: "active", IsPublic: true, CreatedAt: now, UpdatedAt: now},
+		{ModelName: "Qwen-Image-2.0", ModelCode: "qwen-image-2.0", ModelType: "image", ModelStatus: "active", IsPublic: true, CreatedAt: now, UpdatedAt: now},
 	}
 	for _, m := range seedModels {
 		m.ID = r.nextID

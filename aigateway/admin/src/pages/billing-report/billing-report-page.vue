@@ -14,6 +14,7 @@ import {
 } from '@/api/report'
 import StatCard from '@/components/common/StatCard.vue'
 import BaseTable from '@/components/common/BaseTable.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 /* ========== State ========== */
 
@@ -299,7 +300,7 @@ watch(trendData, (val) => {
               </span>
             </div>
           </div>
-          <div v-else class="py-10 text-center text-text-secondary text-xs">暂无收入趋势数据</div>
+          <EmptyState v-else message="暂无收入趋势数据" />
         </div>
 
         <!-- 右栏：用户消费排行 -->
@@ -350,7 +351,7 @@ watch(trendData, (val) => {
               </div>
             </div>
           </div>
-          <div v-else class="py-10 text-center text-text-secondary text-xs">暂无用户排行数据</div>
+          <EmptyState v-else message="暂无用户排行数据" />
         </div>
       </div>
 
@@ -390,8 +391,8 @@ watch(trendData, (val) => {
     </template>
 
     <!-- 空状态 -->
-    <div v-else-if="!loading" class="py-20 text-center text-text-secondary text-xs">
-      暂无经营数据
+    <div v-else-if="!loading" class="bg-white rounded-lg border border-border">
+      <EmptyState message="暂无经营数据" />
     </div>
   </div>
 </template>

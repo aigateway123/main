@@ -10,26 +10,32 @@ import (
 )
 
 type UsageService struct {
-	logRepo    repository.RequestLogRepository
-	keyRepo    repository.ApiKeyRepository
+	logRepo      repository.RequestLogRepository
+	keyRepo      repository.ApiKeyRepository
 	providerRepo repository.ProviderRepository
-	policySvc  *PolicyService
-	logger     *slog.Logger
+	modelRepo    repository.ModelRepository
+	bindingRepo  repository.ModelBindingRepository
+	policySvc    *PolicyService
+	logger       *slog.Logger
 }
 
 func NewUsageService(
 	logRepo repository.RequestLogRepository,
 	keyRepo repository.ApiKeyRepository,
 	providerRepo repository.ProviderRepository,
+	modelRepo repository.ModelRepository,
+	bindingRepo repository.ModelBindingRepository,
 	policySvc *PolicyService,
 	logger *slog.Logger,
 ) *UsageService {
 	return &UsageService{
-		logRepo:    logRepo,
-		keyRepo:    keyRepo,
+		logRepo:      logRepo,
+		keyRepo:      keyRepo,
 		providerRepo: providerRepo,
-		policySvc:  policySvc,
-		logger:     logger,
+		modelRepo:    modelRepo,
+		bindingRepo:  bindingRepo,
+		policySvc:    policySvc,
+		logger:       logger,
 	}
 }
 
@@ -122,6 +128,38 @@ func (s *UsageService) ListLogs(ctx context.Context, userID int64, page, pageSiz
 }
 
 func (s *UsageService) RecordLog(ctx context.Context, log *entity.RequestLog) error {
+	// Resolve model_id from model_code when the caller only provided the code,
+	// since request_logs.model_id is NOT NULL. No-op when already populated.
+	if log.ModelID == 0 && log.ModelCode != "" && s.modelRepo != nil {
+		if m, err := s.modelRepo.GetByCode(ctx, log.ModelCode); err == nil {
+			log.ModelID = m.ID
+		}
+	}
+	if log.ModelID == 0 {
+		return ErrModelNotFound
+	}
+
+	// Resolve provider_id / provider_name from the model's active binding
+	// when the caller did not provide them (both are NOT NULL columns).
+	if log.ProviderID == 0 && s.bindingRepo != nil {
+		if bindings, err := s.bindingRepo.ListByModelID(ctx, log.ModelID); err == nil {
+			for _, b := range bindings {
+				if b.BindingStatus == "active" {
+					log.ProviderID = b.ProviderID
+					break
+				}
+			}
+		}
+	}
+	if log.ProviderID == 0 {
+		return ErrNoProviderBound
+	}
+	if log.ProviderName == "" && s.providerRepo != nil {
+		if p, err := s.providerRepo.GetByID(ctx, log.ProviderID); err == nil {
+			log.ProviderName = p.ProviderName
+		}
+	}
+
 	return s.logRepo.Create(ctx, log)
 }
 

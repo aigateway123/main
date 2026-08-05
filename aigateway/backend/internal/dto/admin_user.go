@@ -7,13 +7,13 @@ type AdminCreateUserRequest struct {
 }
 
 type AdminUserItem struct {
-	ID          int64   `json:"id"`
-	Email       string  `json:"email"`
-	Nickname    string  `json:"nickname"`
-	Role        string  `json:"role"`
-	UserStatus  string  `json:"userStatus"`
+	ID           int64   `json:"userId"`
+	Email        string  `json:"email"`
+	Nickname     string  `json:"nickname"`
+	Role         string  `json:"role"`
+	UserStatus   string  `json:"status"`
 	QuotaBalance float64 `json:"quotaBalance"`
-	CreatedAt   string  `json:"createdAt"`
+	CreatedAt    string  `json:"createdAt"`
 }
 
 type AdminUpdateUserStatusRequest struct {

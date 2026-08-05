@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { getAdminBillingSummary, getAdminBillingUsage, type AdminBillingSummary, type UsageRecord } from '@/api/billing'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 const summary = ref<AdminBillingSummary | null>(null)
 const records = ref<UsageRecord[]>([])
@@ -138,7 +139,7 @@ onMounted(loadData)
                       : 'bg-rose-50 text-rose-700 border-rose-200/60',
                   ]"
                 >
-                  {{ r.requestStatus }}
+                  {{ r.requestStatus === 'success' ? '成功' : '失败' }}
                 </span>
               </td>
               <td class="px-4 py-2 text-text-secondary text-[11px] font-mono">{{ formatDate(r.createdAt) }}</td>
@@ -146,7 +147,7 @@ onMounted(loadData)
           </tbody>
         </table>
         <div v-if="loading" class="py-10 text-center text-text-secondary text-xs">加载中...</div>
-        <div v-else-if="records.length === 0" class="py-10 text-center text-text-secondary text-xs">暂无用量记录</div>
+        <EmptyState v-else-if="records.length === 0" message="暂无用量记录" />
       </div>
 
       <!-- Pagination -->

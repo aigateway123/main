@@ -23,8 +23,16 @@ func NewPostgresRequestLogRepository(pool *pgxpool.Pool) *PostgresRequestLogRepo
 }
 
 const (
-	logColumns = "id, user_id, api_key_id, model_id, provider_id, model_code, provider_name, " +
+	// COALESCE the nullable FK columns (api_key_id / provider_id) so scans
+	// never hit NULL when ad-hoc entries were recorded without them.
+	logColumns = "id, user_id, COALESCE(api_key_id, 0) AS api_key_id, model_id, COALESCE(provider_id, 0) AS provider_id, " +
+		"model_code, provider_name, " +
 		"input_tokens, output_tokens, latency_ms, cost_amount, request_status, model_type, usage_unit, usage_amount, created_at"
+
+	// adminLogColumns is the aliased variant used by AdminList.
+	adminLogColumns = "l.id, l.user_id, COALESCE(l.api_key_id, 0) AS api_key_id, l.model_id, COALESCE(l.provider_id, 0) AS provider_id, " +
+		"l.model_code, l.provider_name, " +
+		"l.input_tokens, l.output_tokens, l.latency_ms, l.cost_amount, l.request_status, l.model_type, l.usage_unit, l.usage_amount, l.created_at"
 )
 
 func (r *PostgresRequestLogRepository) Create(ctx context.Context, log *entity.RequestLog) error {
@@ -44,9 +52,19 @@ func (r *PostgresRequestLogRepository) Create(ctx context.Context, log *entity.R
 		usageUnit = "token"
 	}
 
+	// api_key_id / provider_id are nullable FK columns: write NULL instead of 0
+	// so partial log entries (e.g. ad-hoc recording) don't trip FK constraints.
+	var apiKeyID, providerID *int64
+	if log.ApiKeyID > 0 {
+		apiKeyID = &log.ApiKeyID
+	}
+	if log.ProviderID > 0 {
+		providerID = &log.ProviderID
+	}
+
 	now := time.Now()
 	err := r.pool.QueryRow(ctx, query,
-		log.UserID, log.ApiKeyID, log.ModelID, log.ProviderID,
+		log.UserID, apiKeyID, log.ModelID, providerID,
 		log.ModelCode, log.ProviderName, log.InputTokens, log.OutputTokens,
 		log.LatencyMs, log.CostAmount, log.RequestStatus,
 		modelType, usageUnit, log.UsageAmount, now,
@@ -311,7 +329,7 @@ func (r *PostgresRequestLogRepository) AdminList(ctx context.Context, offset, li
 		return nil, 0, err
 	}
 
-	dataQuery := `SELECT l.` + logColumns + ` FROM request_logs l` + whereClause +
+	dataQuery := `SELECT ` + adminLogColumns + ` FROM request_logs l` + whereClause +
 		` ORDER BY l.created_at DESC LIMIT $` + fmt.Sprintf("%d", argIdx) + ` OFFSET $` + fmt.Sprintf("%d", argIdx+1)
 	args = append(args, limit, offset)
 

@@ -102,6 +102,9 @@ func (r *PostgresRBACRepository) CreateRole(ctx context.Context, name string, de
 		name, description, now,
 	).Scan(&role.ID, &role.Name, &role.Description, &role.IsSystem, &role.CreatedAt, &role.UpdatedAt)
 	if err != nil {
+		if isPgDuplicateError(err) {
+			return nil, ErrDuplicateName
+		}
 		return nil, err
 	}
 	return &role, nil

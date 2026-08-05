@@ -154,7 +154,7 @@ func (c *BillingController) HandleAdminUsage(w http.ResponseWriter, r *http.Requ
 	endDate := r.URL.Query().Get("endDate")
 	status := r.URL.Query().Get("status")
 
-	logs, total, err := c.billingSvc.GetAdminUsage(r.Context(), filterUserID, page, pageSize, startDate, endDate, status)
+	logs, total, err := c.billingSvc.GetAdminUsageItems(r.Context(), filterUserID, page, pageSize, startDate, endDate, status)
 	if err != nil {
 		c.logger.Error("get admin usage failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "GATEWAY001", "get admin usage failed")
@@ -166,16 +166,11 @@ func (c *BillingController) HandleAdminUsage(w http.ResponseWriter, r *http.Requ
 		totalPages++
 	}
 
-	items := make([]map[string]interface{}, 0, len(logs))
-	for _, l := range logs {
-		items = append(items, logToAdminUsageItem(l))
-	}
-
 	writeJSON(w, http.StatusOK, types.APIResponse[map[string]interface{}]{
 		Code:    0,
 		Message: "success",
 		Data: map[string]interface{}{
-			"items": items,
+			"items": logs,
 			"pagination": map[string]int{
 				"page":       page,
 				"pageSize":   pageSize,
@@ -198,13 +193,6 @@ func logToUsageItem(l *entity.RequestLog) map[string]interface{} {
 		"requestStatus": l.RequestStatus,
 		"createdAt":     l.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
-}
-
-func logToAdminUsageItem(l *entity.RequestLog) map[string]interface{} {
-	item := logToUsageItem(l)
-	item["userId"] = l.UserID
-	item["email"] = "" // Will be filled by caller if needed
-	return item
 }
 
 // HandleMyUsageSummary handles GET /api/v1/billing/my/usage-summary
@@ -290,7 +278,7 @@ func (c *BillingController) HandleMyUsageDetail(w http.ResponseWriter, r *http.R
 		pageSize = 20
 	}
 
-	items, total, err := c.reportSvc.GetUserUsageDetail(r.Context(), userID, page, pageSize)
+	items, total, err := c.reportSvc.GetUserUsageDetail(r.Context(), userID, page, pageSize, r.URL.Query().Get("startDate"), r.URL.Query().Get("endDate"))
 	if err != nil {
 		c.logger.Error("get my usage detail failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "GATEWAY001", "get usage detail failed")

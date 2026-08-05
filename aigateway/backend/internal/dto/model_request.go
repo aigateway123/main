@@ -4,6 +4,7 @@ type CreateModelRequest struct {
 	ModelName string  `json:"modelName"`
 	ModelCode string  `json:"modelCode"`
 	ModelType *string `json:"modelType,omitempty"`
+	IsPublic  *bool   `json:"isPublic,omitempty"`
 }
 
 type UpdateModelRequest struct {
@@ -11,6 +12,7 @@ type UpdateModelRequest struct {
 	ModelCode   string  `json:"modelCode"`
 	ModelStatus string  `json:"modelStatus"`
 	ModelType   *string `json:"modelType,omitempty"`
+	IsPublic    *bool   `json:"isPublic,omitempty"`
 }
 
 type ModelResponse struct {
@@ -19,6 +21,7 @@ type ModelResponse struct {
 	ModelCode   string `json:"modelCode"`
 	ModelType   string `json:"modelType"`
 	ModelStatus string `json:"modelStatus"`
+	IsPublic    bool   `json:"isPublic"`
 	CreatedAt   string `json:"createdAt"`
 	CreatedTime int64  `json:"-"`
 	UpdatedAt   string `json:"updatedAt"`

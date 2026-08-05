@@ -50,7 +50,7 @@ const navGroups = computed<NavGroup[]>(() => [
     {
       groupName: '权限管理',
       items: [
-        { label: '学生管理', path: '/students', perm: 'admin:user:list', icon: 'users' },
+        { label: '账号管理', path: '/students', perm: 'admin:user:list', icon: 'users' },
         { label: '角色管理', path: '/roles', perm: 'admin:role:manage', icon: 'shield' },
       ],
     },

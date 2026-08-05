@@ -6,6 +6,7 @@ const keys = ref<ApiKeyResponse[]>([])
 const loading = ref(false)
 const newKey = ref<string | null>(null)
 const copySuccess = ref(false)
+const copiedRowId = ref<number | null>(null)
 
 async function loadKeys() {
   loading.value = true
@@ -37,11 +38,40 @@ async function handleRevoke(id: number) {
   }
 }
 
-function copyToClipboard() {
-  if (newKey.value) {
-    navigator.clipboard.writeText(newKey.value)
-    copySuccess.value = true
+function copyToClipboard(text: string, onSuccess?: () => void) {
+  const done = () => { onSuccess?.() }
+  const fallback = () => {
+    const el = document.createElement('textarea')
+    el.value = text
+    el.style.position = 'fixed'
+    el.style.opacity = '0'
+    document.body.appendChild(el)
+    el.select()
+    try {
+      document.execCommand('copy')
+      done()
+    } catch {
+      alert('复制失败，请手动复制')
+    }
+    document.body.removeChild(el)
   }
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(done, fallback)
+  } else {
+    fallback()
+  }
+}
+
+function copyNewKey() {
+  if (!newKey.value) return
+  copyToClipboard(newKey.value, () => { copySuccess.value = true })
+}
+
+function copyRowPrefix(key: ApiKeyResponse) {
+  copyToClipboard(key.keyPrefix, () => {
+    copiedRowId.value = key.id
+    setTimeout(() => { copiedRowId.value = null }, 2000)
+  })
 }
 
 onMounted(loadKeys)
@@ -76,7 +106,7 @@ onMounted(loadKeys)
         <code class="flex-1 px-3 py-2 bg-white border border-blue-200 rounded text-xs font-mono text-text-primary break-all">{{ newKey }}</code>
         <button
           class="h-8 px-3 text-xs font-medium text-primary hover:bg-blue-100 border border-blue-200 rounded-btn transition-colors cursor-pointer shrink-0"
-          @click="copyToClipboard"
+          @click="copyNewKey"
         >
           {{ copySuccess ? '已复制' : '复制' }}
         </button>
@@ -103,7 +133,19 @@ onMounted(loadKeys)
               :class="['h-12 transition-colors hover:bg-[#eff6ff]/60', index % 2 === 0 ? 'bg-white' : 'bg-[#fafbfc]']"
             >
               <td class="px-4 py-2">
-                <code class="bg-[#f8f9fa] px-1.5 py-0.5 rounded text-[11px]">{{ key.keyPrefix }}...</code>
+                <div class="flex items-center gap-2">
+                  <code class="bg-[#f8f9fa] px-1.5 py-0.5 rounded text-[11px]">{{ key.keyPrefix }}...</code>
+                  <button
+                    class="inline-flex items-center gap-1 text-[11px] text-primary hover:text-blue-700 hover:bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200/60 transition-colors cursor-pointer"
+                    :title="`复制前缀 ${key.keyPrefix}`"
+                    @click="copyRowPrefix(key)"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    {{ copiedRowId === key.id ? '已复制' : '复制' }}
+                  </button>
+                </div>
               </td>
               <td class="px-4 py-2 text-text-primary">{{ key.permissionScope }}</td>
               <td class="px-4 py-2">
@@ -115,7 +157,7 @@ onMounted(loadKeys)
                       : 'bg-rose-50 text-rose-700 border-rose-200/60',
                   ]"
                 >
-                  {{ key.keyStatus }}
+                  {{ key.keyStatus === 'active' ? '已启用' : '已撤销' }}
                 </span>
               </td>
               <td class="px-4 py-2 text-text-secondary text-[11px] font-mono">{{ key.createdAt }}</td>

@@ -41,11 +41,17 @@ func (s *ModelService) Create(ctx context.Context, req *dto.CreateModelRequest) 
 		modelType = *req.ModelType
 	}
 
+	isPublic := true
+	if req.IsPublic != nil {
+		isPublic = *req.IsPublic
+	}
+
 	m := &entity.Model{
 		ModelName:   req.ModelName,
 		ModelCode:   req.ModelCode,
 		ModelType:   modelType,
 		ModelStatus: "active",
+		IsPublic:    isPublic,
 	}
 
 	if err := s.modelRepo.Create(ctx, m); err != nil {
@@ -130,12 +136,28 @@ func (s *ModelService) Update(ctx context.Context, id int64, req *dto.UpdateMode
 		modelType = *req.ModelType
 	}
 
+	existing, err := s.modelRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, ErrModelNotFound
+	}
+
+	isPublic := existing.IsPublic
+	if req.IsPublic != nil {
+		isPublic = *req.IsPublic
+	}
+
+	modelCode := req.ModelCode
+	if modelCode == "" {
+		modelCode = existing.ModelCode
+	}
+
 	m := &entity.Model{
 		ID:          id,
 		ModelName:   req.ModelName,
-		ModelCode:   req.ModelCode,
+		ModelCode:   modelCode,
 		ModelType:   modelType,
 		ModelStatus: req.ModelStatus,
+		IsPublic:    isPublic,
 	}
 
 	if err := s.modelRepo.Update(ctx, m); err != nil {
@@ -182,6 +204,7 @@ func toModelResponse(m *entity.Model) *dto.ModelResponse {
 		ModelCode:   m.ModelCode,
 		ModelType:   m.ModelType,
 		ModelStatus: m.ModelStatus,
+		IsPublic:    m.IsPublic,
 		CreatedAt:   m.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		CreatedTime: m.CreatedAt.Unix(),
 		UpdatedAt:   m.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
