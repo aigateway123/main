@@ -98,17 +98,30 @@
 | 1 | **P1** | **账单报表接口未受 RBAC 保护**：`/api/v1/billing/report/*` 的权限检查位于 `/api/v1/admin/` 守卫之后，为死代码，任何已登录用户可查看/导出全平台账单 | 学生访问 `/api/v1/billing/report/summary` 返回 200（应 403） | ✅ 已修复：rbac_middleware.go 将 billing/report 检查移至 admin 守卫之前；回归确认学生现返回 403 |
 | 2 | P2 | **日志上报接口易 500**：`POST /api/v1/usage/logs` 未传 modelId/apiKeyId/providerId 时触发 NOT NULL/FK 约束 500 | 仅传 modelCode 时 HTTP 500（`request_logs.model_id/provider_id` NOT NULL） | ✅ 已修复：写入层 0 值 FK 落库 NULL + SELECT 层 COALESCE 兜底；service 层自动用 modelCode 解析 modelId、用模型绑定解析 providerId；错误映射为 404/400 明确提示。回归确认仅传 modelCode 即 201，不存在模型返回 404 |
 | 3 | 测试脚本 | 绑定/删除接口成功返回 204 而非 200；额度接口字段为 `amount`；日志列表 Data 为 `{items,pagination}` 对象 | 首轮断言误报 | 非应用缺陷，已修正断言 |
+| 4 | **P1** | **Provider/配额接口硬编码 `Z` 后缀**：`Format("...Z")` 固定输出 `Z`，实际值为北京墙钟时间，误导为 UTC | 生产实测 Provider 返回 `2026-07-25T20:13:36Z`，正确应为 `+08:00` | ✅ 已修复：provider_service.go / policy_service.go 改用 `Z07:00`；生产回归确认输出 `2026-07-25T20:13:36+08:00` |
+| 5 | P2 | **报表按天统计/今日统计 8 小时边界错位**：`created_at::date` 按 DB 会话时区（Etc/UTC）取日期，`time.Now()` 按容器北京时间，00:00–08:00 产生的请求被记到前一天；用量日志日期过滤同样受影响 | DB 实测存在 `utc_date ≠ bj_date` 的记录（如 `2026-07-25` vs `2026-07-26`） | ✅ 已修复：report_repo_pg.go 用显式 `Asia/Shanghai` 日边界（beijingDayRange/beijingDateStr），log_repo_pg.go 日期过滤用 `AT TIME ZONE 'Asia/Shanghai'`；本地+生产回归通过 |
 
 ## 上线前注意事项（Provider 配置）
 
 1. **qwen3.8-max-preview**：阿里云百炼仅 Token Plan 订阅可用。生产如需上线该模型，须新增 Token Plan Provider（`https://token-plan.cn-beijing.maas.aliyuncs.com` + 专属 Key）并将模型改绑；否则保持 403 access_denied。替代方案：使用 `qwen3.7-max`。
 2. **MiniMax-M3**：思考模式默认开启（adaptive）。生产建议改用官方 OpenAI 兼容端点 `https://api.minimaxi.com/v1/chat/completions`；客户端需传 `max_tokens`（≥1024）或显式 `thinking: {"type": "disabled"}`，否则会「调通但返回空内容」。
 
+## 补充回归：时区问题专项验证（2026-08-06）
+
+**背景**：生产请求日志显示 `2026-08-05T22:57:17+08:00`，经核验该值即北京时间（DB 存储瞬间 14:57 UTC = 22:57 北京，`+08:00` 为北京时区），数值正确；但排查发现两处其他时区缺陷（问题清单 #4/#5），已修复并完成本地 + 生产回归。
+
+| # | 验证项 | 修复前 | 修复后（生产实测） | 状态 |
+|:-:|--------|--------|-------------------|:----:|
+| T1 | Provider createdAt | `2026-07-25T20:13:36Z`（硬编码 Z） | `2026-07-25T20:13:36+08:00` | ✅ |
+| T2 | 报表汇总（range=today） | — | HTTP 200，today/currentMonth 正常 | ✅ |
+| T3 | 用量日志日期过滤（startDate=2026-08-01） | 边界差 8 小时 | 按北京日期边界过滤，HTTP 200 | ✅ |
+| T4 | 请求日志时间 | 值本身正确（+08:00） | 无需调整，确认即北京时间 | ✅ |
+
 ## 总体结论
 
 **Passed（发布前修复完成）**
 
 - 48 项 API 功能回归 + 2 项构建检查全部通过（50/50）。
-- 发布前发现并修复 2 个真实缺陷：P1 报表 RBAC 权限绕过、P2 日志上报 500；均已完成回归验证。
-- 改动集中在 4 个后端文件（rbac_middleware.go / log_repo_pg.go / usage_service.go / usage_controller.go / main.go），与本次迭代 30 个变更文件一并提交部署。
+- 发布前发现并修复 4 个真实缺陷：P1 报表 RBAC 权限绕过、P2 日志上报 500、P1 硬编码 Z 时区标注、P2 报表按天统计 8 小时边界错位；均已完成本地 + 生产回归验证。
+- 改动集中在后端 8 个文件（rbac_middleware / log_repo_pg / usage_service / usage_controller / report_repo_pg / provider_service / policy_service / main.go），已随迭代提交部署。
 - 无遗留阻断性问题；Provider 侧 2 项配置注意事项（qwen3.8 Token Plan、MiniMax-M3 思考模式）需在上线时确认。
