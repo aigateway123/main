@@ -6,7 +6,7 @@ export interface PricingResponse {
   modelName: string
   pricingType: string
   pricingStatus?: string  // "pending" | "active"
-  pricingUnit?: 'token' | 'image_count' | 'request'
+  pricingUnit?: 'token' | 'image_count' | 'request' | 'per_million_tokens'
   unitPrice?: Record<string, unknown>
   pricePerInputToken?: number
   pricePerOutputToken?: number

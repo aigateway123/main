@@ -95,7 +95,7 @@ func (s *PricingService) UpdateByModelID(ctx context.Context, modelID int64, req
 		pricingStatus = "pending"
 		if req.PricePerInputToken > 0 || req.PricePerOutputToken > 0 || (pricingUnit != "token" && req.UnitPrice != nil) {
 			pricingStatus = "active"
-		} else if pricingUnit == "token" && req.PricingType == "time_based" &&
+		} else if (pricingUnit == "token" || pricingUnit == "per_million_tokens") && req.PricingType == "time_based" &&
 			(req.PeakPricePerInput != nil || req.PeakPricePerOutput != nil ||
 				req.OffpeakPricePerInput != nil || req.OffpeakPricePerOutput != nil) {
 			pricingStatus = "active"

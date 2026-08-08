@@ -106,7 +106,7 @@ func (s *BillingService) ComputeCost(ctx context.Context, modelID int64, inputTo
 	}
 
 	// Handle non-token pricing units
-	if p.PricingUnit != "" && p.PricingUnit != "token" {
+	if p.PricingUnit != "" && p.PricingUnit != "token" && p.PricingUnit != "per_million_tokens" {
 		return 0, ErrInternal
 	}
 
@@ -126,6 +126,9 @@ func (s *BillingService) ComputeCost(ctx context.Context, modelID int64, inputTo
 	}
 
 	cost := float64(inputTokens)*inputPrice + float64(outputTokens)*outputPrice
+	if p.PricingUnit == "per_million_tokens" {
+		cost = cost / 1_000_000
+	}
 	if cost < 0 {
 		cost = 0
 	}
@@ -168,6 +171,9 @@ func calculateImageCost(pricing *entity.ModelPricing, imageCount int, size strin
 	}
 	// Fall back to output token price as a proxy for per-image cost
 	cost := float64(imageCount) * pricing.PricePerOutputToken
+	if pricing.PricingUnit == "per_million_tokens" {
+		cost = cost / 1_000_000
+	}
 	if cost < 0 {
 		cost = 0
 	}

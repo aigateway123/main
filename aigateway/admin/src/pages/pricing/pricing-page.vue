@@ -145,6 +145,7 @@ function formatPricingUnit(unit?: string) {
   switch (unit) {
     case 'image_count': return '按张'
     case 'request': return '按次'
+    case 'per_million_tokens': return '按百万 Token'
     default: return '按 Token'
   }
 }
@@ -163,7 +164,7 @@ onMounted(() => { loadPricing(); loadTemplates() })
           </svg>
           模型计费与定价规则
         </h2>
-        <p class="text-xs text-text-secondary mt-0.5">支持按 Token / 按张数计费，高峰期与低谷期分时段阶梯计费策略</p>
+        <p class="text-xs text-text-secondary mt-0.5">支持按 Token / 按百万 Token / 按张数计费，高峰期与低谷期分时段阶梯计费策略</p>
       </div>
       <button class="px-3 py-1.5 border border-primary text-primary bg-white hover:bg-blue-50 rounded text-xs font-medium transition-colors cursor-pointer" @click="showTemplates = !showTemplates">
         定价模板
@@ -251,15 +252,15 @@ onMounted(() => { loadPricing(); loadTemplates() })
                   </template>
                   <template v-else-if="item.pricingType === 'flat'">
                     <template v-if="item.pricePerInputToken != null && item.pricePerOutputToken != null">
-                      In: ¥{{ item.pricePerInputToken.toFixed(8) }}<br>
-                      Out: ¥{{ item.pricePerOutputToken.toFixed(8) }}
+                      In: ¥{{ item.pricePerInputToken.toFixed(8) }}<span v-if="item.pricingUnit === 'per_million_tokens'" class="text-text-secondary">/M</span><br>
+                      Out: ¥{{ item.pricePerOutputToken.toFixed(8) }}<span v-if="item.pricingUnit === 'per_million_tokens'" class="text-text-secondary">/M</span>
                     </template>
                     <span v-else class="text-text-secondary">—</span>
                   </template>
                   <template v-else>
                     <div class="text-[11px] leading-tight space-y-0.5">
-                      <div class="text-text-primary">高峰: ¥{{ item.peakPricePerInputToken?.toFixed(8) }} / ¥{{ item.peakPricePerOutputToken?.toFixed(8) }}</div>
-                      <div class="text-text-secondary">低谷: ¥{{ item.offPeakPricePerInputToken?.toFixed(8) }} / ¥{{ item.offPeakPricePerOutputToken?.toFixed(8) }}</div>
+                      <div class="text-text-primary">高峰: ¥{{ item.peakPricePerInputToken?.toFixed(8) }} / ¥{{ item.peakPricePerOutputToken?.toFixed(8) }}<span v-if="item.pricingUnit === 'per_million_tokens'" class="text-text-secondary">/M</span></div>
+                      <div class="text-text-secondary">低谷: ¥{{ item.offPeakPricePerInputToken?.toFixed(8) }} / ¥{{ item.offPeakPricePerOutputToken?.toFixed(8) }}<span v-if="item.pricingUnit === 'per_million_tokens'" class="text-text-secondary">/M</span></div>
                     </div>
                   </template>
                 </template>
@@ -311,26 +312,27 @@ onMounted(() => { loadPricing(); loadTemplates() })
               <select v-model="editForm.pricingUnit"
                 class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary">
                 <option value="token">按 Token</option>
+                <option value="per_million_tokens">按百万 Token</option>
                 <option value="image_count">按张数</option>
                 <option value="request">按次</option>
               </select>
             </div>
 
             <!-- Token 计费 -->
-            <template v-if="editForm.pricingUnit === 'token'">
+            <template v-if="editForm.pricingUnit === 'token' || editForm.pricingUnit === 'per_million_tokens'">
               <!-- 统一定价 - Token -->
               <div v-if="editForm.pricingType === 'flat'" class="grid grid-cols-2 gap-3 p-3 bg-[#f8f9fa] rounded border border-border">
                 <div class="space-y-1">
-                  <label class="text-xs font-semibold text-text-primary">Input 单价 (per token)</label>
+                  <label class="text-xs font-semibold text-text-primary">Input 单价 {{ editForm.pricingUnit === 'per_million_tokens' ? '(per million tokens)' : '(per token)' }}</label>
                   <input v-model.number="editForm.pricePerInputToken" type="number" step="1e-8"
                     class="w-full h-9 px-3 text-xs font-mono bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" required />
-                  <div class="text-[10px] text-text-secondary mt-0.5">USD / token</div>
+                  <div class="text-[10px] text-text-secondary mt-0.5">USD / {{ editForm.pricingUnit === 'per_million_tokens' ? 'million tokens' : 'token' }}</div>
                 </div>
                 <div class="space-y-1">
-                  <label class="text-xs font-semibold text-text-primary">Output 单价 (per token)</label>
+                  <label class="text-xs font-semibold text-text-primary">Output 单价 {{ editForm.pricingUnit === 'per_million_tokens' ? '(per million tokens)' : '(per token)' }}</label>
                   <input v-model.number="editForm.pricePerOutputToken" type="number" step="1e-8"
                     class="w-full h-9 px-3 text-xs font-mono bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" required />
-                  <div class="text-[10px] text-text-secondary mt-0.5">USD / token</div>
+                  <div class="text-[10px] text-text-secondary mt-0.5">USD / {{ editForm.pricingUnit === 'per_million_tokens' ? 'million tokens' : 'token' }}</div>
                 </div>
               </div>
 
@@ -360,22 +362,22 @@ onMounted(() => { loadPricing(); loadTemplates() })
                 </div>
                 <div class="grid grid-cols-2 gap-3 pt-2">
                   <div class="space-y-1">
-                    <label class="text-xs font-semibold text-text-primary">高峰 Input 价</label>
+                    <label class="text-xs font-semibold text-text-primary">高峰 Input 价{{ editForm.pricingUnit === 'per_million_tokens' ? ' (per million tokens)' : '' }}</label>
                     <input v-model.number="editForm.peakPricePerInputToken" type="number" step="1e-8"
                       class="w-full h-8 px-2.5 text-xs font-mono bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
                   </div>
                   <div class="space-y-1">
-                    <label class="text-xs font-semibold text-text-primary">高峰 Output 价</label>
+                    <label class="text-xs font-semibold text-text-primary">高峰 Output 价{{ editForm.pricingUnit === 'per_million_tokens' ? ' (per million tokens)' : '' }}</label>
                     <input v-model.number="editForm.peakPricePerOutputToken" type="number" step="1e-8"
                       class="w-full h-8 px-2.5 text-xs font-mono bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
                   </div>
                   <div class="space-y-1">
-                    <label class="text-xs font-semibold text-text-primary">低谷 Input 价</label>
+                    <label class="text-xs font-semibold text-text-primary">低谷 Input 价{{ editForm.pricingUnit === 'per_million_tokens' ? ' (per million tokens)' : '' }}</label>
                     <input v-model.number="editForm.offPeakPricePerInputToken" type="number" step="1e-8"
                       class="w-full h-8 px-2.5 text-xs font-mono bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
                   </div>
                   <div class="space-y-1">
-                    <label class="text-xs font-semibold text-text-primary">低谷 Output 价</label>
+                    <label class="text-xs font-semibold text-text-primary">低谷 Output 价{{ editForm.pricingUnit === 'per_million_tokens' ? ' (per million tokens)' : '' }}</label>
                     <input v-model.number="editForm.offPeakPricePerOutputToken" type="number" step="1e-8"
                       class="w-full h-8 px-2.5 text-xs font-mono bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
                   </div>
