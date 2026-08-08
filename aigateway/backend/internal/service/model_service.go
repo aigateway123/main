@@ -12,11 +12,12 @@ import (
 )
 
 type ModelService struct {
-	modelRepo   repository.ModelRepository
-	bindingRepo repository.ModelBindingRepository
-	providerRepo repository.ProviderRepository
-	pricingRepo repository.ModelPricingRepository
-	logger      *slog.Logger
+	modelRepo        repository.ModelRepository
+	bindingRepo      repository.ModelBindingRepository
+	providerRepo     repository.ProviderRepository
+	pricingRepo      repository.ModelPricingRepository
+	userModelPermRepo repository.UserModelPermissionRepository
+	logger           *slog.Logger
 }
 
 func NewModelService(
@@ -24,14 +25,16 @@ func NewModelService(
 	bindingRepo repository.ModelBindingRepository,
 	providerRepo repository.ProviderRepository,
 	pricingRepo repository.ModelPricingRepository,
+	userModelPermRepo repository.UserModelPermissionRepository,
 	logger *slog.Logger,
 ) *ModelService {
 	return &ModelService{
-		modelRepo:    modelRepo,
-		bindingRepo:  bindingRepo,
-		providerRepo: providerRepo,
-		pricingRepo:  pricingRepo,
-		logger:       logger,
+		modelRepo:        modelRepo,
+		bindingRepo:      bindingRepo,
+		providerRepo:     providerRepo,
+		pricingRepo:      pricingRepo,
+		userModelPermRepo: userModelPermRepo,
+		logger:           logger,
 	}
 }
 
@@ -116,6 +119,32 @@ func (s *ModelService) List(ctx context.Context, modelType string) ([]*dto.Model
 	result := make([]*dto.ModelResponse, 0, len(items))
 	for _, m := range items {
 		result = append(result, toModelResponse(m))
+	}
+	return result, nil
+}
+
+// ListForUser returns models granted to the given user (user_model_permissions).
+// Admin role is handled by the caller (returns all models via List).
+func (s *ModelService) ListForUser(ctx context.Context, userID int64, modelType string) ([]*dto.ModelResponse, error) {
+	authorizedIDs, err := s.userModelPermRepo.ListModelIDsByUserID(ctx, userID)
+	if err != nil {
+		return nil, ErrInternal
+	}
+	authorizedSet := make(map[int64]struct{}, len(authorizedIDs))
+	for _, id := range authorizedIDs {
+		authorizedSet[id] = struct{}{}
+	}
+
+	items, err := s.modelRepo.List(ctx, modelType)
+	if err != nil {
+		return nil, ErrInternal
+	}
+
+	result := make([]*dto.ModelResponse, 0, len(items))
+	for _, m := range items {
+		if _, ok := authorizedSet[m.ID]; ok {
+			result = append(result, toModelResponse(m))
+		}
 	}
 	return result, nil
 }

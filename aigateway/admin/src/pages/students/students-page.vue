@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { listStudents, createStudent, updateStudentStatus, getStudentQuota, setStudentQuota, getStudentModels, setStudentModels, type StudentResponse, type ModelAccessResponse } from '@/api/admin'
+import { listStudents, createStudent, updateStudentStatus, getStudentQuota, setStudentQuota, getStudentModels, setStudentModels, resetStudentPassword, type StudentResponse, type ModelAccessResponse } from '@/api/admin'
+import { useAuthStore } from '@/stores/auth-store'
+
+const authStore = useAuthStore()
 
 const students = ref<StudentResponse[]>([])
 const total = ref(0)
@@ -22,6 +25,14 @@ const detailModels = ref<ModelAccessResponse[]>([])
 const newQuota = ref(0)
 const selectedModelIds = ref<number[]>([])
 const updating = ref(false)
+
+const showModelsModal = ref(false)
+const showResetPassword = ref(false)
+const resetPasswordValue = ref('')
+const resetting = ref(false)
+
+const canViewPassword = () => authStore.hasPermission('admin:user:view_password')
+const canManageModels = () => authStore.hasPermission('admin:user:manage_models')
 
 async function loadStudents() {
   loading.value = true
@@ -96,11 +107,33 @@ async function handleSetModels() {
   try {
     await setStudentModels(detailStudent.value.userId, selectedModelIds.value)
     alert('模型权限已更新')
+    showModelsModal.value = false
     await loadStudents()
   } catch (e: any) {
     alert(e?.response?.data?.message ?? '设置模型失败')
   } finally {
     updating.value = false
+  }
+}
+
+function openModelsModal() {
+  showModelsModal.value = true
+}
+
+async function handleResetPassword() {
+  if (!detailStudent.value || !resetPasswordValue.value) return
+  resetting.value = true
+  try {
+    await resetStudentPassword(detailStudent.value.userId, resetPasswordValue.value)
+    alert('密码已重置')
+    showResetPassword.value = false
+    resetPasswordValue.value = ''
+    const target = students.value.find(s => s.userId === detailStudent.value?.userId)
+    if (target) target.password = ''
+  } catch (e: any) {
+    alert(e?.response?.data?.message ?? '重置密码失败')
+  } finally {
+    resetting.value = false
   }
 }
 
@@ -166,7 +199,9 @@ onMounted(loadStudents)
           <thead>
             <tr class="bg-[#f8f9fa] border-b border-border text-text-secondary font-semibold h-10">
               <th class="px-4 py-2">邮箱</th><th class="px-4 py-2">昵称</th><th class="px-4 py-2">状态</th>
-              <th class="px-4 py-2">额度余额</th><th class="px-4 py-2">创建时间</th><th class="px-4 py-2 text-right">操作</th>
+              <th class="px-4 py-2">额度余额</th><th class="px-4 py-2">创建时间</th>
+              <th v-if="canViewPassword()" class="px-4 py-2">登录密码</th>
+              <th class="px-4 py-2 text-right">操作</th>
             </tr>
           </thead>
           <tbody v-if="!loading && students.length > 0" class="divide-y divide-border">
@@ -191,6 +226,17 @@ onMounted(loadStudents)
               </td>
               <td class="px-4 py-2 font-mono font-bold text-text-primary">¥{{ s.quotaBalance.toFixed(2) }}</td>
               <td class="px-4 py-2 text-text-secondary font-mono text-[11px]">{{ formatDate(s.createdAt) }}</td>
+              <td v-if="canViewPassword()" class="px-4 py-2">
+                <span class="inline-flex items-center gap-1.5">
+                  <span class="font-mono text-[11px] text-text-secondary">{{ s.password || '-' }}</span>
+                  <button
+                    class="px-1.5 py-0.5 border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded text-[10px] transition-colors cursor-pointer"
+                    @click="detailStudent = s; showResetPassword = true"
+                  >
+                    重置
+                  </button>
+                </span>
+              </td>
               <td class="px-4 py-2 text-right space-x-2">
                 <button
                   class="px-2.5 py-1 border border-[#cbd5e1] text-text-btn bg-white hover:bg-slate-50 rounded text-xs font-medium transition-colors cursor-pointer"
@@ -328,27 +374,17 @@ onMounted(loadStudents)
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 </svg>
-                模型权限 (勾选即授权)
+                模型权限
               </h4>
-              <div v-if="detailModels.length > 0" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
-                <label
-                  v-for="m in detailModels"
-                  :key="m.modelId"
-                  class="flex items-center gap-2 p-2 rounded border border-border bg-[#f8f9fa] hover:bg-white cursor-pointer transition-colors text-xs"
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-xs text-text-secondary">已授权 {{ detailModels.filter(m => m.enabled).length }} / {{ detailModels.length }} 个开放模型</span>
+                <button
+                  class="h-8 px-3 bg-primary hover:bg-blue-700 text-white text-xs font-medium rounded-btn transition-colors cursor-pointer"
+                  @click="openModelsModal"
                 >
-                  <input type="checkbox" :value="m.modelId" v-model="selectedModelIds"
-                    class="rounded text-primary focus:ring-primary" />
-                  <div class="truncate">
-                    <div class="font-medium text-text-primary truncate">{{ m.modelName }}</div>
-                    <div class="font-mono text-[10px] text-text-secondary truncate">{{ m.modelCode }}</div>
-                  </div>
-                </label>
+                  编辑模型权限
+                </button>
               </div>
-              <button
-                class="w-full h-8 bg-primary hover:bg-blue-700 text-white text-xs font-medium rounded-btn transition-colors cursor-pointer"
-                @click="handleSetModels">
-                保存模型权限
-              </button>
             </div>
           </div>
           <div v-else class="py-10 text-center text-text-secondary text-xs">加载中...</div>
@@ -357,6 +393,87 @@ onMounted(loadStudents)
             <button type="button"
               class="h-9 px-4 border border-[#cbd5e1] text-text-btn bg-white hover:bg-slate-50 font-medium text-xs rounded-btn transition-colors cursor-pointer"
               @click="showDetail = false">关闭</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Model Permissions Modal -->
+    <Teleport to="body">
+      <div v-if="showModelsModal && detailStudent" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4" @click.self="showModelsModal = false">
+        <div class="bg-white w-full max-w-lg rounded-lg border border-border shadow-xl p-6 space-y-5 animate-in zoom-in-95 duration-150">
+          <div class="flex items-start justify-between border-b border-border pb-3">
+            <h3 class="text-xl font-bold text-text-primary">编辑模型权限</h3>
+            <button class="text-text-secondary hover:text-text-primary p-1 rounded cursor-pointer" @click="showModelsModal = false">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+          <div class="text-xs text-text-secondary">
+            账号: <span class="font-medium text-text-primary">{{ detailStudent.email }}</span>
+            <span class="ml-2">仅可授权「对所有人开放」的模型，授权后该账号可查看并使用模型（不可编辑）</span>
+          </div>
+
+          <div v-if="detailModels.length > 0" class="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
+            <label
+              v-for="m in detailModels"
+              :key="m.modelId"
+              class="flex items-center gap-2 p-2 rounded border border-border bg-[#f8f9fa] hover:bg-white cursor-pointer transition-colors text-xs"
+            >
+              <input type="checkbox" :value="m.modelId" v-model="selectedModelIds"
+                class="rounded text-primary focus:ring-primary" />
+              <div class="truncate">
+                <div class="font-medium text-text-primary truncate">{{ m.modelName }}</div>
+                <div class="font-mono text-[10px] text-text-secondary truncate">{{ m.modelCode }}</div>
+              </div>
+            </label>
+          </div>
+          <div v-else class="py-8 text-center text-text-secondary text-xs">暂无对所有人开放的模型</div>
+
+          <div class="pt-2 border-t border-border flex justify-end gap-2">
+            <button type="button"
+              class="h-9 px-4 border border-[#cbd5e1] text-text-btn bg-white hover:bg-slate-50 font-medium text-xs rounded-btn transition-colors cursor-pointer"
+              @click="showModelsModal = false">取消</button>
+            <button
+              class="h-9 px-4 bg-primary hover:bg-blue-700 text-white font-medium text-xs rounded-btn shadow-xs transition-colors cursor-pointer"
+              @click="handleSetModels" :disabled="updating">
+              {{ updating ? '保存中...' : '保存模型权限' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Reset Password Modal -->
+    <Teleport to="body">
+      <div v-if="showResetPassword && detailStudent" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4" @click.self="showResetPassword = false">
+        <div class="bg-white w-full max-w-md rounded-lg border border-border shadow-xl p-6 space-y-5 animate-in zoom-in-95 duration-150">
+          <div class="flex items-start justify-between border-b border-border pb-3">
+            <h3 class="text-xl font-bold text-text-primary">重置登录密码</h3>
+            <button class="text-text-secondary hover:text-text-primary p-1 rounded cursor-pointer" @click="showResetPassword = false">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+          <div class="text-xs text-text-secondary">
+            账号: <span class="font-medium text-text-primary">{{ detailStudent.email }}</span>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-text-primary">新密码</label>
+            <input v-model="resetPasswordValue" type="text" placeholder="请输入新密码"
+              class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
+          </div>
+
+          <div class="pt-2 border-t border-border flex justify-end gap-2">
+            <button type="button"
+              class="h-9 px-4 border border-[#cbd5e1] text-text-btn bg-white hover:bg-slate-50 font-medium text-xs rounded-btn transition-colors cursor-pointer"
+              @click="showResetPassword = false">取消</button>
+            <button
+              class="h-9 px-4 bg-primary hover:bg-blue-700 text-white font-medium text-xs rounded-btn shadow-xs transition-colors cursor-pointer"
+              @click="handleResetPassword" :disabled="resetting || !resetPasswordValue">
+              {{ resetting ? '重置中...' : '确认重置' }}
+            </button>
           </div>
         </div>
       </div>

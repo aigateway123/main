@@ -13,11 +13,12 @@ import (
 
 type AdminUserController struct {
 	svc    *service.AdminUserService
+	rbacSvc *service.RBACService
 	logger *slog.Logger
 }
 
-func NewAdminUserController(svc *service.AdminUserService, logger *slog.Logger) *AdminUserController {
-	return &AdminUserController{svc: svc, logger: logger}
+func NewAdminUserController(svc *service.AdminUserService, rbacSvc *service.RBACService, logger *slog.Logger) *AdminUserController {
+	return &AdminUserController{svc: svc, rbacSvc: rbacSvc, logger: logger}
 }
 
 func (c *AdminUserController) HandleListUsers(w http.ResponseWriter, r *http.Request) {
@@ -42,9 +43,17 @@ func (c *AdminUserController) HandleListUsers(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	canViewPassword := c.canViewPassword(r)
+
 	totalPages := total / pageSize
 	if total%pageSize > 0 {
 		totalPages++
+	}
+
+	if !canViewPassword {
+		for _, item := range items {
+			item.Password = ""
+		}
 	}
 
 	writeJSON(w, http.StatusOK, types.APIResponse[map[string]interface{}]{
@@ -113,11 +122,71 @@ func (c *AdminUserController) HandleGetUser(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	if !c.canViewPassword(r) {
+		detail.Password = ""
+	}
+
 	writeJSON(w, http.StatusOK, types.APIResponse[*dto.AdminUserDetail]{
 		Code:    0,
 		Message: "success",
 		Data:    detail,
 	})
+}
+
+func (c *AdminUserController) HandleResetPassword(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "VALID001", "invalid user id")
+		return
+	}
+
+	var req dto.AdminResetPasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "VALID001", "invalid request body")
+		return
+	}
+	if req.Password == "" {
+		writeError(w, http.StatusBadRequest, "VALID001", "invalid request body")
+		return
+	}
+
+	if err := c.svc.ResetPassword(r.Context(), id, req.Password); err != nil {
+		switch err {
+		case service.ErrUserNotFound:
+			writeError(w, http.StatusNotFound, "AUTH002", "user not found")
+		case service.ErrInvalidArgument:
+			writeError(w, http.StatusBadRequest, "VALID001", "invalid request body")
+		default:
+			c.logger.Error("reset password failed", "error", err)
+			writeError(w, http.StatusInternalServerError, "GATEWAY001", "reset password failed")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, types.APIResponse[map[string]interface{}]{
+		Code:    0,
+		Message: "success",
+		Data: map[string]interface{}{
+			"userId":   id,
+			"password": req.Password,
+		},
+	})
+}
+
+func (c *AdminUserController) canViewPassword(r *http.Request) bool {
+	if c.rbacSvc == nil {
+		return false
+	}
+	userID, ok := UserIDFromContext(r.Context())
+	if !ok {
+		return false
+	}
+	has, err := c.rbacSvc.HasPermission(r.Context(), userID, "admin:user:view_password")
+	if err != nil {
+		return false
+	}
+	return has
 }
 
 func (c *AdminUserController) HandleUpdateStatus(w http.ResponseWriter, r *http.Request) {
@@ -295,8 +364,15 @@ func (c *AdminUserController) HandleSetModels(w http.ResponseWriter, r *http.Req
 
 	count, err := c.svc.SetStudentModels(r.Context(), id, req.ModelIDs)
 	if err != nil {
-		c.logger.Error("set student models failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "GATEWAY001", "set student models failed")
+		switch err {
+		case service.ErrInvalidArgument:
+			writeError(w, http.StatusBadRequest, "VALID001", "only public models can be granted")
+		case service.ErrUserNotFound:
+			writeError(w, http.StatusNotFound, "AUTH002", "user not found")
+		default:
+			c.logger.Error("set student models failed", "error", err)
+			writeError(w, http.StatusInternalServerError, "GATEWAY001", "set student models failed")
+		}
 		return
 	}
 

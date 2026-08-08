@@ -103,6 +103,13 @@ func requiredPermissionForAdminRoute(method string, path string) string {
 			return ""
 		}
 
+		if strings.HasSuffix(path, "/password") {
+			if method == http.MethodPut {
+				return "admin:user:manage"
+			}
+			return ""
+		}
+
 		if strings.HasSuffix(path, "/status") {
 			if method == http.MethodPut {
 				return "admin:user:manage"

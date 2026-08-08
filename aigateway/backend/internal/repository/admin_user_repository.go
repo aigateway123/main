@@ -14,6 +14,7 @@ type AdminUserRepository interface {
 	SetQuotaBalance(ctx context.Context, userID int64, newBalance float64) error
 	GetLastQuotaTransaction(ctx context.Context, userID int64) (*entity.QuotaTransaction, error)
 	GetQuotaTotals(ctx context.Context, userID int64) (totalAllocated float64, totalSpent float64, error error)
+	UpdatePassword(ctx context.Context, userID int64, passwordHash string, plainPassword string) error
 }
 
 type InMemoryAdminUserRepository struct {
@@ -72,6 +73,16 @@ func (r *InMemoryAdminUserRepository) UpdateStatus(ctx context.Context, userID i
 		return ErrUserNotFound
 	}
 	u.UserStatus = status
+	return r.userRepo.UpdateUser(ctx, u)
+}
+
+func (r *InMemoryAdminUserRepository) UpdatePassword(ctx context.Context, userID int64, passwordHash string, plainPassword string) error {
+	u, err := r.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return ErrUserNotFound
+	}
+	u.PasswordHash = passwordHash
+	u.PlainPassword = plainPassword
 	return r.userRepo.UpdateUser(ctx, u)
 }
 

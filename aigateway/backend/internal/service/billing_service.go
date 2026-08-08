@@ -79,13 +79,7 @@ func (s *BillingService) CheckModelAccess(ctx context.Context, userID int64, mod
 		}
 	}
 
-	// Public models are accessible by all roles
-	if s.modelRepo != nil {
-		if m, err := s.modelRepo.GetByID(ctx, modelID); err == nil && m.IsPublic {
-			return nil
-		}
-	}
-
+	// Non-admin access is authorized by explicit model grants (user_model_permissions).
 	ok, err := s.userModelPermRepo.Exists(ctx, userID, modelID)
 	if err != nil {
 		return ErrInternal

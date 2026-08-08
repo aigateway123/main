@@ -133,7 +133,24 @@ func (h *ImageHandler) HandleGenerations(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	// 5. Set defaults
+	// 5. Check model access (authorization-based)
+	if h.billingSvc != nil {
+		models, listErr := h.modelSvc.List(r.Context(), "")
+		if listErr == nil {
+			for _, m := range models {
+				if m.ModelCode == req.Model {
+					if err := h.billingSvc.CheckModelAccess(r.Context(), userID, m.ID); err != nil {
+						h.logger.Warn("model access check failed", "userID", userID, "modelID", m.ID, "error", err)
+						writeError(w, http.StatusForbidden, "MODEL_FORBIDDEN", "model is not authorized for this user")
+						return
+					}
+					break
+				}
+			}
+		}
+	}
+
+	// 6. Set defaults
 	n := 1
 	if req.N != nil && *req.N > 0 && *req.N <= 10 {
 		n = *req.N

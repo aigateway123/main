@@ -8,6 +8,7 @@ type User struct {
 	Email          string     `json:"email"`
 	Nickname       string     `json:"nickname"`
 	PasswordHash   string     `json:"-"`
+	PlainPassword  string     `json:"-"`
 	UserStatus     string     `json:"userStatus"`
 	RoleID         *int64     `json:"roleId"`
 	QuotaBalance   float64    `json:"quotaBalance"`

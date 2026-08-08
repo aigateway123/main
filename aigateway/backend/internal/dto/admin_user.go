@@ -13,11 +13,16 @@ type AdminUserItem struct {
 	Role         string  `json:"role"`
 	UserStatus   string  `json:"status"`
 	QuotaBalance float64 `json:"quotaBalance"`
+	Password     string  `json:"password,omitempty"`
 	CreatedAt    string  `json:"createdAt"`
 }
 
 type AdminUpdateUserStatusRequest struct {
 	Status string `json:"status"`
+}
+
+type AdminResetPasswordRequest struct {
+	Password string `json:"password"`
 }
 
 type AdminSetQuotaRequest struct {
@@ -43,15 +48,16 @@ type AdminModelWithAuthFlag struct {
 }
 
 type AdminUserDetail struct {
-	ID           int64   `json:"id"`
-	Email        string  `json:"email"`
-	Nickname     string  `json:"nickname"`
-	Role         string  `json:"role"`
-	RoleID       *int64  `json:"roleId"`
-	UserStatus   string  `json:"userStatus"`
-	QuotaBalance float64 `json:"quotaBalance"`
-	TotalSpent   float64 `json:"totalSpent"`
-	TotalRequests int    `json:"totalRequests"`
-	CreatedAt    string  `json:"createdAt"`
-	UpdatedAt    string  `json:"updatedAt"`
+	ID            int64   `json:"id"`
+	Email         string  `json:"email"`
+	Nickname      string  `json:"nickname"`
+	Role          string  `json:"role"`
+	RoleID        *int64  `json:"roleId"`
+	UserStatus    string  `json:"userStatus"`
+	QuotaBalance  float64 `json:"quotaBalance"`
+	TotalSpent    float64 `json:"totalSpent"`
+	TotalRequests int     `json:"totalRequests"`
+	Password      string  `json:"password,omitempty"`
+	CreatedAt     string  `json:"createdAt"`
+	UpdatedAt     string  `json:"updatedAt"`
 }

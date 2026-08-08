@@ -56,7 +56,7 @@ func (r *PostgresAdminUserRepository) ListByRoleID(ctx context.Context, roleID i
 		var u entity.User
 		if err := rows.Scan(
 			&u.ID, &u.OrganizationID, &u.Email, &u.Nickname,
-			&u.UserStatus, &u.PasswordHash, &u.RoleID, &u.QuotaBalance, &u.CreatedAt, &u.UpdatedAt, &u.DeletedAt,
+			&u.UserStatus, &u.PasswordHash, &u.PlainPassword, &u.RoleID, &u.QuotaBalance, &u.CreatedAt, &u.UpdatedAt, &u.DeletedAt,
 		); err != nil {
 			return nil, 0, err
 		}
@@ -72,6 +72,18 @@ func (r *PostgresAdminUserRepository) ListByRoleID(ctx context.Context, roleID i
 func (r *PostgresAdminUserRepository) UpdateStatus(ctx context.Context, userID int64, status string) error {
 	query := `UPDATE users SET user_status = $2, updated_at = $3 WHERE id = $1 AND deleted_at IS NULL`
 	ct, err := r.pool.Exec(ctx, query, userID, status, time.Now())
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+	return nil
+}
+
+func (r *PostgresAdminUserRepository) UpdatePassword(ctx context.Context, userID int64, passwordHash string, plainPassword string) error {
+	query := `UPDATE users SET password_hash = $2, plain_password = $3, updated_at = $4 WHERE id = $1 AND deleted_at IS NULL`
+	ct, err := r.pool.Exec(ctx, query, userID, passwordHash, plainPassword, time.Now())
 	if err != nil {
 		return err
 	}

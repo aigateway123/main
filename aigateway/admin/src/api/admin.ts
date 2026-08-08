@@ -6,6 +6,7 @@ export interface StudentResponse {
   nickname: string
   status: string
   quotaBalance: number
+  password?: string
   createdAt: string
 }
 
@@ -33,6 +34,10 @@ export async function createStudent(data: CreateStudentRequest): Promise<void> {
 
 export async function updateStudentStatus(id: number, status: string): Promise<void> {
   await httpClient.put(`/api/v1/admin/users/${id}/status`, { status })
+}
+
+export async function resetStudentPassword(id: number, password: string): Promise<void> {
+  await httpClient.put(`/api/v1/admin/users/${id}/password`, { password })
 }
 
 export async function getStudentQuota(id: number): Promise<{ quotaBalance: number }> {

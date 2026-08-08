@@ -61,7 +61,8 @@ func (s *AdminUserService) ListStudents(ctx context.Context, page int, pageSize 
 			Role:         roleName,
 			UserStatus:   u.UserStatus,
 			QuotaBalance: u.QuotaBalance,
-			CreatedAt:    u.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			Password:     u.PlainPassword,
+			CreatedAt:    u.CreatedAt.Format("2006-01-02 15:04:05"),
 		})
 	}
 	return result, total, nil
@@ -80,12 +81,13 @@ func (s *AdminUserService) CreateStudent(ctx context.Context, req *dto.AdminCrea
 
 	rid := roleID
 	user := &entity.User{
-		Email:        req.Email,
-		Nickname:     req.Nickname,
-		PasswordHash: string(hash),
-		UserStatus:   "active",
-		RoleID:       &rid,
-		QuotaBalance: 0,
+		Email:         req.Email,
+		Nickname:      req.Nickname,
+		PasswordHash:  string(hash),
+		PlainPassword: req.Password,
+		UserStatus:    "active",
+		RoleID:        &rid,
+		QuotaBalance:  0,
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
@@ -116,8 +118,26 @@ func (s *AdminUserService) CreateStudent(ctx context.Context, req *dto.AdminCrea
 		Role:         "Student",
 		UserStatus:   user.UserStatus,
 		QuotaBalance: user.QuotaBalance,
-		CreatedAt:    user.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		Password:     user.PlainPassword,
+		CreatedAt:    user.CreatedAt.Format("2006-01-02 15:04:05"),
 	}, nil
+}
+
+func (s *AdminUserService) ResetPassword(ctx context.Context, userID int64, password string) error {
+	if password == "" {
+		return ErrInvalidArgument
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return ErrInternal
+	}
+	if err := s.adminUserRepo.UpdatePassword(ctx, userID, string(hash), password); err != nil {
+		if errors.Is(err, repository.ErrUserNotFound) {
+			return ErrUserNotFound
+		}
+		return ErrInternal
+	}
+	return nil
 }
 
 func (s *AdminUserService) UpdateStudentStatus(ctx context.Context, userID int64, status string) error {
@@ -167,17 +187,18 @@ func (s *AdminUserService) GetStudentDetail(ctx context.Context, userID int64) (
 	totalRequests := 0
 
 	return &dto.AdminUserDetail{
-		ID:           u.ID,
-		Email:        u.Email,
-		Nickname:     u.Nickname,
-		Role:         roleName,
-		RoleID:       u.RoleID,
-		UserStatus:   u.UserStatus,
-		QuotaBalance: u.QuotaBalance,
-		TotalSpent:   totalSpent,
+		ID:            u.ID,
+		Email:         u.Email,
+		Nickname:      u.Nickname,
+		Role:          roleName,
+		RoleID:        u.RoleID,
+		UserStatus:    u.UserStatus,
+		QuotaBalance:  u.QuotaBalance,
+		TotalSpent:    totalSpent,
 		TotalRequests: totalRequests,
-		CreatedAt:    u.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt:    u.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		Password:      u.PlainPassword,
+		CreatedAt:     u.CreatedAt.Format("2006-01-02 15:04:05"),
+		UpdatedAt:     u.UpdatedAt.Format("2006-01-02 15:04:05"),
 	}, nil
 }
 
@@ -215,8 +236,12 @@ func (s *AdminUserService) GetStudentModels(ctx context.Context, userID int64) (
 	allModels := make([]*dto.AdminModelWithAuthFlag, 0, len(models))
 	authorizedModels := make([]*dto.AdminAuthorizedModelItem, 0, len(authorizedIDs))
 
-	now := time.Now().Format("2006-01-02T15:04:05Z07:00")
+	now := time.Now().Format("2006-01-02 15:04:05")
 	for _, m := range models {
+		// Only public models are configurable in the account model permission popup.
+		if !m.IsPublic {
+			continue
+		}
 		_, ok := authorizedSet[m.ID]
 		allModels = append(allModels, &dto.AdminModelWithAuthFlag{
 			ModelID:    m.ID,
@@ -237,6 +262,23 @@ func (s *AdminUserService) GetStudentModels(ctx context.Context, userID int64) (
 }
 
 func (s *AdminUserService) SetStudentModels(ctx context.Context, userID int64, modelIDs []int64) (int, error) {
+	// Only public models are allowed for grant.
+	models, err := s.modelRepo.List(ctx, "")
+	if err != nil {
+		return 0, ErrInternal
+	}
+	publicSet := make(map[int64]struct{}, len(models))
+	for _, m := range models {
+		if m.IsPublic {
+			publicSet[m.ID] = struct{}{}
+		}
+	}
+	for _, id := range modelIDs {
+		if _, ok := publicSet[id]; !ok {
+			return 0, ErrInvalidArgument
+		}
+	}
+
 	count, err := s.userModelPermRepo.ReplaceByUserID(ctx, userID, modelIDs)
 	if err != nil {
 		return 0, ErrInternal

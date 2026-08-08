@@ -13,11 +13,12 @@ import (
 
 type ModelController struct {
 	svc    *service.ModelService
+	rbacSvc *service.RBACService
 	logger *slog.Logger
 }
 
-func NewModelController(svc *service.ModelService, logger *slog.Logger) *ModelController {
-	return &ModelController{svc: svc, logger: logger}
+func NewModelController(svc *service.ModelService, rbacSvc *service.RBACService, logger *slog.Logger) *ModelController {
+	return &ModelController{svc: svc, rbacSvc: rbacSvc, logger: logger}
 }
 
 func (c *ModelController) HandleCreate(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +47,22 @@ func (c *ModelController) HandleCreate(w http.ResponseWriter, r *http.Request) {
 
 func (c *ModelController) HandleList(w http.ResponseWriter, r *http.Request) {
 	modelType := r.URL.Query().Get("modelType")
-	items, err := c.svc.List(r.Context(), modelType)
+
+	// Admin sees all models; other roles only see granted models.
+	var items []*dto.ModelResponse
+	var err error
+	userID, ok := UserIDFromContext(r.Context())
+	isAdmin := false
+	if ok && c.rbacSvc != nil {
+		if has, perr := c.rbacSvc.HasPermission(r.Context(), userID, "admin:model:manage"); perr == nil && has {
+			isAdmin = true
+		}
+	}
+	if ok && !isAdmin {
+		items, err = c.svc.ListForUser(r.Context(), userID, modelType)
+	} else {
+		items, err = c.svc.List(r.Context(), modelType)
+	}
 	if err != nil {
 		c.logger.Error("list models failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "GATEWAY001", "list models failed")
@@ -64,6 +80,31 @@ func (c *ModelController) HandleGetByID(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "VALID001", "invalid model id")
 		return
+	}
+
+	// Non-admin users may only view granted models.
+	userID, ok := UserIDFromContext(r.Context())
+	isAdmin := false
+	if ok && c.rbacSvc != nil {
+		if has, perr := c.rbacSvc.HasPermission(r.Context(), userID, "admin:model:manage"); perr == nil && has {
+			isAdmin = true
+		}
+	}
+	if ok && !isAdmin {
+		models, lerr := c.svc.ListForUser(r.Context(), userID, "")
+		if lerr == nil {
+			found := false
+			for _, m := range models {
+				if m.ID == id {
+					found = true
+					break
+				}
+			}
+			if !found {
+				writeError(w, http.StatusNotFound, "AUTH002", "model not found")
+				return
+			}
+		}
 	}
 
 	result, err := c.svc.GetByID(r.Context(), id)
