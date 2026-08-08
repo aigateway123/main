@@ -191,7 +191,7 @@ func logToUsageItem(l *entity.RequestLog) map[string]interface{} {
 		"latencyMs":     l.LatencyMs,
 		"costAmount":    l.CostAmount,
 		"requestStatus": l.RequestStatus,
-		"createdAt":     l.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		"createdAt":     l.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 }
 

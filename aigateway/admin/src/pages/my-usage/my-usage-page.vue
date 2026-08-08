@@ -107,12 +107,7 @@ function formatCurrency(val: number): string {
 
 function formatDateTime(dateStr: string): string {
   if (!dateStr) return '-'
-  const d = new Date(dateStr)
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const hours = String(d.getHours()).padStart(2, '0')
-  const minutes = String(d.getMinutes()).padStart(2, '0')
-  return `${month}-${day} ${hours}:${minutes}`
+  return dateStr.slice(0, 19)
 }
 
 function formatNumber(val: number): string {

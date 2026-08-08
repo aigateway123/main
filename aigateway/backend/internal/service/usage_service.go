@@ -173,6 +173,6 @@ func toLogResponse(l *entity.RequestLog) *dto.RequestLogResponse {
 		LatencyMs:     l.LatencyMs,
 		CostAmount:    float64(int(l.CostAmount*10000)) / 10000,
 		RequestStatus: l.RequestStatus,
-		CreatedAt:     l.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		CreatedAt:     l.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 }

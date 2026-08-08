@@ -298,7 +298,7 @@ func (s *ReportService) GetUserUsageDetail(ctx context.Context, userID int64, pa
 			InputTokens:  l.InputTokens,
 			OutputTokens: l.OutputTokens,
 			CostAmount:   l.CostAmount,
-			CreatedAt:    l.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			CreatedAt:    l.CreatedAt.Format("2006-01-02 15:04:05"),
 		})
 	}
 	return items, int64(total), nil
