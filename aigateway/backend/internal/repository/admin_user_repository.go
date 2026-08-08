@@ -82,7 +82,7 @@ func (r *InMemoryAdminUserRepository) UpdatePassword(ctx context.Context, userID
 		return ErrUserNotFound
 	}
 	u.PasswordHash = passwordHash
-	u.PlainPassword = plainPassword
+	u.PlainPassword = &plainPassword
 	return r.userRepo.UpdateUser(ctx, u)
 }
 

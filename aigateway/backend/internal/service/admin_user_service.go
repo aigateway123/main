@@ -61,11 +61,18 @@ func (s *AdminUserService) ListStudents(ctx context.Context, page int, pageSize 
 			Role:         roleName,
 			UserStatus:   u.UserStatus,
 			QuotaBalance: u.QuotaBalance,
-			Password:     u.PlainPassword,
+			Password:     strPtr(u.PlainPassword),
 			CreatedAt:    u.CreatedAt.Format("2006-01-02 15:04:05"),
 		})
 	}
 	return result, total, nil
+}
+
+func strPtr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
 
 func (s *AdminUserService) CreateStudent(ctx context.Context, req *dto.AdminCreateUserRequest) (*dto.AdminUserItem, error) {
@@ -84,7 +91,7 @@ func (s *AdminUserService) CreateStudent(ctx context.Context, req *dto.AdminCrea
 		Email:         req.Email,
 		Nickname:      req.Nickname,
 		PasswordHash:  string(hash),
-		PlainPassword: req.Password,
+		PlainPassword: &req.Password,
 		UserStatus:    "active",
 		RoleID:        &rid,
 		QuotaBalance:  0,
@@ -118,7 +125,7 @@ func (s *AdminUserService) CreateStudent(ctx context.Context, req *dto.AdminCrea
 		Role:         "Student",
 		UserStatus:   user.UserStatus,
 		QuotaBalance: user.QuotaBalance,
-		Password:     user.PlainPassword,
+		Password:     strPtr(user.PlainPassword),
 		CreatedAt:    user.CreatedAt.Format("2006-01-02 15:04:05"),
 	}, nil
 }
@@ -196,7 +203,7 @@ func (s *AdminUserService) GetStudentDetail(ctx context.Context, userID int64) (
 		QuotaBalance:  u.QuotaBalance,
 		TotalSpent:    totalSpent,
 		TotalRequests: totalRequests,
-		Password:      u.PlainPassword,
+		Password:      strPtr(u.PlainPassword),
 		CreatedAt:     u.CreatedAt.Format("2006-01-02 15:04:05"),
 		UpdatedAt:     u.UpdatedAt.Format("2006-01-02 15:04:05"),
 	}, nil
