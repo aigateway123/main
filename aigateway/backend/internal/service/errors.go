@@ -26,3 +26,13 @@ var (
 	ErrQuotaNotFound        = errors.New("quota not found")
 	ErrPricingNotFound      = errors.New("pricing not found")
 )
+
+// ValidationError 表示请求参数校验失败（映射为 HTTP 400）。
+// 可通过 errors.Is(err, ErrInvalidArgument) 匹配，Message 为用户可读的具体原因。
+type ValidationError struct {
+	Message string
+}
+
+func (e *ValidationError) Error() string { return e.Message }
+
+func (e *ValidationError) Is(target error) bool { return target == ErrInvalidArgument }

@@ -114,11 +114,29 @@ func (s *BillingService) ComputeCost(ctx context.Context, modelID int64, inputTo
 	outputPrice := p.PricePerOutputToken
 
 	if p.PricingType == "time_based" {
-		if p.PeakStart != nil && p.PeakEnd != nil && p.PeakPricePerInput != nil && p.PeakPricePerOutput != nil && p.OffpeakPricePerInput != nil && p.OffpeakPricePerOutput != nil {
-			if isWithinTimeRange(at, *p.PeakStart, *p.PeakEnd) {
-				inputPrice = *p.PeakPricePerInput
-				outputPrice = *p.PeakPricePerOutput
+		hasPeakOffpeakPrices := p.PeakPricePerInput != nil && p.PeakPricePerOutput != nil &&
+			p.OffpeakPricePerInput != nil && p.OffpeakPricePerOutput != nil
+		if hasPeakOffpeakPrices {
+			if len(p.PeakRanges) > 0 {
+				// 新路径：多时段，任意高峰时段命中 → 高峰价，否则低谷价（§8.2）
+				if isWithinAnyTimeRange(at, p.PeakRanges) {
+					inputPrice = *p.PeakPricePerInput
+					outputPrice = *p.PeakPricePerOutput
+				} else {
+					inputPrice = *p.OffpeakPricePerInput
+					outputPrice = *p.OffpeakPricePerOutput
+				}
+			} else if p.PeakStart != nil && p.PeakEnd != nil {
+				// 兼容回退：子表数据缺失时使用旧单字段（迁移已完成，正常情况下不会走到）
+				if isWithinTimeRange(at, *p.PeakStart, *p.PeakEnd) {
+					inputPrice = *p.PeakPricePerInput
+					outputPrice = *p.PeakPricePerOutput
+				} else {
+					inputPrice = *p.OffpeakPricePerInput
+					outputPrice = *p.OffpeakPricePerOutput
+				}
 			} else {
+				// M1 决策：0 组高峰时段 = 全天低谷价
 				inputPrice = *p.OffpeakPricePerInput
 				outputPrice = *p.OffpeakPricePerOutput
 			}
@@ -291,6 +309,16 @@ func (s *BillingService) GetAdminUsageItems(ctx context.Context, userID int64, p
 		})
 	}
 	return items, total, nil
+}
+
+// isWithinAnyTimeRange 命中任意高峰时段即返回 true（§8.1）
+func isWithinAnyTimeRange(t time.Time, ranges []entity.TimeRange) bool {
+	for _, r := range ranges {
+		if isWithinTimeRange(t, r.Start, r.End) {
+			return true
+		}
+	}
+	return false
 }
 
 func isWithinTimeRange(t time.Time, start string, end string) bool {

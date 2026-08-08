@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
-import { listPricing, updatePricing, getPricingTemplates, type PricingResponse, type PricingTemplate } from '@/api/pricing'
+import { listPricing, updatePricing, getPricingTemplates, type PricingResponse, type PricingTemplate, type TimeRange } from '@/api/pricing'
 
 const pricingList = ref<PricingResponse[]>([])
 const loading = ref(false)
@@ -14,8 +14,7 @@ const editForm = ref({
   pricePerOutputToken: 0,
   perImagePrice: 0,
   resolutions: [] as { size: string; price: number }[],
-  peakStart: '08:00',
-  peakEnd: '23:00',
+  peakRanges: [] as TimeRange[],
   peakPricePerInputToken: 0,
   peakPricePerOutputToken: 0,
   offPeakPricePerInputToken: 0,
@@ -64,6 +63,12 @@ function openEdit(item: PricingResponse) {
       resolutions.push({ size, price: Number(price) })
     }
   }
+  // 解析高峰时段（兼容新旧数据：优先 peakRanges，旧数据兜底 peakStart/peakEnd；两者皆无 → 0 组 = 全天低谷价）
+  const ranges = item.peakRanges?.length
+    ? item.peakRanges.map(r => ({ start: r.start.slice(0, 5), end: r.end.slice(0, 5) }))
+    : (item.peakStart && item.peakEnd
+        ? [{ start: item.peakStart.slice(0, 5), end: item.peakEnd.slice(0, 5) }]
+        : [])
   editForm.value = {
     pricingType: item.pricingType || 'flat',
     pricingUnit: item.pricingUnit || 'token',
@@ -71,12 +76,15 @@ function openEdit(item: PricingResponse) {
     pricePerOutputToken: item.pricePerOutputToken ?? 0,
     perImagePrice: (unitPrice?.per_image as number) ?? 0,
     resolutions,
-    peakStart: item.peakStart?.slice(0, 5) ?? '08:00',
-    peakEnd: item.peakEnd?.slice(0, 5) ?? '23:00',
+    peakRanges: ranges,
     peakPricePerInputToken: item.peakPricePerInputToken ?? 0,
     peakPricePerOutputToken: item.peakPricePerOutputToken ?? 0,
     offPeakPricePerInputToken: item.offPeakPricePerInputToken ?? 0,
     offPeakPricePerOutputToken: item.offPeakPricePerOutputToken ?? 0,
+  }
+  // 存量 start === end 提示（旧语义 = 全天高峰，不允许直接保存）
+  if (ranges.some(r => r.start === r.end)) {
+    alert('检测到存量"全天高峰"时段（开始 = 结束）：该时段为全天高峰，请先修改为有效时段再保存')
   }
   showEdit.value = true
 }
@@ -89,6 +97,24 @@ function addResolution() {
 
 function removeResolution(index: number) {
   editForm.value.resolutions.splice(index, 1)
+}
+
+// 高峰时段增删/排序（MVP 不做拖拽，用上移/下移）
+function addRange() {
+  if (editForm.value.peakRanges.length < 8) {
+    editForm.value.peakRanges.push({ start: '09:00', end: '12:00' })
+  }
+}
+
+function removeRange(index: number) {
+  editForm.value.peakRanges.splice(index, 1)
+}
+
+function swapRanges(a: number, b: number) {
+  if (b < 0 || b >= editForm.value.peakRanges.length) return
+  const tmp = editForm.value.peakRanges[a]
+  editForm.value.peakRanges[a] = editForm.value.peakRanges[b]
+  editForm.value.peakRanges[b] = tmp
 }
 
 async function handleSave() {
@@ -115,8 +141,12 @@ async function handleSave() {
         data.pricePerInputToken = editForm.value.pricePerInputToken
         data.pricePerOutputToken = editForm.value.pricePerOutputToken
       } else {
-        data.peakStart = editForm.value.peakStart
-        data.peakEnd = editForm.value.peakEnd
+        const ranges = editForm.value.peakRanges.filter(r => r.start && r.end)
+        // start >= end 拒绝（与后端 400 校验一致）
+        if (ranges.some(r => r.start >= r.end)) { alert('高峰时段的开始时间必须早于结束时间'); return }
+        data.peakRanges = ranges   // 允许空数组（0 组 = 全天低谷价）
+        data.peakStart = undefined
+        data.peakEnd = undefined
         data.peakPricePerInputToken = editForm.value.peakPricePerInputToken
         data.peakPricePerOutputToken = editForm.value.peakPricePerOutputToken
         data.offPeakPricePerInputToken = editForm.value.offPeakPricePerInputToken
@@ -148,6 +178,12 @@ function formatPricingUnit(unit?: string) {
     case 'per_million_tokens': return '按百万 Token'
     default: return '按 Token'
   }
+}
+
+function formatRanges(ranges?: TimeRange[], peakStart?: string, peakEnd?: string) {
+  if (ranges?.length) return ranges.map(r => `${r.start.slice(0, 5)}-${r.end.slice(0, 5)}`).join(', ')
+  if (peakStart && peakEnd) return `${peakStart.slice(0, 5)}-${peakEnd.slice(0, 5)}`
+  return '未配置（全天低谷价）'
 }
 
 onMounted(() => { loadPricing(); loadTemplates() })
@@ -261,6 +297,9 @@ onMounted(() => { loadPricing(); loadTemplates() })
                     <div class="text-[11px] leading-tight space-y-0.5">
                       <div class="text-text-primary">高峰: ¥{{ item.peakPricePerInputToken?.toFixed(8) }} / ¥{{ item.peakPricePerOutputToken?.toFixed(8) }}<span v-if="item.pricingUnit === 'per_million_tokens'" class="text-text-secondary">/M</span></div>
                       <div class="text-text-secondary">低谷: ¥{{ item.offPeakPricePerInputToken?.toFixed(8) }} / ¥{{ item.offPeakPricePerOutputToken?.toFixed(8) }}<span v-if="item.pricingUnit === 'per_million_tokens'" class="text-text-secondary">/M</span></div>
+                      <div class="text-[10px] text-text-secondary">
+                        高峰时段: {{ formatRanges(item.peakRanges, item.peakStart, item.peakEnd) }}
+                      </div>
                     </div>
                   </template>
                 </template>
@@ -338,26 +377,44 @@ onMounted(() => { loadPricing(); loadTemplates() })
 
               <!-- 分时段 - Token -->
               <div v-else class="space-y-3 p-3 bg-[#f8f9fa] rounded border border-border">
-                <div class="grid grid-cols-2 gap-3">
-                  <div class="space-y-1">
-                    <label class="text-xs font-semibold text-text-primary flex items-center gap-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                      </svg>
-                      高峰开始
-                    </label>
-                    <input v-model="editForm.peakStart" type="time"
-                      class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
+                <!-- 高峰时段列表（多组，可增删、可排序，最多 8 组） -->
+                <div class="space-y-2">
+                  <label class="text-xs font-semibold text-text-primary flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    高峰时段
+                  </label>
+                  <div v-if="editForm.peakRanges.length === 0" class="text-[10px] text-text-secondary py-1">
+                    未配置高峰时段，全天按低谷价计费
                   </div>
-                  <div class="space-y-1">
-                    <label class="text-xs font-semibold text-text-primary flex items-center gap-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                      </svg>
-                      高峰结束
-                    </label>
-                    <input v-model="editForm.peakEnd" type="time"
-                      class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
+                  <div v-for="(r, idx) in editForm.peakRanges" :key="idx" class="space-y-1">
+                    <div class="flex items-center gap-2">
+                      <input v-model="r.start" type="time"
+                        class="h-8 flex-1 px-2 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
+                      <span class="text-text-secondary text-xs">至</span>
+                      <input v-model="r.end" type="time"
+                        class="h-8 flex-1 px-2 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
+                      <button type="button"
+                        class="text-text-secondary hover:text-text-primary text-xs cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                        :disabled="idx === 0"
+                        @click="swapRanges(idx, idx - 1)">↑</button>
+                      <button type="button"
+                        class="text-text-secondary hover:text-text-primary text-xs cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                        :disabled="idx === editForm.peakRanges.length - 1"
+                        @click="swapRanges(idx, idx + 1)">↓</button>
+                      <button type="button" class="text-red-500 hover:text-red-700 text-xs cursor-pointer" @click="removeRange(idx)">删除</button>
+                    </div>
+                    <div v-if="r.start && r.end && r.start >= r.end" class="text-[10px] text-red-500">
+                      高峰时段的开始时间必须早于结束时间
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between pt-0.5">
+                    <button type="button"
+                      class="text-xs text-primary hover:underline cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      :disabled="editForm.peakRanges.length >= 8"
+                      @click="addRange">+ 添加高峰时段</button>
+                    <span v-if="editForm.peakRanges.length >= 8" class="text-[10px] text-text-secondary">最多配置 8 组高峰时段</span>
                   </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3 pt-2">

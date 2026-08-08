@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -90,9 +91,16 @@ func (c *AdminPricingController) HandleUpdate(w http.ResponseWriter, r *http.Req
 
 	item, err := c.svc.UpdateByModelID(r.Context(), modelID, &req)
 	if err != nil {
-		switch err {
-		case service.ErrModelNotFound:
+		switch {
+		case errors.Is(err, service.ErrModelNotFound):
 			writeError(w, http.StatusNotFound, "VALID001", "model not found")
+		case errors.Is(err, service.ErrInvalidArgument):
+			msg := "invalid peak time ranges"
+			var ve *service.ValidationError
+			if errors.As(err, &ve) {
+				msg = ve.Message
+			}
+			writeError(w, http.StatusBadRequest, "VALID001", msg)
 		default:
 			c.logger.Error("update pricing failed", "error", err)
 			writeError(w, http.StatusInternalServerError, "GATEWAY001", "update pricing failed")
