@@ -5,6 +5,8 @@ type CreateProviderRequest struct {
 	BaseURL       string `json:"baseUrl"`
 	APIKeyRef     string `json:"apiKeyRef,omitempty"`
 	APIPath       string `json:"apiPath"`
+	ProtocolType  string `json:"protocolType"`
+	AuthType      string `json:"authType"`
 	Priority      int    `json:"priority"`
 	Weight        int    `json:"weight"`
 	IsEnabledFlag bool   `json:"isEnabledFlag"`
@@ -15,6 +17,8 @@ type UpdateProviderRequest struct {
 	BaseURL       string `json:"baseUrl"`
 	APIKeyRef     string `json:"apiKeyRef,omitempty"`
 	APIPath       string `json:"apiPath"`
+	ProtocolType  string `json:"protocolType"`
+	AuthType      string `json:"authType"`
 	Priority      int    `json:"priority"`
 	Weight        int    `json:"weight"`
 	IsEnabledFlag bool   `json:"isEnabledFlag"`
@@ -26,6 +30,8 @@ type ProviderResponse struct {
 	BaseURL         string  `json:"baseUrl"`
 	APIKeyRef       string  `json:"apiKeyRef,omitempty"`
 	APIPath         string  `json:"apiPath"`
+	ProtocolType    string  `json:"protocolType"`
+	AuthType        string  `json:"authType"`
 	Priority        int     `json:"priority"`
 	Weight          int     `json:"weight"`
 	IsEnabledFlag   bool    `json:"isEnabledFlag"`

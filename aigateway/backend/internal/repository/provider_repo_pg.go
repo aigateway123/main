@@ -19,14 +19,14 @@ func NewPostgresProviderRepository(pool *pgxpool.Pool) *PostgresProviderReposito
 }
 
 const (
-	providerColumns = "id, provider_name, base_url, api_key_ref, api_path, priority, weight, is_enabled_flag, created_at, updated_at, deleted_at"
+	providerColumns = "id, provider_name, base_url, api_key_ref, api_path, protocol_type, auth_type, priority, weight, is_enabled_flag, created_at, updated_at, deleted_at"
 )
 
 func (r *PostgresProviderRepository) scanProvider(row pgx.Row) (*entity.Provider, error) {
 	var p entity.Provider
 	err := row.Scan(
 		&p.ID, &p.ProviderName, &p.BaseURL, &p.APIKeyRef,
-		&p.APIPath,
+		&p.APIPath, &p.ProtocolType, &p.AuthType,
 		&p.Priority, &p.Weight, &p.IsEnabledFlag,
 		&p.CreatedAt, &p.UpdatedAt, &p.DeletedAt,
 	)
@@ -40,13 +40,13 @@ func (r *PostgresProviderRepository) scanProvider(row pgx.Row) (*entity.Provider
 }
 
 func (r *PostgresProviderRepository) Create(ctx context.Context, p *entity.Provider) error {
-	query := `INSERT INTO providers (provider_name, base_url, api_key_ref, api_path, priority, weight, is_enabled_flag, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	query := `INSERT INTO providers (provider_name, base_url, api_key_ref, api_path, protocol_type, auth_type, priority, weight, is_enabled_flag, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		RETURNING id, created_at, updated_at`
 
 	now := time.Now()
 	err := r.pool.QueryRow(ctx, query,
-		p.ProviderName, p.BaseURL, p.APIKeyRef, p.APIPath, p.Priority, p.Weight, p.IsEnabledFlag, now, now,
+		p.ProviderName, p.BaseURL, p.APIKeyRef, p.APIPath, p.ProtocolType, p.AuthType, p.Priority, p.Weight, p.IsEnabledFlag, now, now,
 	).Scan(&p.ID, &p.CreatedAt, &p.UpdatedAt)
 	if err != nil {
 		if isPgDuplicateError(err) {
@@ -76,7 +76,7 @@ func (r *PostgresProviderRepository) List(ctx context.Context) ([]*entity.Provid
 		var p entity.Provider
 		err := rows.Scan(
 			&p.ID, &p.ProviderName, &p.BaseURL, &p.APIKeyRef,
-			&p.APIPath,
+			&p.APIPath, &p.ProtocolType, &p.AuthType,
 			&p.Priority, &p.Weight, &p.IsEnabledFlag,
 			&p.CreatedAt, &p.UpdatedAt, &p.DeletedAt,
 		)
@@ -90,12 +90,12 @@ func (r *PostgresProviderRepository) List(ctx context.Context) ([]*entity.Provid
 
 func (r *PostgresProviderRepository) Update(ctx context.Context, p *entity.Provider) error {
 	query := `UPDATE providers SET provider_name = $1, base_url = $2, api_key_ref = $3,
-		api_path = $4, priority = $5, weight = $6, is_enabled_flag = $7, updated_at = $8
-		WHERE id = $9 AND deleted_at IS NULL`
+		api_path = $4, protocol_type = $5, auth_type = $6, priority = $7, weight = $8, is_enabled_flag = $9, updated_at = $10
+		WHERE id = $11 AND deleted_at IS NULL`
 
 	now := time.Now()
 	result, err := r.pool.Exec(ctx, query,
-		p.ProviderName, p.BaseURL, p.APIKeyRef, p.APIPath, p.Priority, p.Weight, p.IsEnabledFlag, now, p.ID,
+		p.ProviderName, p.BaseURL, p.APIKeyRef, p.APIPath, p.ProtocolType, p.AuthType, p.Priority, p.Weight, p.IsEnabledFlag, now, p.ID,
 	)
 	if err != nil {
 		if isPgDuplicateError(err) {

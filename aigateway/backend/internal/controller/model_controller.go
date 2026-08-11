@@ -12,13 +12,14 @@ import (
 )
 
 type ModelController struct {
-	svc    *service.ModelService
-	rbacSvc *service.RBACService
-	logger *slog.Logger
+	svc      *service.ModelService
+	rbacSvc  *service.RBACService
+	routerSvc *service.RouterService
+	logger   *slog.Logger
 }
 
-func NewModelController(svc *service.ModelService, rbacSvc *service.RBACService, logger *slog.Logger) *ModelController {
-	return &ModelController{svc: svc, rbacSvc: rbacSvc, logger: logger}
+func NewModelController(svc *service.ModelService, rbacSvc *service.RBACService, routerSvc *service.RouterService, logger *slog.Logger) *ModelController {
+	return &ModelController{svc: svc, rbacSvc: rbacSvc, routerSvc: routerSvc, logger: logger}
 }
 
 func (c *ModelController) HandleCreate(w http.ResponseWriter, r *http.Request) {

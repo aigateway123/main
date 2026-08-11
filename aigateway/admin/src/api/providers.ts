@@ -6,6 +6,8 @@ export interface ProviderResponse {
   baseUrl: string
   apiKeyRef?: string
   apiPath: string
+  protocolType: string
+  authType: string
   priority: number
   weight: number
   isEnabledFlag: boolean
@@ -18,6 +20,8 @@ export interface CreateProviderRequest {
   baseUrl: string
   apiKeyRef?: string
   apiPath?: string
+  protocolType?: string
+  authType?: string
   priority?: number
   weight?: number
   isEnabledFlag?: boolean

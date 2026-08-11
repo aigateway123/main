@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"aigateway/backend/internal/entity"
+	"aigateway/backend/internal/provider"
 	"aigateway/backend/internal/repository"
 )
 
@@ -22,6 +23,8 @@ type ProviderTarget struct {
 	BaseURL        string
 	ProviderAPIKey string
 	APIPath        string
+	ProtocolType   provider.ChatProtocol
+	AuthType       string
 	ModelID        int64
 	ModelCode      string
 }
@@ -161,12 +164,29 @@ func (s *RouterService) SelectProvider(ctx context.Context, modelCode string) (*
 			BaseURL:        strings.TrimRight(provider.BaseURL, "/"),
 			ProviderAPIKey: provider.APIKeyRef,
 			APIPath:        apiPath,
+			ProtocolType:   protocolOf(provider.ProtocolType),
+			AuthType:       authTypeOf(provider.AuthType),
 			ModelID:        model.ID,
 			ModelCode:      model.ModelCode,
 		}, nil
 	}
 
 	return nil, ErrNoProviderAvailable
+}
+
+// protocolOf 归一化 Provider 协议，空值按 openai 处理（存量数据向后兼容）。
+func protocolOf(p string) provider.ChatProtocol {
+	if p == "anthropic" {
+		return provider.ProtocolAnthropic
+	}
+	return provider.ProtocolOpenAI
+}
+
+func authTypeOf(a string) string {
+	if a == "bearer" {
+		return "bearer"
+	}
+	return "api_key"
 }
 
 func (s *RouterService) CallProvider(ctx context.Context, target *ProviderTarget, requestBody []byte) (*http.Response, error) {
@@ -178,14 +198,27 @@ func (s *RouterService) CallProvider(ctx context.Context, target *ProviderTarget
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+target.ProviderAPIKey)
+	switch target.ProtocolType {
+	case provider.ProtocolAnthropic:
+		if target.AuthType == "bearer" {
+			req.Header.Set("Authorization", "Bearer "+target.ProviderAPIKey)
+		} else {
+			req.Header.Set("x-api-key", target.ProviderAPIKey)
+		}
+		for k, v := range provider.AnthropicHeaders() {
+			req.Header.Set(k, v)
+		}
+	default:
+		req.Header.Set("Authorization", "Bearer "+target.ProviderAPIKey)
+	}
 
 	return s.httpClient.Do(req)
 }
 
 // CallWithFallback selects a provider and calls it, with automatic fallback to the next available provider on failure.
 // It returns the successful http response along with the target that was used.
-func (s *RouterService) CallWithFallback(ctx context.Context, modelCode string, requestBody []byte) (resp *http.Response, target *ProviderTarget, err error) {
+// requestBody 为入站协议（inbound）的原始请求体；请求会按各 Provider 的出站协议自动转换。
+func (s *RouterService) CallWithFallback(ctx context.Context, modelCode string, requestBody []byte, inbound provider.ChatProtocol) (resp *http.Response, target *ProviderTarget, err error) {
 	model, err := s.modelRepo.GetByCode(ctx, modelCode)
 	if err != nil {
 		return nil, nil, ErrModelNotFound
@@ -255,11 +288,30 @@ func (s *RouterService) CallWithFallback(ctx context.Context, modelCode string, 
 			BaseURL:        strings.TrimRight(c.provider.BaseURL, "/"),
 			ProviderAPIKey: c.provider.APIKeyRef,
 			APIPath:        apiPath,
+			ProtocolType:   protocolOf(c.provider.ProtocolType),
+			AuthType:       authTypeOf(c.provider.AuthType),
 			ModelID:        model.ID,
 			ModelCode:      model.ModelCode,
 		}
 
-		providerResp, callErr := s.CallProvider(ctx, t, requestBody)
+		// 按出站协议转换请求体；转换失败跳过该 Provider
+		outboundBody := requestBody
+		if inbound != t.ProtocolType {
+			converted, convErr := provider.BuildOutboundRequest(inbound, t.ProtocolType, requestBody)
+			if convErr != nil {
+				s.logger.Warn("request conversion failed, skipping provider",
+					"provider", c.provider.ProviderName,
+					"inbound", inbound,
+					"outbound", t.ProtocolType,
+					"error", convErr,
+				)
+				lastErr = convErr
+				continue
+			}
+			outboundBody = converted
+		}
+
+		providerResp, callErr := s.CallProvider(ctx, t, outboundBody)
 		if callErr == nil && providerResp.StatusCode < 500 {
 			return providerResp, t, nil
 		}

@@ -25,9 +25,18 @@ func (s *ProviderService) Create(ctx context.Context, req *dto.CreateProviderReq
 		BaseURL:       req.BaseURL,
 		APIKeyRef:     req.APIKeyRef,
 		APIPath:       req.APIPath,
+		ProtocolType:  req.ProtocolType,
+		AuthType:      req.AuthType,
 		Priority:      req.Priority,
 		Weight:        req.Weight,
 		IsEnabledFlag: req.IsEnabledFlag,
+	}
+
+	if p.ProtocolType == "" {
+		p.ProtocolType = "openai"
+	}
+	if p.AuthType == "" {
+		p.AuthType = "api_key"
 	}
 
 	if err := s.repo.Create(ctx, p); err != nil {
@@ -72,15 +81,30 @@ func (s *ProviderService) Delete(ctx context.Context, id int64) error {
 }
 
 func (s *ProviderService) Update(ctx context.Context, id int64, req *dto.UpdateProviderRequest) (*dto.ProviderResponse, error) {
+	// 读取现有记录，未传的协议/认证字段保留原值，防止部分更新覆盖 anthropic 配置
+	existing, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, ErrProviderNotFound
+	}
+
 	p := &entity.Provider{
 		ID:            id,
 		ProviderName:  req.ProviderName,
 		BaseURL:       req.BaseURL,
 		APIKeyRef:     req.APIKeyRef,
 		APIPath:       req.APIPath,
+		ProtocolType:  req.ProtocolType,
+		AuthType:      req.AuthType,
 		Priority:      req.Priority,
 		Weight:        req.Weight,
 		IsEnabledFlag: req.IsEnabledFlag,
+	}
+
+	if p.ProtocolType == "" {
+		p.ProtocolType = existing.ProtocolType
+	}
+	if p.AuthType == "" {
+		p.AuthType = existing.AuthType
 	}
 
 	if err := s.repo.Update(ctx, p); err != nil {
@@ -103,6 +127,8 @@ func toProviderResponse(p *entity.Provider) *dto.ProviderResponse {
 		BaseURL:       p.BaseURL,
 		APIKeyRef:     p.APIKeyRef,
 		APIPath:       p.APIPath,
+		ProtocolType:  p.ProtocolType,
+		AuthType:      p.AuthType,
 		Priority:      p.Priority,
 		Weight:        p.Weight,
 		IsEnabledFlag: p.IsEnabledFlag,

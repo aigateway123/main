@@ -12,7 +12,7 @@ const providers = ref<ProviderResponse[]>([])
 const loading = ref(false)
 const showForm = ref(false)
 const editingId = ref<number | null>(null)
-const form = ref({ providerName: '', baseUrl: '', apiKeyRef: '', apiPath: '/v1/chat/completions', priority: 100, weight: 100, isEnabledFlag: true })
+const form = ref({ providerName: '', baseUrl: '', apiKeyRef: '', apiPath: '/v1/chat/completions', protocolType: 'openai', authType: 'api_key', priority: 100, weight: 100, isEnabledFlag: true })
 
 async function load() {
   loading.value = true
@@ -25,7 +25,7 @@ async function load() {
 
 function openCreate() {
   editingId.value = null
-  form.value = { providerName: '', baseUrl: '', apiKeyRef: '', apiPath: '/v1/chat/completions', priority: 100, weight: 100, isEnabledFlag: true }
+  form.value = { providerName: '', baseUrl: '', apiKeyRef: '', apiPath: '/v1/chat/completions', protocolType: 'openai', authType: 'api_key', priority: 100, weight: 100, isEnabledFlag: true }
   showForm.value = true
 }
 
@@ -36,11 +36,20 @@ function openEdit(p: ProviderResponse) {
     baseUrl: p.baseUrl,
     apiKeyRef: p.apiKeyRef ?? '',
     apiPath: p.apiPath ?? '/v1/chat/completions',
+    protocolType: p.protocolType || 'openai',
+    authType: p.authType || 'api_key',
     priority: p.priority,
     weight: p.weight,
     isEnabledFlag: p.isEnabledFlag,
   }
   showForm.value = true
+}
+
+function handleProtocolChange() {
+  // 协议切换为 Anthropic 时，认证方式默认 x-api-key；切回 OpenAI 时恢复 Bearer 语义（authType 由后端按 openai 忽略）
+  if (form.value.protocolType !== 'anthropic') {
+    form.value.authType = 'api_key'
+  }
 }
 
 async function handleSave() {
@@ -120,6 +129,24 @@ onMounted(load)
               <input v-model="form.apiPath" type="text" placeholder="/v1/chat/completions"
                 class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
             </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <label class="text-xs font-semibold text-text-primary">协议类型</label>
+                <select v-model="form.protocolType" @change="handleProtocolChange"
+                  class="w-full h-9 px-2 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary">
+                  <option value="openai">OpenAI 兼容</option>
+                  <option value="anthropic">Anthropic</option>
+                </select>
+              </div>
+              <div class="space-y-1.5">
+                <label class="text-xs font-semibold text-text-primary">认证方式</label>
+                <select v-model="form.authType" :disabled="form.protocolType !== 'anthropic'"
+                  class="w-full h-9 px-2 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary disabled:bg-slate-50 disabled:text-text-secondary">
+                  <option value="api_key">x-api-key</option>
+                  <option value="bearer">Bearer</option>
+                </select>
+              </div>
+            </div>
             <div class="space-y-1.5">
               <label class="text-xs font-semibold text-text-primary">API Key 引用</label>
               <input v-model="form.apiKeyRef" type="text" placeholder="OPENAI_API_KEY"
@@ -162,6 +189,7 @@ onMounted(load)
             <tr class="bg-[#f8f9fa] border-b border-border text-text-secondary font-semibold h-10">
               <th class="px-4 py-2">名称</th>
               <th class="px-4 py-2">Base URL</th>
+              <th class="px-4 py-2">协议</th>
               <th class="px-4 py-2">API 路径</th>
               <th class="px-4 py-2">优先级</th>
               <th class="px-4 py-2">权重</th>
@@ -178,6 +206,18 @@ onMounted(load)
               <td class="px-4 py-2 font-bold text-text-primary">{{ p.providerName }}</td>
               <td class="px-4 py-2 max-w-[200px] truncate">
                 <code class="bg-[#f8f9fa] px-1.5 py-0.5 rounded text-[11px]">{{ p.baseUrl }}</code>
+              </td>
+              <td class="px-4 py-2">
+                <span
+                  :class="[
+                    'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border',
+                    (p.protocolType || 'openai') === 'anthropic'
+                      ? 'bg-violet-50 text-violet-700 border-violet-200/60'
+                      : 'bg-sky-50 text-sky-700 border-sky-200/60',
+                  ]"
+                >
+                  {{ (p.protocolType || 'openai') === 'anthropic' ? 'Anthropic' : 'OpenAI' }}
+                </span>
               </td>
               <td class="px-4 py-2">
                 <code class="bg-[#f8f9fa] px-1.5 py-0.5 rounded text-[11px]">{{ p.apiPath || '/v1/chat/completions' }}</code>

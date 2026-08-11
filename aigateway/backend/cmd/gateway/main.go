@@ -127,7 +127,7 @@ func main() {
 	roleCtrl := controller.NewRoleController(rbacSvc, appLogger)
 	apiKeyCtrl := controller.NewApiKeyController(apiKeySvc, appLogger)
 	providerCtrl := controller.NewProviderController(providerSvc, appLogger)
-	modelCtrl := controller.NewModelController(modelSvc, rbacSvc, appLogger)
+	modelCtrl := controller.NewModelController(modelSvc, rbacSvc, routerSvc, appLogger)
 	usageCtrl := controller.NewUsageController(usageSvc, appLogger)
 	pricingCtrl := controller.NewPricingController(policySvc, appLogger)
 	quotaCtrl := controller.NewQuotaController(policySvc, appLogger)
@@ -150,6 +150,10 @@ func main() {
 	// Support both standard OpenAI path and our /api/v1 path
 	mux.HandleFunc("POST /v1/chat/completions", chatCtrl.HandleChatCompletions)
 	mux.HandleFunc("POST /api/v1/chat/completions", chatCtrl.HandleChatCompletions)
+
+	// Anthropic-compatible messages endpoint (API Key auth, x-api-key or Bearer)
+	mux.HandleFunc("POST /v1/messages", chatCtrl.HandleMessages)
+	mux.HandleFunc("POST /api/v1/messages", chatCtrl.HandleMessages)
 
 	// OpenAI-compatible image generations (API Key auth, not JWT)
 	mux.HandleFunc("POST /v1/images/generations", imageCtrl.HandleGenerations)
