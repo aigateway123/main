@@ -55,4 +55,10 @@ export const faqData: FaqItem[] = [
     answer:
       '企业客户可享受：① 专属技术支持群（7×24h）；② 私有化部署方案；③ 月结账期与用量折扣。详情请联系售前团队。',
   },
+  {
+    id: 'faq-10',
+    question: '是否支持 Anthropic 协议？',
+    answer:
+      '支持。网关同时提供 Anthropic Messages 兼容端点（POST /v1/messages）。可直接使用 Anthropic 官方 Python / Node SDK，仅需把 base_url 指向 https://api.starnov.cn、api_key 替换为网关 Key、model 替换为网关模型名称即可，支持流式与工具调用。',
+  },
 ]

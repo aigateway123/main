@@ -154,6 +154,9 @@ func main() {
 	// Anthropic-compatible messages endpoint (API Key auth, x-api-key or Bearer)
 	mux.HandleFunc("POST /v1/messages", chatCtrl.HandleMessages)
 	mux.HandleFunc("POST /api/v1/messages", chatCtrl.HandleMessages)
+	// Anthropic token estimation endpoint
+	mux.HandleFunc("POST /v1/messages/count_tokens", chatCtrl.HandleCountTokens)
+	mux.HandleFunc("POST /api/v1/messages/count_tokens", chatCtrl.HandleCountTokens)
 
 	// OpenAI-compatible image generations (API Key auth, not JWT)
 	mux.HandleFunc("POST /v1/images/generations", imageCtrl.HandleGenerations)

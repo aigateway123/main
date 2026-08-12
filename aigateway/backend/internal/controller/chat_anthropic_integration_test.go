@@ -96,6 +96,8 @@ func setupQAEnv(t *testing.T, antHandler, oaiHandler http.HandlerFunc) string {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /v1/chat/completions", chatCtrl.HandleChatCompletions)
 	mux.HandleFunc("POST /v1/messages", chatCtrl.HandleMessages)
+	mux.HandleFunc("POST /v1/messages/count_tokens", chatCtrl.HandleCountTokens)
+	mux.HandleFunc("GET /v1/models", chatCtrl.HandleListOpenAIModels)
 	gw := httptest.NewServer(mux)
 	t.Cleanup(gw.Close)
 	return gw.URL
@@ -503,6 +505,113 @@ func TestQA_AuthAndValidation(t *testing.T) {
 	status, body = qaPost(t, base, "/v1/messages", "x-api-key", `{"model":"qwen-max","messages":[{"role":"user","content":"Hi"}]}`)
 	if status != http.StatusBadRequest || !strings.Contains(body, "max_tokens") {
 		t.Errorf("missing max_tokens: status=%d body=%s, want 400", status, body)
+	}
+}
+
+// ---------- 场景 8：Anthropic 错误码标准化 ----------
+
+func TestQA_AnthropicStandardErrorCodes(t *testing.T) {
+	base := setupQAEnv(t, nil, nil)
+
+	// 无效 Key → 401 authentication_error（Anthropic 标准类型）
+	req, _ := http.NewRequest("POST", base+"/v1/messages", strings.NewReader(`{"model":"qwen-max","max_tokens":1024,"messages":[{"role":"user","content":"Hi"}]}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-api-key", "sk-invalid-key-xxxx")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	var antErr struct {
+		Type  string `json:"type"`
+		Error struct {
+			Type string `json:"type"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(b, &antErr); err != nil {
+		t.Fatalf("unmarshal: %v, body=%s", err, b)
+	}
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401", resp.StatusCode)
+	}
+	if antErr.Type != "error" || antErr.Error.Type != "authentication_error" {
+		t.Errorf("error = %+v, want type=error/authentication_error", antErr)
+	}
+
+	// 模型不存在 → 404 not_found_error（Anthropic 标准类型）
+	status, body := qaPost(t, base, "/v1/messages", "x-api-key", `{"model":"no-such-model","max_tokens":1024,"messages":[{"role":"user","content":"Hi"}]}`)
+	if status != http.StatusNotFound || !strings.Contains(body, "not_found_error") {
+		t.Errorf("model not found: status=%d body=%s, want 404 not_found_error", status, body)
+	}
+}
+
+// ---------- 场景 9：GET /v1/models 超集格式 ----------
+
+func TestQA_ModelsListCompatible(t *testing.T) {
+	base := setupQAEnv(t, nil, nil)
+
+	req, _ := http.NewRequest("GET", base+"/v1/models", nil)
+	req.Header.Set("x-api-key", "sk-qa-test-1234567890abcdef")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+
+	var list struct {
+		Data []struct {
+			ID          string `json:"id"`
+			Type        string `json:"type"`
+			DisplayName string `json:"display_name"`
+			Object      string `json:"object"`
+		} `json:"data"`
+		HasMore bool `json:"has_more"`
+	}
+	if err := json.Unmarshal(b, &list); err != nil {
+		t.Fatalf("unmarshal models: %v, body=%s", err, b)
+	}
+	if len(list.Data) == 0 {
+		t.Fatal("empty model list")
+	}
+	// Anthropic 字段
+	if list.Data[0].Type != "model" || list.Data[0].ID == "" {
+		t.Errorf("anthropic fields = %+v, want type=model + id", list.Data[0])
+	}
+	// OpenAI 字段
+	if list.Data[0].Object != "model" {
+		t.Errorf("openai field object = %q, want model", list.Data[0].Object)
+	}
+	if list.Data[0].DisplayName == "" {
+		t.Errorf("display_name should not be empty: %+v", list.Data[0])
+	}
+}
+
+// ---------- 场景 10：count_tokens 端点 ----------
+
+func TestQA_CountTokens(t *testing.T) {
+	base := setupQAEnv(t, nil, nil)
+
+	status, body := qaPost(t, base, "/v1/messages/count_tokens", "x-api-key", `{"model":"qwen-max","messages":[{"role":"user","content":"Hello world, how are you today?"}]}`)
+	if status != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", status, body)
+	}
+	var resp struct {
+		InputTokens int `json:"input_tokens"`
+	}
+	if err := json.Unmarshal([]byte(body), &resp); err != nil {
+		t.Fatalf("unmarshal: %v, body=%s", err, body)
+	}
+	// 24 个 ASCII 字符 ≈ 6 token + 结构开销
+	if resp.InputTokens <= 0 {
+		t.Errorf("input_tokens = %d, want > 0", resp.InputTokens)
+	}
+
+	// 缺少 messages → 400
+	status, _ = qaPost(t, base, "/v1/messages/count_tokens", "x-api-key", `{"model":"qwen-max"}`)
+	if status != http.StatusBadRequest {
+		t.Errorf("missing messages: status = %d, want 400", status)
 	}
 }
 

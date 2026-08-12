@@ -690,6 +690,83 @@ print(result.data[0].url)</code></pre>
 </ul>
 `,
         },
+        {
+          id: 'anthropic-messages',
+          title: 'Anthropic Messages',
+          content: `
+<h2>概述</h2>
+<p>网关同时提供 <strong>Anthropic Messages API 兼容端点</strong>：<code>POST /v1/messages</code>。可直接使用 Anthropic 官方 Python / Node SDK（<code>anthropic</code> / <code>@anthropic-ai/sdk</code>），仅需修改 <code>base_url</code> 与 <code>api_key</code>，业务代码零改造。</p>
+
+<h2>支持的端点</h2>
+<table>
+  <thead>
+    <tr><th>端点</th><th>方法</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>/v1/messages</code></td><td>POST</td><td>对话补全（支持流式 SSE 与工具调用）</td></tr>
+    <tr><td><code>/v1/messages/count_tokens</code></td><td>POST</td><td>Token 估算（网关按字符估算，计费以实际用量为准）</td></tr>
+    <tr><td><code>/v1/models</code></td><td>GET</td><td>模型列表（同时兼容 OpenAI / Anthropic SDK）</td></tr>
+  </tbody>
+</table>
+
+<h2>Python 示例</h2>
+<pre><code>from anthropic import Anthropic
+
+client = Anthropic(
+    api_key="nv_sk-xxxxxxxxxxxxxxxx",
+    base_url="https://api.starnov.cn",   # 注意不要以 /v1 结尾
+)
+
+resp = client.messages.create(
+    model="glm-5.2",
+    max_tokens=1024,
+    system="You are a helpful assistant.",
+    messages=[{"role": "user", "content": "你好"}],
+)
+print(resp.content[0].text)
+
+# 流式
+with client.messages.stream(
+    model="glm-5.2", max_tokens=1024,
+    messages=[{"role": "user", "content": "你好"}],
+) as stream:
+    for text in stream.text_stream:
+        print(text, end="")
+
+# 模型列表
+for m in client.models.list().data:
+    print(m.id)</code></pre>
+
+<h2>Node.js 示例</h2>
+<pre><code>import Anthropic from '@anthropic-ai/sdk';
+
+const client = new Anthropic({
+  apiKey: 'nv_sk-xxxxxxxxxxxxxxxx',
+  baseURL: 'https://api.starnov.cn',
+});
+
+const resp = await client.messages.create({
+  model: 'glm-5.2',
+  max_tokens: 1024,
+  messages: [{ role: 'user', content: '你好' }],
+});
+console.log(resp.content[0].text);</code></pre>
+
+<h2>认证方式</h2>
+<p>Anthropic 端点同时支持 <code>x-api-key</code> 与 <code>Authorization: Bearer</code> 两种请求头传入网关 API Key，SDK 默认使用 <code>x-api-key</code>，开箱即用。</p>
+
+<h2>错误响应</h2>
+<p>Anthropic 端点返回 Anthropic 标准错误格式：</p>
+<pre><code>{
+  "type": "error",
+  "error": {
+    "type": "rate_limit_error",
+    "message": "..."
+  }
+}</code></pre>
+<p>错误类型与 <code>HTTP</code> 状态码映射：<code>401 authentication_error</code>、<code>402 insufficient_quota</code>、<code>403 permission_error</code>、<code>404 not_found_error</code>、<code>429 rate_limit_error</code>、<code>503 overloaded_error</code>、<code>5xx api_error</code>。</p>
+`,
+        },
       ],
     },
     {

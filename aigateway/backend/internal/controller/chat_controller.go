@@ -58,7 +58,8 @@ func (c *ChatController) authenticateAPIKey(r *http.Request) (userID int64, apiK
 	return c.routerSvc.ValidateApiKey(r.Context(), apiKey)
 }
 
-// writeChatError 按入站协议输出错误响应（Anthropic 端点返回 Anthropic 错误格式）。
+// writeChatError 按入站协议输出错误响应。
+// Anthropic 端点输出 Anthropic 标准错误格式与标准错误类型（SDK 可识别）。
 func writeChatError(w http.ResponseWriter, inbound provider.ChatProtocol, status int, code, msg string) {
 	if inbound == provider.ProtocolAnthropic {
 		w.Header().Set("Content-Type", "application/json")
@@ -66,13 +67,38 @@ func writeChatError(w http.ResponseWriter, inbound provider.ChatProtocol, status
 		json.NewEncoder(w).Encode(map[string]any{
 			"type": "error",
 			"error": map[string]any{
-				"type":    code,
+				"type":    anthropicErrorType(status),
 				"message": msg,
 			},
 		})
 		return
 	}
 	writeError(w, status, code, msg)
+}
+
+// anthropicErrorType 按 HTTP 状态码映射 Anthropic 标准错误类型。
+// 参考 Anthropic API：401 authentication_error / 402 insufficient_quota /
+// 403 permission_error / 404 not_found_error / 429 rate_limit_error /
+// 503 overloaded_error / 5xx api_error / 其余 invalid_request_error。
+func anthropicErrorType(status int) string {
+	switch status {
+	case http.StatusUnauthorized:
+		return "authentication_error"
+	case http.StatusPaymentRequired:
+		return "insufficient_quota"
+	case http.StatusForbidden:
+		return "permission_error"
+	case http.StatusNotFound:
+		return "not_found_error"
+	case http.StatusTooManyRequests:
+		return "rate_limit_error"
+	case http.StatusServiceUnavailable:
+		return "overloaded_error"
+	}
+	if status >= 500 {
+		return "api_error"
+	}
+	return "invalid_request_error"
 }
 
 // HandleChatCompletions 对外提供 OpenAI 兼容推理端点（POST /v1/chat/completions）。
@@ -362,20 +388,150 @@ func (c *ChatController) finishBilling(ctx context.Context, userID, apiKeyID int
 	}
 }
 
-// openAIModel represents a model in OpenAI's API format
+// openAIModel represents a model in OpenAI's API format.
+// 同时携带 Anthropic 兼容字段（type/display_name/created_at），
+// 使 OpenAI SDK 与 Anthropic SDK / Claude Code 均可解析同一响应。
 type openAIModel struct {
 	ID      string `json:"id"`
 	Object  string `json:"object"`
 	Created int64  `json:"created"`
 	OwnedBy string `json:"owned_by"`
+
+	// Anthropic 兼容字段
+	Type        string `json:"type"`
+	DisplayName string `json:"display_name"`
+	CreatedAt   string `json:"created_at"`
 }
 
 type openAIModelList struct {
-	Object string         `json:"object"`
+	Object string        `json:"object"`
 	Data   []openAIModel `json:"data"`
+
+	// Anthropic 分页字段（SDK models.list 解析）
+	HasMore bool   `json:"has_more"`
+	FirstID string `json:"first_id"`
+	LastID  string `json:"last_id"`
 }
 
-// HandleListOpenAIModels returns the model list in OpenAI-compatible format (API Key auth)
+// HandleCountTokens 提供 Anthropic 兼容的 token 估算端点（POST /v1/messages/count_tokens）。
+// 网关不持厂商 tokenizer，按字符估算并返回 {input_tokens}；计费仍以实际 usage 为准。
+func (c *ChatController) HandleCountTokens(w http.ResponseWriter, r *http.Request) {
+	_, _, err := c.authenticateAPIKey(r)
+	if err != nil {
+		writeChatError(w, provider.ProtocolAnthropic, http.StatusUnauthorized, "AUTH002", "invalid api key")
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeChatError(w, provider.ProtocolAnthropic, http.StatusBadRequest, "VALID001", "request body too large")
+		return
+	}
+	var req struct {
+		Model    string            `json:"model"`
+		Messages []json.RawMessage `json:"messages"`
+	}
+	if err := json.Unmarshal(bodyBytes, &req); err != nil {
+		writeChatError(w, provider.ProtocolAnthropic, http.StatusBadRequest, "VALID001", "invalid request body")
+		return
+	}
+	if req.Model == "" || len(req.Messages) == 0 {
+		writeChatError(w, provider.ProtocolAnthropic, http.StatusBadRequest, "VALID001", "model and messages are required")
+		return
+	}
+
+	// 校验模型存在（与 Anthropic 官方 count_tokens 契约一致：不存在返回 404 not_found_error）
+	modelExists := false
+	if models, listErr := c.modelSvc.List(r.Context(), ""); listErr == nil {
+		for _, m := range models {
+			if m.ModelCode == req.Model {
+				modelExists = true
+				break
+			}
+		}
+	}
+	if !modelExists {
+		writeChatError(w, provider.ProtocolAnthropic, http.StatusNotFound, "VALID001", "model not found: "+req.Model)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"input_tokens": estimateInputTokens(bodyBytes)})
+}
+
+// estimateInputTokens 估算 Anthropic 请求体的输入 token 数（近似口径）。
+// 非 ASCII 字符约 1 token/字符，ASCII 约 4 字符/token，另计消息结构开销。
+func estimateInputTokens(body []byte) int {
+	var req struct {
+		System   json.RawMessage   `json:"system"`
+		Messages []json.RawMessage `json:"messages"`
+	}
+	if err := json.Unmarshal(body, &req); err != nil {
+		return 0
+	}
+	var texts []string
+	if len(req.System) > 0 {
+		texts = append(texts, contentToText(req.System))
+	}
+	for _, m := range req.Messages {
+		var msg struct {
+			Content json.RawMessage `json:"content"`
+		}
+		if json.Unmarshal(m, &msg) == nil {
+			texts = append(texts, contentToText(msg.Content))
+		}
+	}
+	tokens := 0
+	for _, t := range texts {
+		for _, r := range t {
+			if r > 127 {
+				tokens++
+			} else {
+				tokens += 25 // 近似 4 字符/token（以百分之一为单位避免浮点）
+			}
+		}
+	}
+	return (tokens + 99) / 100 + len(req.Messages) + 4
+}
+
+// contentToText 提取 Anthropic content（string 或内容块数组）为纯文本，
+// 工具调用块（tool_use.input / tool_result.content）一并计入估算。
+func contentToText(raw json.RawMessage) string {
+	if len(raw) == 0 || string(raw) == "null" {
+		return ""
+	}
+	var s string
+	if err := json.Unmarshal(raw, &s); err == nil {
+		return s
+	}
+	var blocks []struct {
+		Type    string          `json:"type"`
+		Text    string          `json:"text"`
+		Input   json.RawMessage `json:"input"`
+		Content json.RawMessage `json:"content"`
+	}
+	if err := json.Unmarshal(raw, &blocks); err == nil {
+		var sb strings.Builder
+		for _, b := range blocks {
+			switch b.Type {
+			case "text", "":
+				sb.WriteString(b.Text)
+			case "tool_use":
+				if len(b.Input) > 0 {
+					sb.WriteString(string(b.Input))
+				}
+			case "tool_result":
+				sb.WriteString(contentToText(b.Content))
+			}
+		}
+		return sb.String()
+	}
+	return string(raw)
+}
+
+// HandleListOpenAIModels returns the model list (API Key auth).
+// 同时兼容 OpenAI 与 Anthropic SDK 的模型发现。
 func (c *ChatController) HandleListOpenAIModels(w http.ResponseWriter, r *http.Request) {
 	// Validate API Key (same as chat completions)
 	_, _, err := c.authenticateAPIKey(r)
@@ -397,11 +553,18 @@ func (c *ChatController) HandleListOpenAIModels(w http.ResponseWriter, r *http.R
 	}
 	for _, m := range models {
 		result.Data = append(result.Data, openAIModel{
-			ID:      m.ModelCode,
-			Object:  "model",
-			Created: m.CreatedTime,
-			OwnedBy: "system",
+			ID:          m.ModelCode,
+			Object:      "model",
+			Created:     m.CreatedTime,
+			OwnedBy:     "system",
+			Type:        "model",
+			DisplayName: m.ModelName,
+			CreatedAt:   time.Unix(m.CreatedTime, 0).UTC().Format(time.RFC3339),
 		})
+	}
+	if len(result.Data) > 0 {
+		result.FirstID = result.Data[0].ID
+		result.LastID = result.Data[len(result.Data)-1].ID
 	}
 
 	w.Header().Set("Content-Type", "application/json")
