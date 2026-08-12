@@ -158,6 +158,9 @@ func main() {
 	mux.HandleFunc("POST /v1/messages/count_tokens", chatCtrl.HandleCountTokens)
 	mux.HandleFunc("POST /api/v1/messages/count_tokens", chatCtrl.HandleCountTokens)
 
+	// Model list (OpenAI & Anthropic SDK 模型发现，API Key auth)
+	mux.HandleFunc("GET /v1/models", chatCtrl.HandleListOpenAIModels)
+
 	// OpenAI-compatible image generations (API Key auth, not JWT)
 	mux.HandleFunc("POST /v1/images/generations", imageCtrl.HandleGenerations)
 	mux.HandleFunc("POST /api/v1/images/generations", imageCtrl.HandleGenerations)
