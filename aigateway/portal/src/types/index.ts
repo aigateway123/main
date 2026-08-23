@@ -8,6 +8,8 @@ export interface ModelInfo {
   inputPrice: string
   outputPrice: string
   cachePrice?: string
+  cacheWritePrice?: string
+  dynamicPricing?: string
   capabilities: string[]
   badge?: string
   isPopular?: boolean

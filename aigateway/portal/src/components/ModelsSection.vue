@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Sparkles, Search, Cpu, X, Zap, Terminal } from 'lucide-vue-next'
+import { Sparkles, Search, Cpu, X, Zap, Terminal, Info, Clock } from 'lucide-vue-next'
 import { models, providers, providerFilterList } from '@/data/models'
 import type { ModelInfo } from '@/types'
 import PlaygroundModal from '@/components/PlaygroundModal.vue'
@@ -72,6 +72,33 @@ const openSandboxFor = (model: ModelInfo) => {
         <p class="text-slate-600 text-base sm:text-lg">
           聚合 OpenAI、Anthropic、DeepSeek、智谱、阿里通义、Google、Meta 等主流前沿大模型，无需维护多家账号与充值规则。
         </p>
+      </div>
+
+      <!-- Pricing Notice: 官方最新价 + 峰谷/动态分档说明 -->
+      <div class="mb-12 rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50/80 via-blue-50/80 to-sky-50/80 p-5 sm:p-6">
+        <div class="flex items-center gap-2 mb-3">
+          <Info class="w-4 h-4 text-indigo-600" />
+          <h3 class="text-sm font-bold text-slate-900">按量计费 · 价格说明</h3>
+          <span class="text-[10px] font-semibold text-indigo-600 bg-white border border-indigo-200 rounded-full px-2 py-0.5 ml-auto whitespace-nowrap">同步官方最新价</span>
+        </div>
+        <ul class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2.5 text-xs text-slate-600 leading-relaxed">
+          <li class="flex gap-2">
+            <span class="text-indigo-500 shrink-0">•</span>
+            <span>价格均为官方最新人民币报价（/ 1M Tokens），输入、输出、缓存读分别计费，按量后付费，用多少算多少。</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="text-indigo-500 shrink-0">•</span>
+            <span><b>动态分档：</b>GPT-5.6 Sol / Terra 等模型按输入上下文长度分档计费（≤272K 标准档 / &gt;272K 长上下文档，约 2 倍价），请求时自动匹配档位。</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="text-indigo-500 shrink-0">•</span>
+            <span><b>峰谷优惠：</b>支持峰谷分时计费 — 夜间低谷时段（21:00–06:00）价格 5 折、周末 8 折；卡片带「峰谷计费」标识的模型已启用该能力。</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="text-indigo-500 shrink-0">•</span>
+            <span><b>缓存计费：</b>缓存读价按命中缓存的输入 token 计费；缓存创建价在首次写入缓存时计费（约 5 分钟 TTL），常用上下文可大幅降低成本。</span>
+          </li>
+        </ul>
       </div>
 
       <!-- Supported Provider Logo Wall -->
@@ -180,17 +207,33 @@ const openSandboxFor = (model: ModelInfo) => {
             <!-- Pricing -->
             <div class="space-y-1.5 py-3 border-y border-slate-100 text-xs font-mono">
               <div class="flex justify-between gap-2">
-                <span class="text-slate-500 shrink-0">Input Price</span>
+                <span class="text-slate-500 shrink-0">输入价格</span>
                 <span class="text-slate-900 font-semibold text-right">{{ model.inputPrice }}</span>
               </div>
               <div class="flex justify-between gap-2">
-                <span class="text-slate-500 shrink-0">Completion Price</span>
+                <span class="text-slate-500 shrink-0">输出价格</span>
                 <span class="text-slate-900 font-semibold text-right">{{ model.outputPrice }}</span>
               </div>
               <div v-if="model.cachePrice" class="flex justify-between gap-2">
-                <span class="text-slate-500 shrink-0">Cache Read Price</span>
+                <span class="text-slate-500 shrink-0">缓存读价</span>
                 <span class="text-blue-600 font-semibold text-right">{{ model.cachePrice }}</span>
               </div>
+              <div v-if="model.cacheWritePrice" class="flex justify-between gap-2">
+                <span class="text-slate-500 shrink-0">缓存创建价</span>
+                <span class="text-blue-600 font-semibold text-right">{{ model.cacheWritePrice }}</span>
+              </div>
+            </div>
+
+            <!-- Dynamic pricing / 峰谷 tag -->
+            <div v-if="model.dynamicPricing || model.capabilities.includes('峰谷计费')" class="flex flex-wrap gap-1.5">
+              <span v-if="model.dynamicPricing" class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200">
+                <Clock class="w-3 h-3" />
+                {{ model.dynamicPricing }}
+              </span>
+              <span v-if="model.capabilities.includes('峰谷计费')" class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200">
+                <Zap class="w-3 h-3" />
+                峰谷计费
+              </span>
             </div>
 
             <!-- Capability tags -->
@@ -263,6 +306,18 @@ const openSandboxFor = (model: ModelInfo) => {
             <div v-if="activeModelModal.cachePrice" class="flex justify-between">
               <span class="text-slate-500">缓存读价:</span>
               <span class="text-blue-600 font-semibold">{{ activeModelModal.cachePrice }}</span>
+            </div>
+            <div v-if="activeModelModal.cacheWritePrice" class="flex justify-between">
+              <span class="text-slate-500">缓存创建价:</span>
+              <span class="text-blue-600 font-semibold">{{ activeModelModal.cacheWritePrice }}</span>
+            </div>
+            <div v-if="activeModelModal.dynamicPricing" class="flex justify-between">
+              <span class="text-slate-500">计费方式:</span>
+              <span class="text-indigo-600 font-semibold">{{ activeModelModal.dynamicPricing }}</span>
+            </div>
+            <div v-if="activeModelModal.capabilities.includes('峰谷计费')" class="flex justify-between">
+              <span class="text-slate-500">峰谷计费:</span>
+              <span class="text-amber-600 font-semibold">夜间低谷 5 折 / 周末 8 折</span>
             </div>
             <div class="flex justify-between">
               <span class="text-slate-500">网关路由策略:</span>
