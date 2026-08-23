@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Sparkles, Search, ArrowRight, Cpu, X } from 'lucide-vue-next'
+import { Sparkles, Search, Cpu, X, Zap, Terminal } from 'lucide-vue-next'
 import { models, providers, providerFilterList } from '@/data/models'
 import type { ModelInfo } from '@/types'
+import PlaygroundModal from '@/components/PlaygroundModal.vue'
 
 defineProps<{
   adminUrl?: string
@@ -15,9 +16,8 @@ const emit = defineEmits<{
 const selectedProvider = ref('All')
 const searchQuery = ref('')
 const activeModelModal = ref<ModelInfo | null>(null)
-const currentPage = ref(1)
-
-const PER_PAGE = 8 // 2 rows × 4 columns
+const isPlaygroundOpen = ref(false)
+const playgroundModelId = ref('deepseek-v4-pro')
 
 const filteredModels = computed(() => {
   return models.filter((model) => {
@@ -31,31 +31,27 @@ const filteredModels = computed(() => {
   })
 })
 
-const totalPages = computed(() => {
-  return Math.max(1, Math.ceil(filteredModels.value.length / PER_PAGE))
-})
-
-const pagedModels = computed(() => {
-  const start = (currentPage.value - 1) * PER_PAGE
-  const end = start + PER_PAGE
-  return filteredModels.value.slice(start, end)
-})
-
-const goToPage = (page: number) => {
-  if (page >= 1 && page <= totalPages.value) {
-    currentPage.value = page
+// 按厂商分组，保留数据原始顺序
+const groupedModels = computed(() => {
+  const groups: { provider: string; models: ModelInfo[] }[] = []
+  for (const model of filteredModels.value) {
+    let group = groups.find((g) => g.provider === model.provider)
+    if (!group) {
+      group = { provider: model.provider, models: [] }
+      groups.push(group)
+    }
+    group.models.push(model)
   }
+  return groups
+})
+
+const providerInitial = (provider: string) => provider.charAt(0).toUpperCase()
+
+const openSandboxFor = (model: ModelInfo) => {
+  activeModelModal.value = null
+  playgroundModelId.value = model.id
+  isPlaygroundOpen.value = true
 }
-
-// Reset to page 1 when filter/search changes
-const prevFilteredLength = ref(filteredModels.value.length)
-import { watch } from 'vue'
-watch(filteredModels, (val) => {
-  if (val.length !== prevFilteredLength.value) {
-    currentPage.value = 1
-    prevFilteredLength.value = val.length
-  }
-})
 </script>
 
 <template>
@@ -68,7 +64,7 @@ watch(filteredModels, (val) => {
       <div class="text-center max-w-3xl mx-auto mb-12 space-y-4">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold uppercase tracking-wider">
           <Sparkles class="w-3.5 h-3.5 text-blue-600" />
-          全矩阵模型覆盖 · Supported Models
+          模型广场 · 全部按量计费
         </div>
         <h2 class="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
           全球主流 AI 模型，<span class="bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 bg-clip-text text-transparent">一个 API 全面兼容</span>
@@ -128,55 +124,77 @@ watch(filteredModels, (val) => {
         </div>
       </div>
 
-      <!-- Model Cards Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div
-          v-for="model in pagedModels"
-          :key="model.id"
-          :class="[
-            'p-6 rounded-2xl bg-white border transition-all duration-300 flex flex-col justify-between group shadow-sm',
-            model.isPopular
-              ? 'border-blue-400 shadow-md ring-1 ring-blue-500/20 bg-gradient-to-b from-blue-50/20 to-white'
-              : 'border-slate-200 hover:border-blue-300 hover:shadow-md'
-          ]"
-        >
-          <div>
-            <!-- Header Badge -->
-            <div class="flex items-center justify-between mb-4">
-              <span class="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                {{ model.provider }}
-              </span>
-              <span v-if="model.badge" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                {{ model.badge }}
+      <!-- Grouped by Provider -->
+      <div v-if="groupedModels.length === 0" class="py-16 text-center text-slate-400 text-sm">
+        未找到匹配的模型，试试其他关键词或切换厂商。
+      </div>
+
+      <div v-for="group in groupedModels" :key="group.provider" class="mb-10">
+        <!-- Provider Section Header -->
+        <div class="flex items-center gap-3 mb-5">
+          <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-sm font-bold">
+            {{ providerInitial(group.provider) }}
+          </div>
+          <h3 class="text-lg font-bold text-slate-900">{{ group.provider }}</h3>
+          <span class="text-xs text-slate-400">{{ group.models.length }} 个模型</span>
+          <div class="flex-1 h-px bg-slate-200" />
+        </div>
+
+        <!-- Model Pricing Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div
+            v-for="model in group.models"
+            :key="model.id"
+            @click="activeModelModal = model"
+            :class="[
+              'p-5 rounded-2xl bg-white border transition-all duration-300 flex flex-col gap-4 cursor-pointer group shadow-sm',
+              model.isPopular
+                ? 'border-blue-400 shadow-md ring-1 ring-blue-500/20 bg-gradient-to-b from-blue-50/20 to-white'
+                : 'border-slate-200 hover:border-blue-300 hover:shadow-md'
+            ]"
+          >
+            <!-- Header: provider + pay-as-you-go badge -->
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-500">{{ model.provider }}</span>
+              <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <Zap class="w-3 h-3" />
+                按量计费
               </span>
             </div>
 
             <!-- Name -->
-            <h3 class="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors mb-2">
-              {{ model.name }}
-            </h3>
-            <p class="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-4">
+            <div>
+              <h4 class="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors flex items-center gap-2">
+                {{ model.name }}
+                <span v-if="model.badge" class="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                  {{ model.badge }}
+                </span>
+              </h4>
+            </div>
+
+            <!-- Description -->
+            <p class="text-xs text-slate-600 line-clamp-2 leading-relaxed min-h-[32px]">
               {{ model.description }}
             </p>
 
-            <!-- Specs -->
-            <div class="space-y-2 py-3 border-y border-slate-100 text-xs font-mono">
-              <div class="flex justify-between text-slate-500">
-                <span>上下文窗口:</span>
-                <span class="text-slate-800 font-semibold">{{ model.contextWindow }}</span>
+            <!-- Pricing -->
+            <div class="space-y-1.5 py-3 border-y border-slate-100 text-xs font-mono">
+              <div class="flex justify-between gap-2">
+                <span class="text-slate-500 shrink-0">Input Price</span>
+                <span class="text-slate-900 font-semibold text-right">{{ model.inputPrice }}</span>
               </div>
-              <div class="flex justify-between text-slate-500">
-                <span>平均首字延迟:</span>
-                <span class="text-emerald-600 font-semibold">{{ model.avgLatency }}</span>
+              <div class="flex justify-between gap-2">
+                <span class="text-slate-500 shrink-0">Completion Price</span>
+                <span class="text-slate-900 font-semibold text-right">{{ model.outputPrice }}</span>
               </div>
-              <div class="flex justify-between text-slate-500">
-                <span>输入 / 输出单价:</span>
-                <span class="text-blue-600 font-semibold">{{ model.inputPrice }}</span>
+              <div v-if="model.cachePrice" class="flex justify-between gap-2">
+                <span class="text-slate-500 shrink-0">Cache Read Price</span>
+                <span class="text-blue-600 font-semibold text-right">{{ model.cachePrice }}</span>
               </div>
             </div>
 
-            <!-- Capabilities tags -->
-            <div class="flex flex-wrap gap-1.5 my-4">
+            <!-- Capability tags -->
+            <div class="flex flex-wrap gap-1.5 mt-auto">
               <span
                 v-for="(cap, idx) in model.capabilities"
                 :key="idx"
@@ -185,33 +203,14 @@ watch(filteredModels, (val) => {
                 {{ cap }}
               </span>
             </div>
+
+            <!-- Click hint -->
+            <div class="text-[10px] text-slate-400 font-semibold flex items-center gap-1 group-hover:text-blue-600 transition-colors">
+              <Terminal class="w-3 h-3" />
+              点击查看详细参数 & 沙盒测试
+            </div>
           </div>
-
-          <!-- Action Button -->
-          <button
-            @click="activeModelModal = model"
-            class="w-full mt-2 py-2 px-3 rounded-xl bg-slate-100 hover:bg-blue-600 text-slate-700 hover:text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5"
-          >
-            <span>查看详细参数 & 试用</span>
-            <ArrowRight class="w-3.5 h-3.5" />
-          </button>
         </div>
-      </div>
-
-      <!-- Pagination Dots -->
-      <div v-if="totalPages > 1" class="flex items-center justify-center gap-2 mt-10">
-        <button
-          v-for="page in totalPages"
-          :key="page"
-          @click="goToPage(page)"
-          :class="[
-            'w-2.5 h-2.5 rounded-full transition-all duration-300',
-            currentPage === page
-              ? 'bg-blue-600 w-6'
-              : 'bg-slate-300 hover:bg-slate-400'
-          ]"
-          :aria-label="'第 ' + page + ' 页'"
-        />
       </div>
 
       <!-- Modal for Model Details -->
@@ -261,6 +260,10 @@ watch(filteredModels, (val) => {
               <span class="text-slate-500">输出计费:</span>
               <span class="text-emerald-600 font-semibold">{{ activeModelModal.outputPrice }}</span>
             </div>
+            <div v-if="activeModelModal.cachePrice" class="flex justify-between">
+              <span class="text-slate-500">缓存读价:</span>
+              <span class="text-blue-600 font-semibold">{{ activeModelModal.cachePrice }}</span>
+            </div>
             <div class="flex justify-between">
               <span class="text-slate-500">网关路由策略:</span>
               <span class="text-indigo-600 font-semibold">自动负载均衡 + 健康监控降级</span>
@@ -271,7 +274,7 @@ watch(filteredModels, (val) => {
 
           <div class="flex gap-3">
             <button
-              @click="activeModelModal = null"
+              @click="openSandboxFor(activeModelModal)"
               class="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors text-center"
             >
               在 API 沙盒中测试此模型
@@ -285,6 +288,13 @@ watch(filteredModels, (val) => {
           </div>
         </div>
       </div>
+
+      <!-- Playground Sandbox -->
+      <PlaygroundModal
+        v-if="isPlaygroundOpen"
+        :initial-model-id="playgroundModelId"
+        @close="isPlaygroundOpen = false"
+      />
     </div>
   </section>
 </template>

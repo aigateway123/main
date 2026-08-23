@@ -7,6 +7,7 @@ export interface ModelInfo {
   avgLatency: string
   inputPrice: string
   outputPrice: string
+  cachePrice?: string
   capabilities: string[]
   badge?: string
   isPopular?: boolean

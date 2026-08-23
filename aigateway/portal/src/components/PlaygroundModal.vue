@@ -3,11 +3,15 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { X, Play, Copy, Check, Sparkles, RefreshCw, Cpu } from 'lucide-vue-next'
 import { models } from '@/data/models'
 
+const props = defineProps<{
+  initialModelId?: string
+}>()
+
 const emit = defineEmits<{
   close: []
 }>()
 
-const selectedModelId = ref('deepseek-v4-pro')
+const selectedModelId = ref(props.initialModelId || 'deepseek-v4-pro')
 const promptInput = ref('写一段 Python 脚本，使用 OpenAI 官方客户端连接 Nova AI 网关，发起多轮流式对话并计算延迟。')
 const temperature = ref(0.7)
 const useCache = ref(true)
