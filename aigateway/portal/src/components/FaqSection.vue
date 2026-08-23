@@ -2,8 +2,10 @@
 import { ref } from 'vue'
 import { HelpCircle, ChevronDown, MessageSquare } from 'lucide-vue-next'
 import { faqData } from '@/data/faq'
+import { useContactFloat } from '@/composables/useContactFloat'
 
 const openId = ref<string>('faq-1')
+const { open } = useContactFloat()
 
 const toggleFaq = (id: string) => {
   openId.value = openId.value === id ? '' : id
@@ -75,12 +77,12 @@ const toggleFaq = (id: string) => {
             <p class="text-xs text-slate-500">我们的技术专家团队随时准备为您解答部署架构与技术细节。</p>
           </div>
         </div>
-        <a
-          href="#footer"
+        <button
+          @click="open"
           class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-colors whitespace-nowrap"
         >
           提交技术工单
-        </a>
+        </button>
       </div>
     </div>
   </section>
