@@ -357,6 +357,9 @@ func main() {
           id: 'ai-tools',
           title: '在 AI 编程工具中使用',
           content: `
+<h2>快速上手</h2>
+<p>Trae、Cursor、Codex CLI、Claude Code 等各工具的<strong>详细配置步骤</strong>见文档中心「<a href="/docs#tools-trae">工具接入</a>」章节。</p>
+
 <h2>适用工具</h2>
 <p>只要工具支持 OpenAI 兼容 API（自定义 Base URL），即可接入 Nova AI Gateway。常见工具包括：</p>
 <ul>
@@ -389,6 +392,171 @@ func main() {
 <ul>
   <li>不同工具的字段名略有差异（Base URL / Override Base URL / API 域名），含义相同。</li>
   <li>模型名需与平台上配置的模型 <code>id</code> 完全一致，可通过 <code>GET /v1/models</code> 查询。</li>
+</ul>
+`,
+        },
+      ],
+    },
+    {
+      id: 'tool-integration',
+      title: '工具接入',
+      icon: 'Wrench',
+      children: [
+        {
+          id: 'tools-trae',
+          title: 'Trae IDE',
+          content: `
+<h2>配置入口</h2>
+<p><strong>设置 → 模型 → 添加模型</strong>（或 AI 对话框右下角模型列表 → 添加模型）。</p>
+
+<h2>操作步骤</h2>
+<ol>
+  <li>点击「添加模型」，选择<strong>自定义配置</strong>。</li>
+  <li><strong>API 格式</strong>：选择「OpenAI Chat Completions 格式」。</li>
+  <li><strong>请求地址</strong>：
+    <ul>
+      <li>关闭「完整 URL」开关 → 填 <code>http://api.starnov.cn/v1</code></li>
+      <li>开启「完整 URL」开关 → 填 <code>http://api.starnov.cn/v1/chat/completions</code></li>
+    </ul>
+    两种写法二选一，效果一致。</li>
+  <li><strong>模型 ID</strong>：填网关上的模型 ID，如 <code>deepseek-v4-pro</code>（必须与后台 modelCode 完全一致，大小写敏感）。</li>
+  <li><strong>API 密钥</strong>：填 <code>nv_sk-xxxxxxxxxxxxxxxx</code>。</li>
+  <li>点击「添加模型」，Trae 会自动预检连通性，成功后模型出现在模型列表。</li>
+  <li>回到 AI 对话框，选中该模型，发一条测试消息验证。</li>
+</ol>
+
+<h2>验证与排错</h2>
+<ul>
+  <li>预检失败：检查请求地址是否漏 <code>/v1</code>、模型 ID 是否与网关一致、Key 是否有空格或复制不全。</li>
+  <li><code>404 Model Not Found</code>：模型 ID 与网关不一致，通过 <code>GET /v1/models</code> 核对。</li>
+</ul>
+`,
+        },
+        {
+          id: 'tools-cursor',
+          title: 'Cursor IDE',
+          content: `
+<h2>方式一：OpenAI 兼容覆盖（推荐）</h2>
+<ol>
+  <li>打开 <strong>Settings（⌘+,）→ Models</strong>。</li>
+  <li>在「OpenAI API Key」处填入 <code>nv_sk-xxxxxxxxxxxxxxxx</code>。</li>
+  <li>勾选<strong>「Override OpenAI Base URL」</strong>，填入 <code>http://api.starnov.cn/v1</code>。</li>
+  <li>回到对话框，在模型选择器中选择需要的模型（如 <code>deepseek-v4-pro</code>）；若模型未出现，可在页面底部的自定义模型输入框中手动输入模型 ID。</li>
+</ol>
+
+<h2>方式二：添加自定义模型（Cursor 新版）</h2>
+<ol>
+  <li>打开 <strong>Settings → Models → Add model</strong>。</li>
+  <li>模型名称 / ID 填网关模型 ID（如 <code>deepseek-v4-pro</code>）。</li>
+  <li>Base URL 填 <code>http://api.starnov.cn/v1</code>。</li>
+  <li>API Key 填 <code>nv_sk-xxxxxxxxxxxxxxxx</code>（或配置请求头 <code>Authorization: Bearer nv_sk-...</code>）。</li>
+  <li>保存后在模型选择器中选用，发测试消息验证。</li>
+</ol>
+
+<h2>验证与排错</h2>
+<ul>
+  <li>首次使用报 <code>404</code>：核对自定义模型 ID 是否与网关 modelCode 一致。</li>
+</ul>
+`,
+        },
+        {
+          id: 'tools-codex',
+          title: 'Codex CLI',
+          content: `
+<h2>安装</h2>
+<pre><code>npm install -g @openai/codex
+# 或 brew install codex</code></pre>
+
+<h2>配置自定义 Provider</h2>
+<p>编辑 <code>~/.codex/config.toml</code>，声明网关为模型提供方：</p>
+<pre><code># 默认使用的模型提供方
+model_provider = "nova"
+
+[model_providers.nova]
+name = "Nova AI Gateway"
+base_url = "http://api.starnov.cn/v1"
+env_key = "NOVA_API_KEY"      # 从环境变量读取 API Key
+wire_api = "chat"             # 网关为 OpenAI Chat Completions 协议</code></pre>
+<p><code>wire_api</code> 必须为 <code>"chat"</code>（对应 <code>POST /v1/chat/completions</code>），不能填 <code>"responses"</code>。</p>
+
+<h2>配置环境变量</h2>
+<p>在 <code>~/.zshrc</code> / <code>~/.bashrc</code> 中加入：</p>
+<pre><code>export NOVA_API_KEY="nv_sk-xxxxxxxxxxxxxxxx"</code></pre>
+<p>执行 <code>source ~/.zshrc</code> 生效。</p>
+
+<h2>使用</h2>
+<pre><code>codex                          # 在项目目录中启动
+codex --model deepseek-v4-pro  # 指定模型</code></pre>
+<p>也可在 <code>config.toml</code> 中设置默认模型：</p>
+<pre><code>[model]
+model = "deepseek-v4-pro"</code></pre>
+
+<h2>验证与排错</h2>
+<ul>
+  <li><code>401</code>：检查 <code>NOVA_API_KEY</code> 环境变量是否已导出、Key 是否正确。</li>
+  <li>模型持续报错：确认 <code>wire_api = "chat"</code> 配置正确。</li>
+</ul>
+`,
+        },
+        {
+          id: 'tools-claude-code',
+          title: 'Claude Code',
+          content: `
+<h2>安装</h2>
+<pre><code>npm install -g @anthropic-ai/claude-code</code></pre>
+
+<h2>通过环境变量指向网关</h2>
+<p>网关提供 Anthropic 兼容端点（<code>POST /v1/messages</code>），Claude Code 可直接指向网关：</p>
+<pre><code>export ANTHROPIC_BASE_URL="http://api.starnov.cn"        # 注意：不带 /v1，SDK 自动拼接 /v1/messages
+export ANTHROPIC_AUTH_TOKEN="nv_sk-xxxxxxxxxxxxxxxx"
+export ANTHROPIC_MODEL="deepseek-v4-pro"                 # 默认主模型
+export ANTHROPIC_SMALL_FAST_MODEL="deepseek-v4-flash"    # 后台轻量模型（推荐）</code></pre>
+<ul>
+  <li><code>ANTHROPIC_AUTH_TOKEN</code> 走 <code>Authorization: Bearer</code> 头；网关同时兼容 <code>x-api-key</code> 头。</li>
+  <li><code>ANTHROPIC_BASE_URL</code> 填到域名为止（<code>http://api.starnov.cn</code>），不要带 <code>/v1/messages</code>。</li>
+</ul>
+
+<h2>启动</h2>
+<pre><code>claude</code></pre>
+<p>在项目目录中启动后，Claude Code 将以网关为后端进行对话与编码。</p>
+
+<h2>验证与排错</h2>
+<ul>
+  <li>认证失败：确认 <code>ANTHROPIC_AUTH_TOKEN</code> 为 <code>nv_sk-</code> 开头的网关 Key。</li>
+  <li><code>404 model not found</code>：核对 <code>ANTHROPIC_MODEL</code> 与网关 modelCode 一致。</li>
+</ul>
+`,
+        },
+        {
+          id: 'tools-generic',
+          title: '其他 OpenAI 兼容工具',
+          content: `
+<h2>适用工具</h2>
+<p>Cline、Continue、Roo Code、ChatBox、LobeChat、Open WebUI 等工具普遍支持「自定义 OpenAI 兼容 Provider」，配置套路一致：</p>
+<table>
+  <thead>
+    <tr><th>配置项</th><th>值</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Provider 类型</td><td>OpenAI Compatible / 自定义</td></tr>
+    <tr><td>Base URL / 请求地址</td><td><code>http://api.starnov.cn/v1</code></td></tr>
+    <tr><td>API Key</td><td><code>nv_sk-xxxxxxxxxxxxxxxx</code></td></tr>
+    <tr><td>模型 ID</td><td>网关上的 modelCode，如 <code>deepseek-v4-pro</code></td></tr>
+  </tbody>
+</table>
+
+<h2>通用配置步骤</h2>
+<ol>
+  <li>在工具设置中新建「自定义 Provider / 自定义模型」。</li>
+  <li>选择 OpenAI Chat Completions 格式。</li>
+  <li>填入上表的 Base URL、API Key、模型 ID。</li>
+  <li>保存后发起一条测试消息验证。</li>
+</ol>
+
+<h2>提示</h2>
+<ul>
+  <li>不同工具字段名略有差异（Base URL / Override Base URL / API 域名），含义相同。</li>
+  <li>模型名需与网关配置的 <code>id</code> 完全一致，可通过 <code>GET /v1/models</code> 查询。</li>
 </ul>
 `,
         },

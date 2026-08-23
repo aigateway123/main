@@ -5,7 +5,7 @@ import AppHeader from '@/components/AppHeader.vue'
 import FooterSection from '@/components/FooterSection.vue'
 import ContactFloat from '@/components/ContactFloat.vue'
 import {
-  BookOpen, Rocket, Terminal, HelpCircle,
+  BookOpen, Rocket, Terminal, HelpCircle, Wrench,
   ChevronDown, FileText, ChevronLeft, ChevronRight, ListTree, X, AlertCircle,
 } from 'lucide-vue-next'
 import docContent from '@/data/docs'
@@ -24,7 +24,7 @@ const contentEl = ref<HTMLElement | null>(null)
 const tocItems = ref<{ id: string; text: string }[]>([])
 
 const iconMap: Record<string, any> = {
-  BookOpen, Rocket, Terminal, HelpCircle,
+  BookOpen, Rocket, Terminal, HelpCircle, Wrench,
 }
 
 const toggleSection = (id: string) => {
