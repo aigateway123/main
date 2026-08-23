@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Check, ShieldCheck, ArrowRight, Zap } from 'lucide-vue-next'
 import { pricingCards } from '@/data/pricing'
+import { useContactFloat } from '@/composables/useContactFloat'
 
 defineProps<{
   adminUrl: string
@@ -9,6 +10,14 @@ defineProps<{
 const emit = defineEmits<{
   'open-console': []
 }>()
+
+const { open } = useContactFloat()
+
+// 阻止冒泡，避免触发 ContactFloat 的 document 级「点击外部关闭」逻辑
+const openContact = (e: MouseEvent) => {
+  e.stopPropagation()
+  open()
+}
 </script>
 
 <template>
@@ -106,7 +115,7 @@ const emit = defineEmits<{
           </div>
         </div>
         <button
-          @click="emit('open-console')"
+          @click="openContact"
           class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold whitespace-nowrap shadow-sm"
         >
           联系企业顾问

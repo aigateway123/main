@@ -1,16 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { MessageCircle, X, MessageSquare, Mail, Phone } from 'lucide-vue-next'
+import { useContactFloat } from '@/composables/useContactFloat'
 
-const isOpen = ref(false)
-
-const toggle = () => {
-  isOpen.value = !isOpen.value
-}
-
-const close = () => {
-  isOpen.value = false
-}
+const { isOpen, toggle, close } = useContactFloat()
 
 const handleOutsideClick = (e: MouseEvent) => {
   const target = e.target as HTMLElement
@@ -40,13 +33,13 @@ onUnmounted(() => {
           </div>
           <div>
             <p class="text-xs font-bold text-slate-900">微信联系</p>
-            <p class="text-[11px] text-slate-500">Nova_AI_Gateway</p>
+            <p class="text-[11px] text-slate-500">xncx2026</p>
           </div>
         </div>
 
         <!-- Email -->
         <a
-          href="mailto:biz@nova-ai.com"
+          href="mailto:xncn@starnovation.cn"
           class="flex items-center gap-3 bg-white rounded-2xl px-5 py-3.5 shadow-lg border border-slate-200 hover:border-blue-300 transition-all cursor-pointer group"
         >
           <div class="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
@@ -54,20 +47,23 @@ onUnmounted(() => {
           </div>
           <div>
             <p class="text-xs font-bold text-slate-900">邮件联系</p>
-            <p class="text-[11px] text-slate-500">biz@nova-ai.com</p>
+            <p class="text-[11px] text-slate-500">xncn@starnovation.cn</p>
           </div>
         </a>
 
         <!-- Phone -->
-        <div class="flex items-center gap-3 bg-white rounded-2xl px-5 py-3.5 shadow-lg border border-slate-200 hover:border-blue-300 transition-all cursor-pointer group">
+        <a
+          href="tel:19220422189"
+          class="flex items-center gap-3 bg-white rounded-2xl px-5 py-3.5 shadow-lg border border-slate-200 hover:border-blue-300 transition-all cursor-pointer group"
+        >
           <div class="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
             <Phone class="w-4.5 h-4.5" stroke-width="1.5" />
           </div>
           <div>
             <p class="text-xs font-bold text-slate-900">电话咨询</p>
-            <p class="text-[11px] text-slate-500">400-xxx-xxxx</p>
+            <p class="text-[11px] text-slate-500">19220422189</p>
           </div>
-        </div>
+        </a>
       </div>
     </Transition>
 
