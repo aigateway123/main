@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { Layers, Cpu, ShieldCheck, Zap, Terminal, Lock, ArrowUpRight, CheckCircle2, Activity, ChevronRight } from 'lucide-vue-next'
 import { features } from '@/data/features'
+import PlaygroundModal from '@/components/PlaygroundModal.vue'
 import type { FunctionalComponent } from 'vue'
 
 const iconMap: Record<string, FunctionalComponent> = {
@@ -14,6 +15,7 @@ const iconMap: Record<string, FunctionalComponent> = {
 }
 
 const activeFeature = ref<string | null>(null)
+const isPlaygroundOpen = ref(false)
 </script>
 
 <template>
@@ -97,11 +99,17 @@ const activeFeature = ref<string | null>(null)
             直接在在线 API 沙盒中测试相同的 Prompt，观看多模型流式返回速度与语义缓存命中对延时的瞬间优化！
           </p>
         </div>
-        <button class="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md shadow-blue-600/20 transition-all whitespace-nowrap flex items-center gap-2">
+        <button
+          @click="isPlaygroundOpen = true"
+          class="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md shadow-blue-600/20 transition-all whitespace-nowrap flex items-center gap-2"
+        >
           <span>开启 Playground 模拟</span>
           <ChevronRight class="w-4 h-4" />
         </button>
       </div>
     </div>
+
+    <!-- Playground API Sandbox -->
+    <PlaygroundModal v-if="isPlaygroundOpen" @close="isPlaygroundOpen = false" />
   </section>
 </template>
