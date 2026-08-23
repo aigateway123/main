@@ -81,47 +81,6 @@ const docContent: DocContent = {
 </ul>
 `,
         },
-        {
-          id: 'architecture',
-          title: '技术架构',
-          content: `
-<h2>总体架构</h2>
-<p>平台由 5 个独立服务组成，通过 Docker Compose 部署，可独立扩容与维护：</p>
-<ul>
-  <li><strong>API Gateway</strong>：统一对外入口，处理 Chat Completions 请求，实现认证、路由转发与流式透传。</li>
-  <li><strong>Router Engine</strong>：模型路由，按绑定优先级 / 权重选择 Provider，失败时自动切换备用。</li>
-  <li><strong>Policy Engine</strong>：额度策略检查、模型白名单校验、费用计算与额度消耗。</li>
-  <li><strong>Auth Service</strong>：API Key 校验、JWT 登录鉴权与 RBAC 权限点校验。</li>
-  <li><strong>Billing Service</strong>：按量计费、额度扣减（行级锁）与费用流水记录。</li>
-</ul>
-
-<h2>请求处理链路</h2>
-<ol>
-  <li>客户端携带 <code>Authorization: Bearer &lt;API Key&gt;</code> 调用 <code>POST /v1/chat/completions</code>。</li>
-  <li>API Gateway 校验 API Key 有效性、状态与额度（不足时返回 402）。</li>
-  <li>Router Engine 根据模型路由策略选择 Provider，发起上游调用；失败自动降级到备用 Provider。</li>
-  <li>响应（普通或 SSE 流式）实时透传给客户端。</li>
-  <li>解析 Token 用量 → 计算费用（含峰谷时段判断）→ 行级锁扣减额度 → 异步记录请求日志。</li>
-</ol>
-
-<h2>分层设计</h2>
-<p>每个服务内部采用 <code>Controller → Service → Repository</code> 分层，依赖方向由外向内，职责单一、便于测试与演进。</p>
-
-<h2>数据与中间件</h2>
-<ul>
-  <li><strong>PostgreSQL 15+</strong>：核心业务数据，额度扣减通过 <code>SELECT FOR UPDATE</code> 行锁保证强一致。</li>
-  <li><strong>Redis 7+</strong>：缓存权限点、模型配置与高频读取数据，主链路 99% 请求不访问数据库。</li>
-  <li><strong>异步化</strong>：日志、成本、统计等非主链路操作通过事件队列异步处理，不阻塞请求。</li>
-</ul>
-
-<h2>性能目标</h2>
-<ul>
-  <li>Gateway 主链路 < 10ms。</li>
-  <li>Policy Engine 单次校验 < 2ms。</li>
-  <li>Router 路由决策 < 2ms。</li>
-</ul>
-`,
-        },
       ],
     },
     {
@@ -318,29 +277,6 @@ func main() {
 <h2>查看可用模型</h2>
 <p>调用 <code>GET /v1/models</code> 可实时获取当前可用模型列表（OpenAI 兼容格式），返回的 <code>data[].id</code> 即请求时的 <code>model</code> 参数值。</p>
 
-<h2>Chat 模型</h2>
-<table>
-  <thead>
-    <tr><th>模型</th><th>厂商</th><th>上下文</th><th>输入价 / M Tokens</th><th>输出价 / M Tokens</th><th>适用场景</th></tr>
-  </thead>
-  <tbody>
-    <tr><td><code>gpt-5.6-sol</code></td><td>OpenAI</td><td>400K</td><td>$5</td><td>$30</td><td>最强推理与编程，Agent 场景</td></tr>
-    <tr><td><code>gpt-5.6-terra</code></td><td>OpenAI</td><td>400K</td><td>$2.5</td><td>$15</td><td>生产环境主力，性能与成本平衡</td></tr>
-    <tr><td><code>claude-opus-5</code></td><td>Anthropic</td><td>1M</td><td>$5</td><td>$25</td><td>深度推理、超长文本、复杂任务</td></tr>
-    <tr><td><code>claude-sonnet-4.6</code></td><td>Anthropic</td><td>200K</td><td>$3</td><td>$15</td><td>日常主力，编程 + 多模态</td></tr>
-    <tr><td><code>gemini-3.5-pro</code></td><td>Google</td><td>2M</td><td>$1.25</td><td>$5</td><td>超长上下文、视频 / 图像理解</td></tr>
-    <tr><td><code>grok-4.5</code></td><td>xAI</td><td>1M</td><td>$2</td><td>$6</td><td>实时资讯、高性价比推理</td></tr>
-    <tr><td><code>deepseek-v4-pro</code></td><td>DeepSeek</td><td>128K</td><td>¥6</td><td>¥12</td><td>国产旗舰，数学 / 代码，支持峰谷计费</td></tr>
-    <tr><td><code>deepseek-v4-flash</code></td><td>DeepSeek</td><td>128K</td><td>¥1</td><td>¥2</td><td>高并发、高频调用，谷时段更低价</td></tr>
-    <tr><td><code>glm-5.2</code></td><td>智谱 GLM</td><td>1M</td><td>¥4</td><td>¥12</td><td>超长上下文，Function Call 生产级</td></tr>
-    <tr><td><code>qwen-3.6-plus</code></td><td>通义千问</td><td>1M</td><td>¥2</td><td>¥8</td><td>中文场景、高频调用</td></tr>
-    <tr><td><code>kimi-k3</code></td><td>月之暗面</td><td>1M</td><td>¥5</td><td>¥20</td><td>开源领先，WebDev、超长文本</td></tr>
-    <tr><td><code>llama-4</code></td><td>Meta</td><td>128K</td><td>$0.5</td><td>$1.5</td><td>开源模型，私有化定制</td></tr>
-    <tr><td><code>hunyuan-hy3</code></td><td>腾讯</td><td>256K</td><td>¥3</td><td>¥10</td><td>Agent 能力突出，Apache 2.0 商用</td></tr>
-    <tr><td><code>mistral-large-3</code></td><td>Mistral</td><td>256K</td><td>$4</td><td>$20</td><td>多语言、代码生成</td></tr>
-  </tbody>
-</table>
-
 <h2>选择建议</h2>
 <ul>
   <li><strong>追求最强效果</strong>：GPT-5.6 Sol、Claude Opus 5。</li>
@@ -351,48 +287,6 @@ func main() {
 
 <h2>注意事项</h2>
 <p>以上为平台当前展示的模型清单与参考价格，<strong>实际可用模型及定价以控制台配置和 <code>GET /v1/models</code> 返回为准</strong>，平台会持续新增模型。</p>
-`,
-        },
-        {
-          id: 'ai-tools',
-          title: '在 AI 编程工具中使用',
-          content: `
-<h2>快速上手</h2>
-<p>Trae、Cursor、Codex CLI、Claude Code 等各工具的<strong>详细配置步骤</strong>见文档中心「<a href="/docs#tools-trae">工具接入</a>」章节。</p>
-
-<h2>适用工具</h2>
-<p>只要工具支持 OpenAI 兼容 API（自定义 Base URL），即可接入 Nova AI Gateway。常见工具包括：</p>
-<ul>
-  <li><strong>编程工具</strong>：Cursor、Windsurf、Continue、JetBrains AI、VS Code Copilot Chat</li>
-  <li><strong>桌面客户端</strong>：ChatBox、NextChat、LobeChat、Open WebUI</li>
-</ul>
-
-<h2>通用配置三步</h2>
-<ol>
-  <li>在控制台创建 API Key（<code>nv_sk-</code> 开头）。</li>
-  <li>在工具的「自定义 Provider / 自定义 Base URL」中填入：<code>http://api.starnov.cn/v1</code>。</li>
-  <li>填入 API Key，选择平台上已配置的模型（如 <code>deepseek-v4-pro</code>）即可使用。</li>
-</ol>
-
-<h2>示例：Cursor</h2>
-<ol>
-  <li>打开 Settings → Models → OpenAI API Key，填入你的网关 API Key。</li>
-  <li>在 Base URL / Override Base URL 处填写 <code>http://api.starnov.cn/v1</code>。</li>
-  <li>选择或输入模型名称（与平台上配置一致），即可开始对话。</li>
-</ol>
-
-<h2>示例：ChatBox / LobeChat</h2>
-<ol>
-  <li>添加自定义模型提供商，协议选择 OpenAI 兼容。</li>
-  <li>API 域名 / Base URL 填 <code>http://api.starnov.cn/v1</code>。</li>
-  <li>填写 API Key 并选择模型，保存后即可使用。</li>
-</ol>
-
-<h2>提示</h2>
-<ul>
-  <li>不同工具的字段名略有差异（Base URL / Override Base URL / API 域名），含义相同。</li>
-  <li>模型名需与平台上配置的模型 <code>id</code> 完全一致，可通过 <code>GET /v1/models</code> 查询。</li>
-</ul>
 `,
         },
       ],
