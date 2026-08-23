@@ -58,8 +58,8 @@ const docContent: DocContent = {
 
 <h2>按量计费</h2>
 <ul>
+  <li><strong>与厂商同价</strong>：对外报价与大模型厂商官方价格完全一致，不加价、无隐形费用，单价可在控制台「模型定价」中查看。</li>
   <li>输入 / 输出 Token 分开计价，精确到 Token。</li>
-  <li>支持<strong>峰谷分时计价</strong>（Peak / Off-peak）：可在后台按时间段配置不同单价，如 DeepSeek V4 系列夜间低谷时段价格更低。</li>
   <li>流式请求（SSE）通过解析最后一块数据的 <code>usage</code> 字段完成计费统计。</li>
   <li>额度扣减采用行级锁保证强一致，余额不足返回 402，绝不超扣。</li>
 </ul>
@@ -92,7 +92,7 @@ const docContent: DocContent = {
   <li><strong>Router Engine</strong>：模型路由，按绑定优先级 / 权重选择 Provider，失败时自动切换备用。</li>
   <li><strong>Policy Engine</strong>：额度策略检查、模型白名单校验、费用计算与额度消耗。</li>
   <li><strong>Auth Service</strong>：API Key 校验、JWT 登录鉴权与 RBAC 权限点校验。</li>
-  <li><strong>Billing Service</strong>：按量计费、峰谷计价、额度扣减（行级锁）与费用流水记录。</li>
+  <li><strong>Billing Service</strong>：按量计费、额度扣减（行级锁）与费用流水记录。</li>
 </ul>
 
 <h2>请求处理链路</h2>

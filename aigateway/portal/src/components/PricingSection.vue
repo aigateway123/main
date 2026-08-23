@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Check, ShieldCheck, ArrowRight, Zap } from 'lucide-vue-next'
-import { pricingPlans } from '@/data/pricing'
+import { pricingCards } from '@/data/pricing'
 
 defineProps<{
   adminUrl: string
@@ -21,56 +21,54 @@ const emit = defineEmits<{
       <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold uppercase tracking-wider">
           <Zap class="w-3.5 h-3.5 text-blue-600" />
-          透明计费方案 · Transparent Pricing
+          按量计费 · Transparent Pricing
         </div>
         <h2 class="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
-          按量计费，无隐形开支，
+          按量计费，与厂商同价，
           <span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            注册即送 1,000,000 Tokens
+            零加价 · 透明可查
           </span>
         </h2>
         <p class="text-slate-600 text-base sm:text-lg">
-          灵活选型，随时退订。所有付费方案均包含全模型访问权限、自动 Failover 路由与实时监控日记。
+          无订阅费、无月费，用多少付多少。我们对外报价与大模型厂商官方价格完全一致，不加价、无隐形开支。
         </p>
       </div>
 
-      <!-- 3 Pricing Cards -->
+      <!-- 3 Pricing Model Cards -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
         <div
-          v-for="plan in pricingPlans"
-          :key="plan.id"
+          v-for="card in pricingCards"
+          :key="card.id"
           :class="[
             'p-8 rounded-3xl bg-white border flex flex-col justify-between transition-all duration-300 relative',
-            plan.isPopular
+            card.isPopular
               ? 'border-blue-500 shadow-xl shadow-blue-500/10 ring-2 ring-blue-500/20 lg:-translate-y-2'
               : 'border-slate-200/90 shadow-sm hover:border-slate-300 hover:shadow-md'
           ]"
         >
-          <div v-if="plan.isPopular" class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-bold shadow-md uppercase tracking-wider">
-            最受欢迎推荐
+          <div
+            v-if="card.isPopular"
+            class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-bold shadow-md uppercase tracking-wider"
+          >
+            核心承诺
           </div>
 
           <div>
-            <!-- Plan Header -->
+            <!-- Card Header -->
             <div class="mb-6">
-              <h3 class="text-2xl font-bold text-slate-900">{{ plan.name }}</h3>
-              <p class="text-xs text-slate-500 mt-1">{{ plan.description }}</p>
+              <h3 class="text-2xl font-bold text-slate-900">{{ card.title }}</h3>
+              <p class="text-xs text-slate-500 mt-1">{{ card.subtitle }}</p>
             </div>
 
-            <!-- Price tag -->
+            <!-- Description -->
             <div class="mb-6 pb-6 border-b border-slate-100">
-              <div class="flex items-baseline gap-1">
-                <span class="text-4xl sm:text-5xl font-extrabold text-slate-900 font-mono tracking-tight">
-                  {{ plan.price }}
-                </span>
-                <span v-if="plan.period" class="text-xs font-medium text-slate-500">{{ plan.period }}</span>
-              </div>
+              <p class="text-sm text-slate-700 leading-relaxed">{{ card.description }}</p>
             </div>
 
             <!-- Feature List -->
             <div class="space-y-3.5 mb-8">
-              <p class="text-xs font-bold text-slate-700 uppercase tracking-wider">包含功能特权:</p>
-              <div v-for="(feature, idx) in plan.features" :key="idx" class="flex items-start gap-3 text-xs text-slate-700 leading-snug">
+              <p class="text-xs font-bold text-slate-700 uppercase tracking-wider">核心权益:</p>
+              <div v-for="(feature, idx) in card.features" :key="idx" class="flex items-start gap-3 text-xs text-slate-700 leading-snug">
                 <Check class="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
                 <span>{{ feature }}</span>
               </div>
@@ -82,19 +80,24 @@ const emit = defineEmits<{
             @click="emit('open-console')"
             :class="[
               'w-full py-3.5 rounded-xl font-semibold text-xs transition-all flex items-center justify-center gap-2',
-              plan.isPopular
+              card.isPopular
                 ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20'
                 : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
             ]"
           >
-            <span>{{ plan.cta }}</span>
+            <span>{{ card.cta }}</span>
             <ArrowRight class="w-4 h-4" />
           </button>
         </div>
       </div>
 
+      <!-- Price Transparency Note -->
+      <p class="mt-8 text-center text-xs text-slate-500">
+        各模型具体单价均与大模型厂商官方价格保持一致，可在 Admin 控制台「模型定价」中实时查看。
+      </p>
+
       <!-- Enterprise SLA Guarantee Banner -->
-      <div class="mt-16 p-6 rounded-2xl bg-white border border-slate-200 text-center flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+      <div class="mt-10 p-6 rounded-2xl bg-white border border-slate-200 text-center flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
         <div class="flex items-center gap-3 text-left">
           <ShieldCheck class="w-8 h-8 text-blue-600 flex-shrink-0" />
           <div>

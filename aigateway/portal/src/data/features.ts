@@ -32,14 +32,14 @@ export const features: Feature[] = [
   {
     id: 'pay-per-use',
     iconName: 'Zap',
-    title: '按量计费，透明可控',
+    title: '按量计费，与厂商同价',
     highlight: 'Token 级精确计费',
     description:
-      '按实际 Token 消耗计费，精确区分输入（Prompt）和输出（Completion）Token。支持峰值/低谷差异化定价策略，所有费用在控制台实时可查。',
+      '按实际 Token 消耗计费，精确区分输入（Prompt）和输出（Completion）Token。对外报价与大模型厂商官方价格一致、不加价，所有费用在控制台实时可查。',
     details: [
       '精确区分输入/输出 Token 计费',
-      '支持峰谷定价，后台可动态配置',
-      '实时用量监控与成本报表导出',
+      '价格与厂商官方一致，零加价',
+      '实时用量监控与费用明细',
     ],
     metrics: '按量付费',
   },

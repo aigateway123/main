@@ -39,16 +39,14 @@ export interface FaqItem {
   answer: string
 }
 
-export interface PricingPlan {
+export interface PricingCard {
   id: string
-  name: string
-  price: string
-  period: string
+  title: string
+  subtitle: string
   description: string
   features: string[]
   cta: string
-  isPopular: boolean
-  badge?: string
+  isPopular?: boolean
 }
 
 export interface CodeSample {
