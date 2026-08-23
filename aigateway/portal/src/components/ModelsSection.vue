@@ -193,7 +193,8 @@ const openSandboxFor = (model: ModelInfo) => {
             <div>
               <h4 class="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors flex items-center gap-2">
                 {{ model.name }}
-                <span v-if="model.badge" class="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                <span v-if="model.badge" class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                  <Sparkles class="w-3 h-3" />
                   {{ model.badge }}
                 </span>
               </h4>
