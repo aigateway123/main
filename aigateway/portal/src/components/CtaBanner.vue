@@ -30,7 +30,7 @@ const emit = defineEmits<{
           </h2>
 
           <p class="text-blue-100 text-base sm:text-lg max-w-2xl font-normal leading-relaxed">
-            立即注册获赠 1,000,000 Tokens 试用额度。体验高并发并发控制、智能缓存降低 70% 成本与毫秒级故障自动切流。
+            立即注册即可免费试用。体验高并发并发控制、智能缓存降低 70% 成本与毫秒级故障自动切流。
           </p>
 
           <div class="flex flex-col sm:flex-row items-center gap-4 pt-2">
