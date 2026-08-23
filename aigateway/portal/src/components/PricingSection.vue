@@ -24,13 +24,13 @@ const emit = defineEmits<{
           按量计费 · Transparent Pricing
         </div>
         <h2 class="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
-          按量计费，与厂商同价，
+          按量计费，无隐形开支，
           <span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            零加价 · 透明可查
+            开通即送体验额度
           </span>
         </h2>
         <p class="text-slate-600 text-base sm:text-lg">
-          无订阅费、无月费，用多少付多少。我们对外报价与大模型厂商官方价格完全一致，不加价、无隐形开支。
+          无订阅费、无月费，用多少付多少，费用实时可查、成本一目了然。
         </p>
       </div>
 
@@ -50,7 +50,7 @@ const emit = defineEmits<{
             v-if="card.isPopular"
             class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-bold shadow-md uppercase tracking-wider"
           >
-            核心承诺
+            核心方案
           </div>
 
           <div>
@@ -93,7 +93,7 @@ const emit = defineEmits<{
 
       <!-- Price Transparency Note -->
       <p class="mt-8 text-center text-xs text-slate-500">
-        各模型具体单价均与大模型厂商官方价格保持一致，可在 Admin 控制台「模型定价」中实时查看。
+        各模型具体单价与计费明细，可在 Admin 控制台「模型定价」中实时查看。
       </p>
 
       <!-- Enterprise SLA Guarantee Banner -->
