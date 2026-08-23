@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { ArrowRight, Terminal, Play, Sparkles } from 'lucide-vue-next'
+import PlaygroundModal from '@/components/PlaygroundModal.vue'
 
 defineProps<{
   adminUrl: string
@@ -8,6 +10,8 @@ defineProps<{
 const emit = defineEmits<{
   'open-console': []
 }>()
+
+const isPlaygroundOpen = ref(false)
 </script>
 
 <template>
@@ -44,6 +48,7 @@ const emit = defineEmits<{
             </button>
 
             <button
+              @click="isPlaygroundOpen = true"
               class="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-blue-700/60 hover:bg-blue-700/80 border border-white/30 text-white font-semibold text-sm backdrop-blur-md transition-all flex items-center justify-center gap-2"
             >
               <Play class="w-4 h-4 text-white fill-white/20" />
@@ -53,5 +58,8 @@ const emit = defineEmits<{
         </div>
       </div>
     </div>
+
+    <!-- Playground API Sandbox -->
+    <PlaygroundModal v-if="isPlaygroundOpen" @close="isPlaygroundOpen = false" />
   </section>
 </template>
