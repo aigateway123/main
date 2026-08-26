@@ -1,0 +1,6 @@
+{
+  "name": "BioMed Agentic Gateway",
+  "description": "Scientific Biomedical Data Analysis Agent with automated hypothesis testing, outlier detection, statistical verification, reproducible Python/R script generation, and Data-to-Result audit trails.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -4,6 +4,7 @@ import { siteInfo } from '@/data/site'
 import AppHeader from '@/components/AppHeader.vue'
 import HeroSection from '@/components/HeroSection.vue'
 import FeatureSection from '@/components/FeatureSection.vue'
+import SolutionsSection from '@/components/SolutionsSection.vue'
 // import InfrastructureSection from '@/components/InfrastructureSection.vue'
 import PricingSection from '@/components/PricingSection.vue'
 import CtaBanner from '@/components/CtaBanner.vue'
@@ -25,6 +26,7 @@ const handleOpenConsole = () => {
     <main>
       <HeroSection :admin-url="adminUrl" @open-console="handleOpenConsole" />
       <FeatureSection />
+      <SolutionsSection />
       <!-- <InfrastructureSection /> -->
       <PricingSection :admin-url="adminUrl" @open-console="handleOpenConsole" />
       <CtaBanner :admin-url="adminUrl" @open-console="handleOpenConsole" />

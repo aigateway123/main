@@ -1,0 +1,6 @@
+{
+  "name": "科研数据分析 Agent",
+  "description": "从原始实验数据到科研洞察，让 AI 自动完成数据分析、异常检测、学术图表与论文 Results 报告生成",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

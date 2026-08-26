@@ -5,7 +5,7 @@ import { Cpu, Github, Twitter, Mail, ShieldCheck, Heart } from 'lucide-vue-next'
 <template>
   <footer id="footer" class="bg-white border-t border-slate-200 text-slate-600 pt-16 pb-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-slate-200">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-10 pb-12 border-b border-slate-200">
         <!-- Brand Info -->
         <div class="lg:col-span-2 space-y-4">
           <div class="flex items-center gap-3">
@@ -42,6 +42,19 @@ import { Cpu, Github, Twitter, Mail, ShieldCheck, Heart } from 'lucide-vue-next'
             <li><a href="#features" class="hover:text-blue-600 transition-colors">语义流式缓存引擎</a></li>
             <li><a href="#models" class="hover:text-blue-600 transition-colors">DeepSeek / GPT-4o 映射</a></li>
             <li><a href="#infrastructure" class="hover:text-blue-600 transition-colors">全球 Anycast 节点</a></li>
+          </ul>
+        </div>
+
+        <!-- Column: Solutions -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">解决方案</h4>
+          <ul class="space-y-2 text-xs">
+            <li>
+              <router-link to="/solutions" class="hover:text-blue-600 transition-colors">解决方案中心</router-link>
+            </li>
+            <li>
+              <router-link to="/solutions/university-agent" class="hover:text-blue-600 transition-colors">高校科研 Agent 解决方案</router-link>
+            </li>
           </ul>
         </div>
 

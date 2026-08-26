@@ -1,0 +1,6 @@
+{
+  "name": "科研文献综述 Agent",
+  "description": "科研文献综述 Agent Demo - 从海量论文中发现研究热点、研究空白与潜在创新方向",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

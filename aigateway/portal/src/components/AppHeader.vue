@@ -18,6 +18,7 @@ const mobileMenuOpen = ref(false)
 const navLinks = [
   { name: '首页', to: '/' },
   { name: '模型广场', to: '/models' },
+  { name: '解决方案', to: '/solutions' },
   { name: '文档中心', to: '/docs' },
 ]
 

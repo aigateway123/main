@@ -1,0 +1,6 @@
+{
+  "name": "Paper2Code Agent - 科研实验代码复现智能体",
+  "description": "专为计算机与理工科博士生打造的论文实验代码复现智能体：从论文公式与实验设计自动生成完整Python代码库、执行实验拟合、对比原论文Table指标与差异归因分析。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

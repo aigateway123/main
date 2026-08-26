@@ -1,0 +1,594 @@
+<script setup lang="ts">
+import { ref, computed, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { siteInfo } from '@/data/site'
+import AppHeader from '@/components/AppHeader.vue'
+import FooterSection from '@/components/FooterSection.vue'
+import ContactFloat from '@/components/ContactFloat.vue'
+import StageDetails from '@/components/StageDetails.vue'
+import NodeDemoModal from '@/components/demos/NodeDemoModal.vue'
+import QuestionOriginDemo from '@/components/demos/QuestionOriginDemo.vue'
+import ResearchAgentDemo from '@/components/demos/ResearchAgentDemo.vue'
+import LiteratureAgentDemo from '@/components/demos/LiteratureAgentDemo.vue'
+import ResearchInsightDemo from '@/components/demos/ResearchInsightDemo.vue'
+import CodingAgentDemo from '@/components/demos/CodingAgentDemo.vue'
+import ExperimentReproductionDemo from '@/components/demos/ExperimentReproductionDemo.vue'
+import DataAgentDemo from '@/components/demos/DataAgentDemo.vue'
+import ExperimentResultDemo from '@/components/demos/ExperimentResultDemo.vue'
+import PaperReviewerDemo from '@/components/demos/PaperReviewerDemo.vue'
+import FinalPaperDemo from '@/components/demos/FinalPaperDemo.vue'
+import { NODE_DEMOS, NEXT_NODE_BY_ID } from '@/data/nodeDemos'
+import {
+  GraduationCap, ArrowLeft, ArrowRight, Layers, Users, Bot, Wallet,
+  ChevronDown, Workflow, BarChart3, Sparkles, CheckCircle2, Terminal, Quote,
+  Lightbulb, FlaskConical, BookOpen, Target, Code2, TestTube, LineChart, FileText, Award, Play,
+} from 'lucide-vue-next'
+import { solutions } from '@/data/solutions'
+import type { FunctionalComponent } from 'vue'
+
+const route = useRoute()
+const router = useRouter()
+const adminUrl = siteInfo.adminUrl
+
+const handleOpenConsole = () => {
+  window.open(`${adminUrl}/login`, '_blank')
+}
+
+const slug = computed(() => String(route.params.slug || ''))
+const solution = computed(() => solutions.find((s) => s.slug === slug.value))
+
+const iconMap: Record<string, FunctionalComponent> = {
+  // 能力图标
+  Layers,
+  Users,
+  Bot,
+  Wallet,
+  // 链路节点图标
+  Lightbulb,
+  FlaskConical,
+  BookOpen,
+  Target,
+  Code2,
+  TestTube,
+  BarChart3,
+  LineChart,
+  FileText,
+  Award,
+}
+
+const startNode = computed(() => solution.value?.pipeline.find((s) => s.endpoint) ?? null)
+const endNode = computed(() => solution.value?.pipeline.filter((s) => s.endpoint).pop() ?? null)
+const mainStages = computed(() => solution.value?.pipeline.filter((s) => !s.endpoint) ?? [])
+
+// 展开状态：同一时刻只展开一个节点/分支，默认展开第一个主节点（Research Agent，含并行分支）
+const expandedId = ref<string | null>(null)
+const toggleStage = (id: string) => {
+  expandedId.value = expandedId.value === id ? null : id
+}
+
+const fundingOpen = ref(false)
+
+if (mainStages.value[0]) {
+  expandedId.value = mainStages.value[0].id
+}
+
+// ---------------- 链路节点 Demo 弹窗 ----------------
+const demoOpen = ref(false)
+const demoNodeId = ref<string | null>(null)
+const toast = ref('')
+let toastTimer: ReturnType<typeof setTimeout> | null = null
+
+const demoEntry = computed(() => (demoNodeId.value ? NODE_DEMOS[demoNodeId.value] : null))
+
+const showToast = (msg: string) => {
+  toast.value = msg
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => (toast.value = ''), 2800)
+}
+
+const openDemo = (nodeId: string) => {
+  const entry = NODE_DEMOS[nodeId]
+  if (!entry?.ready) {
+    showToast('该环节演示正在开发中，敬请期待')
+    return
+  }
+  demoNodeId.value = nodeId
+  demoOpen.value = true
+}
+
+const closeDemo = () => {
+  demoOpen.value = false
+  demoNodeId.value = null
+}
+
+// Demo 完成后流转到下一节点；终点（final-paper）则提示全链路完成
+const handleHandoff = () => {
+  const nodeId = demoNodeId.value
+  const nextId = nodeId ? NEXT_NODE_BY_ID[nodeId] : null
+  demoOpen.value = false
+  demoNodeId.value = null
+  if (nextId) {
+    expandedId.value = nextId
+    showToast('已提交至下一环节，该环节演示已就绪')
+    nextTick(() => {
+      document.getElementById(nextId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  } else {
+    showToast('科研链路 10 环节演示已全部完成')
+  }
+}
+</script>
+
+<template>
+  <div class="min-h-screen bg-white text-slate-900 font-sans antialiased">
+    <AppHeader :admin-url="adminUrl" @open-console="handleOpenConsole" />
+
+    <!-- Page header offset -->
+    <div class="pt-20" />
+
+    <main>
+      <template v-if="solution">
+        <!-- ============ Hero ============ -->
+        <section class="relative py-16 sm:py-20 overflow-hidden bg-white border-b border-slate-200/80">
+          <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-[radial-gradient(ellipse_at_top,rgba(37,99,235,0.08),transparent_70%)] pointer-events-none" />
+          <div class="absolute top-1/3 right-1/4 w-96 h-96 bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none" />
+
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <!-- Back link -->
+            <button
+              @click="router.push('/solutions')"
+              class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-blue-600 transition-colors mb-8"
+            >
+              <ArrowLeft class="w-3.5 h-3.5" />
+              返回解决方案中心
+            </button>
+
+            <div class="text-center max-w-4xl mx-auto space-y-6">
+              <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold shadow-sm">
+                <GraduationCap class="w-3.5 h-3.5 text-blue-600" />
+                {{ solution.tag }} · 第一期上线
+                <span class="text-slate-300">|</span>
+                <span>Nova AIGateway V2.5</span>
+              </div>
+
+              <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.12]">
+                让科研团队
+                <span class="bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 bg-clip-text text-transparent">用得起 · 管得好 · 跑得快</span>
+              </h1>
+
+              <p class="text-base sm:text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
+                {{ solution.description }}
+              </p>
+
+              <!-- Highlight bar -->
+              <div class="flex flex-wrap items-center justify-center gap-2.5 pt-1">
+                <span
+                  v-for="h in solution.highlight"
+                  :key="h"
+                  class="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-slate-700"
+                >
+                  <CheckCircle2 class="w-3.5 h-3.5 text-blue-600" />
+                  {{ h }}
+                </span>
+              </div>
+
+              <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-3">
+                <button
+                  @click="handleOpenConsole"
+                  class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-sm shadow-lg shadow-blue-600/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2"
+                >
+                  <Terminal class="w-4 h-4" />
+                  立即接入使用
+                </button>
+                <router-link
+                  to="/models"
+                  class="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-white border border-slate-300 text-slate-800 hover:bg-slate-50 hover:shadow font-semibold text-sm transition-all flex items-center justify-center gap-2"
+                >
+                  <Sparkles class="w-4 h-4 text-blue-600" />
+                  浏览模型广场
+                </router-link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ 一句话价值主张 ============ -->
+        <section class="py-14 bg-slate-50/80 border-b border-slate-200/80">
+          <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="relative p-8 sm:p-10 rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 text-white overflow-hidden shadow-xl shadow-blue-600/15">
+              <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+              <Quote class="absolute bottom-4 left-6 w-16 h-16 text-white/10 pointer-events-none" />
+              <div class="relative z-10 space-y-4 text-center">
+                <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-snug">
+                  让大模型成为课题组的基础设施，
+                  <br class="hidden sm:inline" />
+                  而不是每个人各自购买、各自摸索的一堆 AI 工具。
+                </h2>
+                <p class="text-blue-100 text-sm sm:text-base">
+                  让每一个课题组，都能拥有一套低成本、可管控、可扩展的 AI 科研工作台。
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ 核心能力 ============ -->
+        <section class="py-20 bg-white border-b border-slate-200/80 relative overflow-hidden">
+          <div class="absolute top-0 right-1/4 w-96 h-96 bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none" />
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center max-w-3xl mx-auto mb-14 space-y-4">
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold uppercase tracking-wider">
+                <Layers class="w-3.5 h-3.5 text-blue-600" />
+                核心能力 · Core Capabilities
+              </div>
+              <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+                一套平台，覆盖课题组<span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">用 AI 的全部需求</span>
+              </h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div
+                v-for="cap in solution.capabilities"
+                :key="cap.title"
+                class="group p-6 rounded-2xl bg-white border border-slate-200 hover:border-blue-300 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1 transition-all duration-300"
+              >
+                <div class="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 p-2.5 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm mb-5">
+                  <component :is="iconMap[cap.icon] || Layers" class="w-6 h-6" />
+                </div>
+                <h3 class="text-base font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">{{ cap.title }}</h3>
+                <p class="text-xs text-slate-600 leading-relaxed">{{ cap.description }}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ 科研全流程（Agent 协作链路） ============ -->
+        <section class="py-20 bg-slate-50/60 border-b border-slate-200/80 relative overflow-hidden">
+          <div class="absolute bottom-0 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
+          <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <!-- Section Header -->
+            <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold uppercase tracking-wider">
+                <Workflow class="w-3.5 h-3.5 text-blue-600" />
+                科研全流程 · Agent 协作链路
+              </div>
+              <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+                一个问题，驱动<span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">整条科研链路</span>
+              </h2>
+              <p class="text-slate-600 text-sm sm:text-base">从提出科研问题到最终论文，各 Agent 接力协作。点击节点查看传统痛点、自动化流程与关键成果。</p>
+            </div>
+
+            <!-- 链路 -->
+            <div class="relative">
+              <!-- 主线 -->
+              <div class="absolute left-[22px] lg:left-[27px] top-12 bottom-12 w-px bg-gradient-to-b from-blue-200 via-blue-100 to-blue-300" />
+
+              <!-- 起点 -->
+              <div v-if="startNode" :id="startNode.id" class="relative pl-14 lg:pl-16 mb-8 scroll-mt-24">
+                <div class="absolute left-0 top-0 w-11 h-11 lg:w-12 lg:h-12 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shadow-sm">
+                  <component :is="iconMap[startNode.icon] || Workflow" class="w-5 h-5" />
+                </div>
+                <div class="rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 px-5 py-4 flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-600 text-white shrink-0">起点</span>
+                    <h3 class="text-base font-extrabold text-slate-900 truncate">{{ startNode.title }}</h3>
+                  </div>
+                  <button
+                    @click="openDemo(startNode.id)"
+                    class="inline-flex items-center gap-1.5 shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+                    :class="NODE_DEMOS[startNode.id]?.ready
+                      ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-600/25'
+                      : 'bg-white text-slate-400 border border-dashed border-slate-300'"
+                  >
+                    <Play v-if="NODE_DEMOS[startNode.id]?.ready" class="w-3 h-3 fill-current" />
+                    {{ NODE_DEMOS[startNode.id]?.label ?? '演示' }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- 主节点 -->
+              <div v-for="(stage, idx) in mainStages" :key="stage.id" :id="stage.id" class="relative pl-14 lg:pl-16 scroll-mt-24">
+                <!-- 节点圆点 -->
+                <div
+                  class="absolute left-0 top-0 w-11 h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center border shadow-sm transition-colors"
+                  :class="expandedId === stage.id
+                    ? 'bg-gradient-to-tr from-blue-600 to-indigo-600 text-white border-transparent shadow-md shadow-blue-600/25'
+                    : 'bg-white border-blue-200 text-blue-600'"
+                >
+                  <component :is="iconMap[stage.icon] || Workflow" class="w-5 h-5" />
+                </div>
+
+                <!-- 卡片 -->
+                <div
+                  class="mb-6 rounded-2xl bg-white border transition-all duration-300 overflow-hidden"
+                  :class="expandedId === stage.id ? 'border-blue-400 shadow-md ring-1 ring-blue-500/10' : 'border-slate-200 hover:border-blue-300'"
+                >
+                  <!-- Header -->
+                  <div
+                    @click="toggleStage(stage.id)"
+                    @keydown.enter="toggleStage(stage.id)"
+                    role="button"
+                    tabindex="0"
+                    class="w-full flex items-center gap-4 p-5 sm:p-6 text-left cursor-pointer"
+                  >
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2 flex-wrap mb-1">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">{{ stage.role }}</span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">第 {{ idx + 1 }} 步</span>
+                      </div>
+                      <h3 class="text-base sm:text-lg font-bold text-slate-900">{{ stage.title }}</h3>
+                      <p class="text-xs text-slate-500 mt-1 leading-relaxed">{{ stage.description }}</p>
+                    </div>
+                    <button
+                      @click.stop="openDemo(stage.id)"
+                      class="inline-flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+                      :class="NODE_DEMOS[stage.id]?.ready
+                        ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-600/25'
+                        : 'bg-slate-100 text-slate-400 border border-dashed border-slate-300 hover:border-slate-400'"
+                    >
+                      <Play v-if="NODE_DEMOS[stage.id]?.ready" class="w-3 h-3 fill-current" />
+                      {{ NODE_DEMOS[stage.id]?.label ?? '演示' }}
+                    </button>
+                    <ChevronDown
+                      class="w-5 h-5 text-slate-400 shrink-0 transition-transform duration-200"
+                      :class="expandedId === stage.id ? 'rotate-180 text-blue-600' : ''"
+                    />
+                  </div>
+
+                  <!-- Body -->
+                  <div v-if="expandedId === stage.id" class="border-t border-slate-100 px-5 sm:px-6 py-6 animate-in fade-in duration-200">
+                    <!-- 并行分支 -->
+                    <div v-if="stage.branch?.length" class="mb-6">
+                      <div class="flex items-center gap-2 mb-4">
+                        <div class="flex-1 h-px bg-slate-200" />
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">并行编排</span>
+                        <div class="flex-1 h-px bg-slate-200" />
+                      </div>
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div
+                          v-for="b in stage.branch"
+                          :key="b.id"
+                          :id="b.id"
+                          class="rounded-xl border transition-all duration-300 overflow-hidden scroll-mt-24"
+                          :class="expandedId === b.id ? 'border-indigo-300 bg-indigo-50/40 shadow-sm' : 'border-slate-200 bg-white hover:border-indigo-200'"
+                        >
+                          <div
+                            @click="toggleStage(b.id)"
+                            @keydown.enter="toggleStage(b.id)"
+                            role="button"
+                            tabindex="0"
+                            class="w-full p-4 cursor-pointer flex items-start gap-3"
+                          >
+                            <div class="w-9 h-9 rounded-lg bg-indigo-50 border border-indigo-100 p-2 flex items-center justify-center text-indigo-600 shrink-0">
+                              <component :is="iconMap[b.icon] || Workflow" class="w-4 h-4" />
+                            </div>
+                            <div class="flex-1 min-w-0">
+                              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">{{ b.role }}</span>
+                              <h4 class="text-sm font-bold text-slate-900 mt-1.5">{{ b.title }}</h4>
+                              <p class="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-2">{{ b.description }}</p>
+                            </div>
+                            <button
+                              @click.stop="openDemo(b.id)"
+                              class="inline-flex items-center gap-1 shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all cursor-pointer"
+                              :class="NODE_DEMOS[b.id]?.ready
+                                ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'
+                                : 'bg-slate-100 text-slate-400 border border-dashed border-slate-300'"
+                            >
+                              <Play v-if="NODE_DEMOS[b.id]?.ready" class="w-3 h-3 fill-current" />
+                              {{ NODE_DEMOS[b.id]?.label ?? '演示' }}
+                            </button>
+                            <ChevronDown
+                              class="w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200"
+                              :class="expandedId === b.id ? 'rotate-180 text-indigo-600' : ''"
+                            />
+                          </div>
+                          <div v-if="expandedId === b.id" class="border-t border-slate-100 px-4 py-4 animate-in fade-in duration-200">
+                            <StageDetails :stage="b" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- 常规详情 -->
+                    <StageDetails :stage="stage" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 终点 -->
+              <div v-if="endNode" :id="endNode.id" class="relative pl-14 lg:pl-16 scroll-mt-24">
+                <div class="absolute left-0 top-0 w-11 h-11 lg:w-12 lg:h-12 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-600/25">
+                  <component :is="iconMap[endNode.icon] || Workflow" class="w-5 h-5" />
+                </div>
+                <div class="rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 text-white px-5 py-5 shadow-lg shadow-blue-600/15 flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <Award class="w-5 h-5 text-yellow-300 shrink-0" />
+                    <div class="flex items-center gap-3 flex-wrap">
+                      <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 border border-white/25">终点</span>
+                      <span class="text-base font-extrabold">{{ endNode.title }}</span>
+                    </div>
+                  </div>
+                  <button
+                    @click="openDemo(endNode.id)"
+                    class="inline-flex items-center gap-1.5 shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white/10 border border-white/20 text-white/80 hover:bg-white/20 transition-all cursor-pointer"
+                  >
+                    {{ NODE_DEMOS[endNode.id]?.label ?? '即将上线' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 全程管控（经费） -->
+            <div v-if="solution.funding" class="mt-14">
+              <div class="rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-sm">
+                <button @click="fundingOpen = !fundingOpen" class="w-full flex items-center gap-4 p-5 sm:p-6 text-left">
+                  <div class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 p-2.5 flex items-center justify-center text-amber-600 shrink-0">
+                    <Wallet class="w-5 h-5" />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap mb-1">
+                      <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100">全程管控</span>
+                    </div>
+                    <h3 class="text-base sm:text-lg font-bold text-slate-900">{{ solution.funding.title }}</h3>
+                    <p class="text-xs text-slate-500 mt-1 leading-relaxed">{{ solution.funding.description }}</p>
+                    <div class="flex flex-wrap gap-2 mt-3">
+                      <span
+                        v-for="p in solution.funding.points"
+                        :key="p"
+                        class="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200"
+                      >
+                        {{ p }}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronDown
+                    class="w-5 h-5 text-slate-400 shrink-0 transition-transform duration-200"
+                    :class="fundingOpen ? 'rotate-180 text-amber-600' : ''"
+                  />
+                </button>
+
+                <div v-if="fundingOpen" class="border-t border-slate-100 px-5 sm:px-6 py-6 animate-in fade-in duration-200">
+                  <div class="mb-6">
+                    <h4 class="flex items-center gap-1.5 text-xs font-bold text-blue-600 mb-3">
+                      <Workflow class="w-3.5 h-3.5" />
+                      管控流程
+                    </h4>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <template v-for="(step, i) in solution.funding.flow" :key="i">
+                        <span class="text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200">{{ step }}</span>
+                        <ArrowRight v-if="i < solution.funding.flow.length - 1" class="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                      </template>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 class="flex items-center gap-1.5 text-xs font-bold text-emerald-600 mb-3">
+                      <BarChart3 class="w-3.5 h-3.5" />
+                      管控效果
+                    </h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div
+                        v-for="(r, i) in solution.funding.result"
+                        :key="i"
+                        class="rounded-xl bg-slate-50 border border-slate-200 px-4 py-3"
+                      >
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{{ r.label }}</div>
+                        <div class="text-sm font-semibold text-slate-800 leading-snug">{{ r.value }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ CTA ============ -->
+        <section class="py-20 bg-white">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="relative rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 text-white p-8 sm:p-14 overflow-hidden shadow-2xl shadow-blue-600/20">
+              <div class="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+              <div class="absolute bottom-0 left-0 w-96 h-96 bg-black/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div class="relative z-10 max-w-3xl space-y-6">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/15 border border-white/20 text-white text-xs font-semibold backdrop-blur-md">
+                  <GraduationCap class="w-3.5 h-3.5 text-yellow-300" />
+                  为课题组部署 Nova AI Gateway
+                </div>
+                <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight">
+                  让课题组的每一位成员，
+                  <br />
+                  都能用上「用得起」的大模型
+                </h2>
+                <p class="text-blue-100 text-base max-w-2xl leading-relaxed">
+                  统一接入 · 统一管控 · 统一计量。现在接入，即可体验科研 Agent 自动化带来的效率提升。
+                </p>
+                <div class="flex flex-col sm:flex-row items-center gap-4 pt-2">
+                  <button
+                    @click="handleOpenConsole"
+                    class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-white text-blue-600 hover:bg-slate-50 font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 group"
+                  >
+                    <Terminal class="w-4 h-4 text-blue-600" />
+                    立即接入使用
+                    <ArrowRight class="w-4 h-4 text-blue-600 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                  <router-link
+                    to="/solutions"
+                    class="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-blue-700/60 hover:bg-blue-700/80 border border-white/30 text-white font-semibold text-sm backdrop-blur-md transition-all flex items-center justify-center"
+                  >
+                    查看其他解决方案
+                  </router-link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </template>
+
+      <!-- 404 fallback -->
+      <template v-else>
+        <section class="py-32 text-center">
+          <div class="max-w-lg mx-auto px-4 space-y-4">
+            <GraduationCap class="w-12 h-12 text-slate-300 mx-auto" />
+            <h1 class="text-2xl font-extrabold text-slate-900">解决方案不存在</h1>
+            <p class="text-sm text-slate-500">你访问的解决方案页面不存在或已下线。</p>
+            <router-link
+              to="/solutions"
+              class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold"
+            >
+              返回解决方案中心
+              <ArrowRight class="w-4 h-4" />
+            </router-link>
+          </div>
+        </section>
+      </template>
+    </main>
+
+    <FooterSection />
+    <ContactFloat />
+
+    <!-- 链路节点 Demo 弹窗 -->
+    <NodeDemoModal
+      :open="demoOpen"
+      :title="demoEntry?.title ?? ''"
+      :subtitle="demoEntry?.subtitle ?? ''"
+      :icon="Lightbulb"
+      @close="closeDemo"
+    >
+      <QuestionOriginDemo v-if="demoNodeId === 'research-question'" @handoff="handleHandoff" />
+      <ResearchAgentDemo v-else-if="demoNodeId === 'research-agent'" @handoff="handleHandoff" />
+      <LiteratureAgentDemo v-else-if="demoNodeId === 'literature-agent'" @handoff="handleHandoff" />
+      <ResearchInsightDemo v-else-if="demoNodeId === 'research-insight'" @handoff="handleHandoff" />
+      <CodingAgentDemo v-else-if="demoNodeId === 'coding-agent'" @handoff="handleHandoff" />
+      <ExperimentReproductionDemo v-else-if="demoNodeId === 'experiment-reproduction'" @handoff="handleHandoff" />
+      <DataAgentDemo v-else-if="demoNodeId === 'data-agent'" @handoff="handleHandoff" />
+      <ExperimentResultDemo v-else-if="demoNodeId === 'experiment-result'" @handoff="handleHandoff" />
+      <PaperReviewerDemo v-else-if="demoNodeId === 'paper-reviewer'" @handoff="handleHandoff" />
+      <FinalPaperDemo v-else-if="demoNodeId === 'final-paper'" @handoff="handleHandoff" />
+    </NodeDemoModal>
+
+    <!-- 轻提示 -->
+    <Teleport to="body">
+      <Transition name="toast">
+        <div
+          v-if="toast"
+          class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 rounded-2xl bg-slate-900 text-white text-sm font-semibold shadow-2xl flex items-center gap-2 whitespace-nowrap"
+        >
+          <Sparkles class="w-4 h-4 text-blue-400 shrink-0" />
+          {{ toast }}
+        </div>
+      </Transition>
+    </Teleport>
+  </div>
+</template>
+
+<style scoped>
+.toast-enter-active,
+.toast-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 12px);
+}
+</style>

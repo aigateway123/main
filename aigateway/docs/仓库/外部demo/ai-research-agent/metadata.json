@@ -1,0 +1,6 @@
+{
+  "name": "AI Research Agent",
+  "description": "Nova科研助理旗舰 - 从科研问题拆解、4-Agent协同工作流、研究机会与方案评估到完整研究报告与代码实验方案",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

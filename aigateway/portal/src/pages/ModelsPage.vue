@@ -2,6 +2,7 @@
 import { siteInfo } from '@/data/site'
 import AppHeader from '@/components/AppHeader.vue'
 import ModelsSection from '@/components/ModelsSection.vue'
+import SolutionEntryBanner from '@/components/SolutionEntryBanner.vue'
 import FooterSection from '@/components/FooterSection.vue'
 import ContactFloat from '@/components/ContactFloat.vue'
 
@@ -20,6 +21,10 @@ const handleOpenConsole = () => {
     <div class="pt-20" />
 
     <main>
+      <!-- 解决方案入口横幅 -->
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-4">
+        <SolutionEntryBanner />
+      </div>
       <ModelsSection />
     </main>
 

@@ -69,3 +69,50 @@ export interface ProviderInfo {
   name: string
   desc: string
 }
+
+export interface SolutionCapability {
+  icon: string
+  title: string
+  description: string
+}
+
+export interface SolutionResult {
+  label: string
+  value: string
+}
+
+export interface PipelineStage {
+  id: string
+  role: string
+  title: string
+  icon: string
+  description: string
+  pain: string[]
+  flow: string[]
+  result: SolutionResult[]
+  quote?: string
+  branch?: PipelineStage[]
+  endpoint?: boolean
+}
+
+export interface SolutionFunding {
+  title: string
+  description: string
+  points: string[]
+  flow: string[]
+  result: SolutionResult[]
+}
+
+export interface Solution {
+  slug: string
+  name: string
+  tag: string
+  tagline: string
+  description: string
+  highlight: string[]
+  audience: string[]
+  capabilities: SolutionCapability[]
+  pipeline: PipelineStage[]
+  funding?: SolutionFunding
+  status: 'online' | 'coming-soon'
+}

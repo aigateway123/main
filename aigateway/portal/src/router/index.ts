@@ -14,6 +14,16 @@ const router = createRouter({
       component: () => import('@/pages/ModelsPage.vue'),
     },
     {
+      path: '/solutions',
+      name: 'solutions',
+      component: () => import('@/pages/SolutionsPage.vue'),
+    },
+    {
+      path: '/solutions/:slug',
+      name: 'solution-detail',
+      component: () => import('@/pages/SolutionDetailPage.vue'),
+    },
+    {
       path: '/docs',
       name: 'docs',
       component: () => import('@/pages/DocsPage.vue'),
