@@ -115,4 +115,22 @@ export interface Solution {
   pipeline: PipelineStage[]
   funding?: SolutionFunding
   status: 'online' | 'coming-soon'
+  /** 页面主题色 class 覆盖（key 见 SolutionDetailPage 的 theme computed 默认值） */
+  theme?: Record<string, string>
+  // ---- 文案覆盖（缺省时回退到高校科研默认文案） ----
+  heroTitlePrefix?: string
+  heroTitleGradient?: string
+  valueTitlePrefix?: string
+  valueTitleSuffix?: string
+  valueSubtitle?: string
+  capabilitiesTitlePrefix?: string
+  capabilitiesTitleGradient?: string
+  pipelineBadge?: string
+  pipelineTitlePrefix?: string
+  pipelineTitleGradient?: string
+  pipelineDesc?: string
+  ctaTag?: string
+  ctaTitlePrefix?: string
+  ctaTitleGradient?: string
+  ctaSubtitle?: string
 }

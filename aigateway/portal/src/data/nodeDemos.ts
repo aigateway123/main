@@ -1244,6 +1244,77 @@ export const NODE_DEMOS: Record<string, NodeDemoEntry> = {
     title: '最终论文 · 成稿输出',
     subtitle: '看 Agent 如何整合全链路成果，输出结构化论文终稿',
   },
+  // ---- 内容增长工作台 · 爆款工厂（content-creator） ----
+  'cc-start': {
+    nodeId: 'cc-start',
+    ready: true,
+    label: '打开工作台',
+    title: '起点 · 一个内容增长需求',
+    subtitle: '输入一个内容增长需求，打开爆款工厂工作台，从爆款雷达开始',
+  },
+  'viral-radar': {
+    nodeId: 'viral-radar',
+    ready: true,
+    label: '演示此环节',
+    title: '爆款雷达 · 全网热点监测',
+    subtitle: '看热点探针 Agent 如何抓取全网爆款、24h 风口与赛道排行',
+  },
+  'content-dissect': {
+    nodeId: 'content-dissect',
+    ready: true,
+    label: '演示此环节',
+    title: '内容拆解 · 爆文一键拆解',
+    subtitle: '粘贴爆款链接，看心智透视 Agent 如何六维拆解出可复制的创作配方',
+  },
+  'smart-topics': {
+    nodeId: 'smart-topics',
+    ready: true,
+    label: '演示此环节',
+    title: '智能选题 · 高带货选题生成',
+    subtitle: '看选题创意 Agent 如何基于爆款因子批量生成带评估的选题方案',
+  },
+  'content-generation': {
+    nodeId: 'content-generation',
+    ready: true,
+    label: '演示此环节',
+    title: '内容生成 · AI 一键成稿',
+    subtitle: '看神笔马良 Agent 如何批量产出标题、正文、标签与封面建议',
+  },
+  'reply-conversion': {
+    nodeId: 'reply-conversion',
+    ready: true,
+    label: '演示此环节',
+    title: '回复转化 · 评论私信成交闭环',
+    subtitle: '看流量闭环 Agent 如何生成话术包并演练抗拒点应答',
+  },
+  'content-diagnostics': {
+    nodeId: 'content-diagnostics',
+    ready: true,
+    label: '演示此环节',
+    title: '内容诊断 · 数据体检与增长规划',
+    subtitle: '录入核心数据，看体检诊断 Agent 如何定位短板并给出增长路径',
+  },
+  'asset-library': {
+    nodeId: 'asset-library',
+    ready: true,
+    label: '演示此环节',
+    title: '素材沉淀 · 内容资产库',
+    subtitle: '看拆解、选题、成稿与话术如何统一沉淀为团队复用资产',
+  },
+  'cc-studio': {
+    nodeId: 'cc-studio',
+    ready: true,
+    label: '演示此环节',
+    title: '工作台 · Agent 协作与团队管理',
+    subtitle: '看 6 大内容 Agent 实时协作、终端日志与团队管控',
+  },
+  'cc-end': {
+    nodeId: 'cc-end',
+    ready: true,
+    label: '查看成果',
+    title: '终点 · 持续爆款增长',
+    subtitle: '从爆款监测到数据诊断的内容增长闭环已就绪',
+  },
 }
 
 // Demo 完成后流转到的下一节点 id（终点无下一节点）
@@ -1258,4 +1329,15 @@ export const NEXT_NODE_BY_ID: Record<string, string> = {
   'experiment-result': 'paper-reviewer',
   'paper-reviewer': 'final-paper',
   'final-paper': '',
+  // 内容增长工作台
+  'cc-start': 'viral-radar',
+  'viral-radar': 'content-dissect',
+  'content-dissect': 'smart-topics',
+  'smart-topics': 'content-generation',
+  'content-generation': 'reply-conversion',
+  'reply-conversion': 'content-diagnostics',
+  'content-diagnostics': 'asset-library',
+  'asset-library': 'cc-studio',
+  'cc-studio': 'cc-end',
+  'cc-end': '',
 }
