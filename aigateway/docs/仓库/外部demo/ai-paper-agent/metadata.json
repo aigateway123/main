@@ -1,0 +1,6 @@
+{
+  "name": "AI Paper Agent",
+  "description": "科研实验数据驱动的论文写作与审稿工作台 (AI-Driven Research Paper Writing & Peer Review Workbench)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

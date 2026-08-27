@@ -646,7 +646,7 @@ export interface LiteratureItem {
   tags: string[]
 }
 
-const LITERATURE_LIB: Record<string, LiteratureItem[]> = {
+export const LITERATURE_LIB: Record<string, LiteratureItem[]> = {
   'ev-charging': [
     {
       id: 'lit-1',

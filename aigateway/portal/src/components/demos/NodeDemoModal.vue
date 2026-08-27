@@ -2,12 +2,17 @@
 import { X } from 'lucide-vue-next'
 import type { Component } from 'vue'
 
-defineProps<{
-  open: boolean
-  title: string
-  subtitle: string
-  icon?: Component
-}>()
+withDefaults(
+  defineProps<{
+    open: boolean
+    title: string
+    subtitle: string
+    icon?: Component
+    /** 宽屏弹窗（用于全量还原型大 Demo，如 research-agent） */
+    wide?: boolean
+  }>(),
+  { wide: false },
+)
 
 const emit = defineEmits<{ (e: 'close'): void }>()
 </script>
@@ -20,7 +25,8 @@ const emit = defineEmits<{ (e: 'close'): void }>()
       @click.self="emit('close')"
     >
       <div
-        class="relative w-full max-w-4xl max-h-[92vh] bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        class="relative w-full bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        :class="wide ? 'max-w-7xl max-h-[94vh]' : 'max-w-4xl max-h-[92vh]'"
       >
         <!-- Modal Header -->
         <div class="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-200 bg-slate-50/80 shrink-0">

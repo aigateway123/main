@@ -11,12 +11,9 @@ import QuestionOriginDemo from '@/components/demos/QuestionOriginDemo.vue'
 import ResearchAgentDemo from '@/components/demos/ResearchAgentDemo.vue'
 import LiteratureAgentDemo from '@/components/demos/LiteratureAgentDemo.vue'
 import ResearchInsightDemo from '@/components/demos/ResearchInsightDemo.vue'
-import CodingAgentDemo from '@/components/demos/CodingAgentDemo.vue'
-import ExperimentReproductionDemo from '@/components/demos/ExperimentReproductionDemo.vue'
+import Paper2CodeDemo from '@/components/demos/Paper2CodeDemo.vue'
 import DataAgentDemo from '@/components/demos/DataAgentDemo.vue'
-import ExperimentResultDemo from '@/components/demos/ExperimentResultDemo.vue'
 import PaperReviewerDemo from '@/components/demos/PaperReviewerDemo.vue'
-import FinalPaperDemo from '@/components/demos/FinalPaperDemo.vue'
 import { NODE_DEMOS, NEXT_NODE_BY_ID } from '@/data/nodeDemos'
 import {
   GraduationCap, ArrowLeft, ArrowRight, Layers, Users, Bot, Wallet,
@@ -552,18 +549,19 @@ const handleHandoff = () => {
       :title="demoEntry?.title ?? ''"
       :subtitle="demoEntry?.subtitle ?? ''"
       :icon="Lightbulb"
+      :wide="demoNodeId === 'research-agent' || demoNodeId === 'coding-agent' || demoNodeId === 'experiment-reproduction' || demoNodeId === 'data-agent' || demoNodeId === 'experiment-result' || demoNodeId === 'paper-reviewer' || demoNodeId === 'final-paper'"
       @close="closeDemo"
     >
       <QuestionOriginDemo v-if="demoNodeId === 'research-question'" @handoff="handleHandoff" />
       <ResearchAgentDemo v-else-if="demoNodeId === 'research-agent'" @handoff="handleHandoff" />
       <LiteratureAgentDemo v-else-if="demoNodeId === 'literature-agent'" @handoff="handleHandoff" />
       <ResearchInsightDemo v-else-if="demoNodeId === 'research-insight'" @handoff="handleHandoff" />
-      <CodingAgentDemo v-else-if="demoNodeId === 'coding-agent'" @handoff="handleHandoff" />
-      <ExperimentReproductionDemo v-else-if="demoNodeId === 'experiment-reproduction'" @handoff="handleHandoff" />
+      <Paper2CodeDemo v-else-if="demoNodeId === 'coding-agent'" initial-stage="code" @handoff="handleHandoff" />
+      <Paper2CodeDemo v-else-if="demoNodeId === 'experiment-reproduction'" initial-stage="execute" @handoff="handleHandoff" />
       <DataAgentDemo v-else-if="demoNodeId === 'data-agent'" @handoff="handleHandoff" />
-      <ExperimentResultDemo v-else-if="demoNodeId === 'experiment-result'" @handoff="handleHandoff" />
+      <DataAgentDemo v-else-if="demoNodeId === 'experiment-result'" auto-scroll-to-report @handoff="handleHandoff" />
       <PaperReviewerDemo v-else-if="demoNodeId === 'paper-reviewer'" @handoff="handleHandoff" />
-      <FinalPaperDemo v-else-if="demoNodeId === 'final-paper'" @handoff="handleHandoff" />
+      <PaperReviewerDemo v-else-if="demoNodeId === 'final-paper'" initial-view="paper" @handoff="handleHandoff" />
     </NodeDemoModal>
 
     <!-- 轻提示 -->

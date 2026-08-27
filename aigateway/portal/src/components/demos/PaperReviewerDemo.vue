@@ -1,111 +1,213 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { PenLine, MessageSquareText, RotateCcw, Award, ArrowRight, CheckCircle2 } from 'lucide-vue-next'
-import NodeDemoShell from './NodeDemoShell.vue'
-import { buildReviewData, type SelectPayload } from '@/data/nodeDemos'
+import { ref, onBeforeUnmount } from 'vue'
+import { CheckCircle2, ArrowRight } from 'lucide-vue-next'
+import {
+  PRESET_EXPERIMENT,
+  INITIAL_PAPER_DATA,
+  INITIAL_REVIEW_REPORT,
+  type WorkflowStep,
+  type ExperimentProject,
+  type PaperData,
+  type ReviewReport,
+} from '@/data/paperAgentData'
+import PaperAgentHeader from './paperAgent/PaperAgentHeader.vue'
+import PaperAgentProgressModal from './paperAgent/PaperAgentProgressModal.vue'
+import PaperAgentExportModal from './paperAgent/PaperAgentExportModal.vue'
+import PaperAgentExperimentView from './paperAgent/PaperAgentExperimentView.vue'
+import PaperAgentPaperView from './paperAgent/PaperAgentPaperView.vue'
+import PaperAgentReviewerView from './paperAgent/PaperAgentReviewerView.vue'
 
 const emit = defineEmits<{ (e: 'handoff'): void }>()
 
-const result = ref<ReturnType<typeof buildReviewData> | null>(null)
-const stepLogs = ref<string[][]>([])
+// 节点复用时定位：final-paper 节点直接进入论文正文页
+const props = withDefaults(defineProps<{ initialView?: 'experiment' | 'paper' }>(), {
+  initialView: 'experiment',
+})
 
-const steps = [
-  { title: '论文初稿提交', desc: '整合全链路成果为论文初稿' },
-  { title: '模拟同行评审', desc: '多视角审稿意见生成' },
-  { title: '意见修正闭环', desc: '逐条修订并回填证据' },
-  { title: '终审评分', desc: '四维评分与录用建议' },
-]
+// ------------------------------------------------------------ 工作流状态机
+const currentStep = ref<WorkflowStep>(props.initialView === 'paper' ? 'paper' : 'experiment')
+const experiment = ref<ExperimentProject>({ ...PRESET_EXPERIMENT })
+const paperData = ref<PaperData>(INITIAL_PAPER_DATA)
+const reviewReport = ref<ReviewReport>(INITIAL_REVIEW_REPORT)
 
-const onSelect = (p: SelectPayload) => {
-  result.value = buildReviewData(p)
-  const r = result.value
-  stepLogs.value = [
-    [`[reviewer] 论文初稿已提交，进入同行评审队列`],
-    [`[reviewer] 生成审稿意见 ${r.comments.length} 条，涉及方法 / 实验 / 复现`],
-    [`[reviewer] 修改意见已逐条闭环并回填修订记录`],
-    [`[reviewer] 终审完成：${r.verdict}`],
-  ]
+// 工作流进度 flags
+const hasGeneratedPaper = ref(props.initialView === 'paper')
+const hasReviewed = ref(false)
+const hasAppliedAblation = ref(false)
+const hasAppliedStats = ref(false)
+const hasAppliedUnits = ref(false)
+const hasAppliedReferences = ref(false)
+
+// 弹窗 & UI 状态
+const isGeneratingModalOpen = ref(false)
+const isReviewingInProgress = ref(false)
+const isExportModalOpen = ref(false)
+const serifMode = ref(false)
+
+let reviewTimer: ReturnType<typeof setTimeout> | null = null
+
+onBeforeUnmount(() => {
+  if (reviewTimer) clearTimeout(reviewTimer)
+})
+
+// ------------------------------------------------------------ 生成论文
+const handleStartGeneration = () => {
+  isGeneratingModalOpen.value = true
 }
 
-const SCORE_COLORS = ['bg-blue-500', 'bg-indigo-500', 'bg-emerald-500', 'bg-amber-500']
+const handleGenerationComplete = () => {
+  isGeneratingModalOpen.value = false
+  hasGeneratedPaper.value = true
+  currentStep.value = 'paper'
+}
+
+// ------------------------------------------------------------ 启动 AI 审稿
+const handleStartReview = () => {
+  currentStep.value = 'reviewer'
+  isReviewingInProgress.value = true
+  hasReviewed.value = true
+  if (reviewTimer) clearTimeout(reviewTimer)
+  reviewTimer = setTimeout(() => {
+    isReviewingInProgress.value = false
+  }, 2800)
+}
+
+// ------------------------------------------------------------ 修改闭环
+const handleApplyAblation = () => {
+  hasAppliedAblation.value = true
+  paperData.value = {
+    ...paperData.value,
+    version: 'v1.1.0 (With Ablation Study)',
+  }
+}
+
+const handleApplyStats = () => {
+  hasAppliedStats.value = true
+}
+
+const handleApplyUnits = () => {
+  hasAppliedUnits.value = true
+}
+
+const handleApplyReferences = () => {
+  hasAppliedReferences.value = true
+  paperData.value = {
+    ...paperData.value,
+    references: paperData.value.references.map((r) => ({
+      ...r,
+      text: r.text.includes('doi:') ? r.text : `${r.text} doi: 10.1109/TSG.2026.${1000000 + r.id}`,
+    })),
+  }
+}
+
+const handleApplyAllRevisions = () => {
+  handleApplyAblation()
+  handleApplyStats()
+  handleApplyUnits()
+  handleApplyReferences()
+}
+
+// ------------------------------------------------------------ 重置
+const handleReset = () => {
+  paperData.value = INITIAL_PAPER_DATA
+  reviewReport.value = INITIAL_REVIEW_REPORT
+  hasGeneratedPaper.value = false
+  hasReviewed.value = false
+  hasAppliedAblation.value = false
+  hasAppliedStats.value = false
+  hasAppliedUnits.value = false
+  hasAppliedReferences.value = false
+  currentStep.value = 'experiment'
+  isExportModalOpen.value = false
+  isReviewingInProgress.value = false
+}
 </script>
 
 <template>
-  <NodeDemoShell
-    badge="Reviewer Agent 节点 · 交互演示"
-    title="论文评审 —— 模拟同行评审"
-    desc="对论文初稿执行多轮评审，输出审稿意见、评分与修改闭环"
-    accent="rose"
-    :steps="steps"
-    :step-logs="stepLogs"
-    @select="onSelect"
-  >
-    <template #result>
-      <div v-if="result" class="space-y-5">
-        <!-- 完成头 -->
-        <div>
-          <div class="inline-flex items-center gap-1.5 rounded-full bg-rose-50 border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700">
-            <Award class="w-3.5 h-3.5" />
-            评审完成
-          </div>
-          <h4 class="mt-3 text-xl font-extrabold text-slate-900">同行评审意见与评分</h4>
-          <p class="mt-1 text-sm text-slate-500">{{ result.topic }}</p>
-        </div>
+  <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <!-- 顶部 Header 与闭环工作流导航 -->
+    <PaperAgentHeader
+      :current-step="currentStep"
+      :has-generated-paper="hasGeneratedPaper"
+      :has-reviewed="hasReviewed"
+      :has-applied-ablation="hasAppliedAblation"
+      :serif-mode="serifMode"
+      @select-step="currentStep = $event"
+      @open-export="isExportModalOpen = true"
+      @reset="handleReset"
+      @toggle-serif="serifMode = !serifMode"
+    />
 
-        <!-- 评审意见 -->
-        <div class="space-y-3">
-          <div
-            v-for="c in result.comments"
-            :key="c.id"
-            class="rounded-2xl border border-slate-200 p-4 flex items-start gap-3 hover:border-rose-300 transition-colors"
-          >
-            <div class="w-8 h-8 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-center text-[11px] font-extrabold text-rose-600 shrink-0">
-              {{ c.id }}
-            </div>
-            <div>
-              <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">审稿人 {{ c.id }} 意见</div>
-              <p class="mt-1 text-xs text-slate-700 leading-relaxed">{{ c.text }}</p>
-            </div>
-          </div>
-        </div>
+    <!-- 主内容区 -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-24">
+      <PaperAgentExperimentView
+        v-if="currentStep === 'experiment'"
+        :experiment="experiment"
+        :is-generating="isGeneratingModalOpen"
+        :has-generated-paper="hasGeneratedPaper"
+        @generate-paper="handleStartGeneration"
+        @view-paper="currentStep = 'paper'"
+      />
 
-        <!-- 评分 -->
-        <div class="rounded-2xl border border-slate-200 p-4">
-          <div class="flex items-center gap-1.5 text-xs font-bold text-slate-900 mb-3">
-            <MessageSquareText class="w-3.5 h-3.5 text-rose-500" />
-            四维终审评分
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-            <div v-for="(s, i) in result.scores" :key="s.label">
-              <div class="flex items-center justify-between text-[11px] mb-1">
-                <span class="font-semibold text-slate-600">{{ s.label }}</span>
-                <span class="font-mono font-bold text-slate-800">{{ s.value }} <span class="text-slate-300">/ 100</span></span>
-              </div>
-              <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div class="h-full rounded-full transition-all duration-700" :class="SCORE_COLORS[i]" :style="{ width: s.value + '%' }" />
-              </div>
-              <div class="text-[10px] text-slate-400 mt-0.5">{{ s.hint }}</div>
-            </div>
-          </div>
-        </div>
+      <PaperAgentPaperView
+        v-else-if="currentStep === 'paper'"
+        :paper-data="paperData"
+        :experiment="experiment"
+        :serif-mode="serifMode"
+        :has-applied-ablation="hasAppliedAblation"
+        :has-applied-stats="hasAppliedStats"
+        :has-applied-units="hasAppliedUnits"
+        :has-applied-references="hasAppliedReferences"
+        @start-review="handleStartReview"
+        @open-export="isExportModalOpen = true"
+      />
 
-        <!-- 结论 -->
-        <div class="rounded-2xl bg-rose-50/60 border border-rose-200 p-4 flex items-center gap-2.5">
-          <CheckCircle2 class="w-4 h-4 text-rose-600 shrink-0" />
-          <p class="text-xs text-rose-900 font-semibold">{{ result.verdict }}</p>
-        </div>
+      <PaperAgentReviewerView
+        v-else-if="currentStep === 'reviewer' || currentStep === 'revision'"
+        :review-report="reviewReport"
+        :is-reviewing="isReviewingInProgress"
+        :has-applied-ablation="hasAppliedAblation"
+        :has-applied-stats="hasAppliedStats"
+        :has-applied-units="hasAppliedUnits"
+        :has-applied-references="hasAppliedReferences"
+        @apply-ablation="handleApplyAblation"
+        @apply-stats="handleApplyStats"
+        @apply-units="handleApplyUnits"
+        @apply-references="handleApplyReferences"
+        @apply-all="handleApplyAllRevisions"
+        @go-to-paper="currentStep = 'paper'"
+      />
+    </main>
 
-        <!-- CTA -->
-        <div class="flex justify-center pt-2">
-          <button
-            @click="emit('handoff')"
-            class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold text-sm shadow-lg shadow-rose-500/25 hover:from-rose-600 hover:to-pink-700 transition-all cursor-pointer"
-          >
-            评审通过 → 输出最终论文
-            <ArrowRight class="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </template>
-  </NodeDemoShell>
+    <!-- 8 步论文生成动画 -->
+    <PaperAgentProgressModal
+      :is-open="isGeneratingModalOpen"
+      @complete="handleGenerationComplete"
+      @close="isGeneratingModalOpen = false"
+    />
+
+    <!-- 导出论文弹窗 -->
+    <PaperAgentExportModal
+      :is-open="isExportModalOpen"
+      :paper-data="paperData"
+      :experiment="experiment"
+      :has-applied-ablation="hasAppliedAblation"
+      @close="isExportModalOpen = false"
+    />
+
+    <!-- 完成演示 → 流转到下一节点 -->
+    <div
+      v-if="currentStep === 'reviewer' || currentStep === 'revision'"
+      class="fixed bottom-6 right-6 z-[60]"
+    >
+      <button
+        @click="emit('handoff')"
+        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-600/30 hover:from-blue-500 hover:to-cyan-400 transition"
+      >
+        <CheckCircle2 v-if="hasReviewed" class="w-4 h-4" />
+        <span>完成演示，进入下一步</span>
+        <ArrowRight class="w-4 h-4" />
+      </button>
+    </div>
+  </div>
 </template>
