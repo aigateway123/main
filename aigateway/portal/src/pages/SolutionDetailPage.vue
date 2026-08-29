@@ -15,13 +15,16 @@ import Paper2CodeDemo from '@/components/demos/Paper2CodeDemo.vue'
 import DataAgentDemo from '@/components/demos/DataAgentDemo.vue'
 import PaperReviewerDemo from '@/components/demos/PaperReviewerDemo.vue'
 import ContentStudioDemo from '@/components/demos/ContentStudioDemo.vue'
+import BidConsultantDemo from '@/components/demos/BidConsultantDemo.vue'
 import type { StudioView } from '@/data/contentStudioData'
+import type { StepKey } from '@/data/bidConsultantData'
 import { NODE_DEMOS, NEXT_NODE_BY_ID } from '@/data/nodeDemos'
 import {
   GraduationCap, ArrowLeft, ArrowRight, Layers, Users, Bot, Wallet,
   ChevronDown, Workflow, BarChart3, Sparkles, CheckCircle2, Terminal, Quote,
   Lightbulb, FlaskConical, BookOpen, Target, Code2, TestTube, LineChart, FileText, Award, Play,
   Radar, ScanSearch, Wand2, MessageSquare, Gauge, Database,
+  FileSearch, ShieldAlert, UserCheck, AlertTriangle, Calculator, TrendingUp, GitCompare, CheckSquare, FolderTree, Activity, Stethoscope,
 } from 'lucide-vue-next'
 import { solutions } from '@/data/solutions'
 import type { FunctionalComponent } from 'vue'
@@ -62,6 +65,18 @@ const iconMap: Record<string, FunctionalComponent> = {
   MessageSquare,
   Gauge,
   Database,
+  // AI 投标顾问节点 / 能力图标
+  FileSearch,
+  ShieldAlert,
+  UserCheck,
+  AlertTriangle,
+  Calculator,
+  TrendingUp,
+  GitCompare,
+  CheckSquare,
+  FolderTree,
+  Activity,
+  Stethoscope,
 }
 
 // 解决方案主题 class（缺省回退高校科研蓝色主题）
@@ -139,6 +154,25 @@ const studioInitialView = computed<StudioView>(() =>
   demoNodeId.value ? (CONTENT_STUDIO_VIEW_BY_NODE[demoNodeId.value] ?? 'dashboard') : 'dashboard',
 )
 
+// ---- AI 投标顾问：节点 → 投标作战指挥台步骤定位 ----
+const BID_STEP_BY_NODE: Record<string, StepKey> = {
+  'bid-start': 'overview',
+  'tender-analysis': 'overview',
+  'qualification-check': 'qualification',
+  'risk-scan': 'risks',
+  'score-breakdown': 'evaluation',
+  'score-strategy': 'strategy',
+  'capability-matrix': 'matrix',
+  'combat-tasks': 'tasks',
+  'proposal-writer': 'proposal',
+  'health-check': 'healthCheck',
+  'bid-report': 'report',
+}
+const isBidConsultant = computed(() => (demoNodeId.value ? demoNodeId.value in BID_STEP_BY_NODE : false))
+const bidInitialStep = computed<StepKey>(() =>
+  demoNodeId.value ? (BID_STEP_BY_NODE[demoNodeId.value] ?? 'overview') : 'overview',
+)
+
 const startNode = computed(() => solution.value?.pipeline.find((s) => s.endpoint) ?? null)
 const endNode = computed(() => solution.value?.pipeline.filter((s) => s.endpoint).pop() ?? null)
 const mainStages = computed(() => solution.value?.pipeline.filter((s) => !s.endpoint) ?? [])
@@ -188,6 +222,7 @@ const closeDemo = () => {
 const handleHandoff = () => {
   const nodeId = demoNodeId.value
   const isStudio = !!nodeId && nodeId in CONTENT_STUDIO_VIEW_BY_NODE
+  const isBid = !!nodeId && nodeId in BID_STEP_BY_NODE
   const nextId = nodeId ? NEXT_NODE_BY_ID[nodeId] : null
   demoOpen.value = false
   demoNodeId.value = null
@@ -198,7 +233,7 @@ const handleHandoff = () => {
       document.getElementById(nextId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     })
   } else {
-    showToast(isStudio ? '内容增长链路 10 环节演示已全部完成' : '科研链路 10 环节演示已全部完成')
+    showToast(isStudio ? '内容增长链路 10 环节演示已全部完成' : isBid ? '投标链路 10 环节演示已全部完成' : '科研链路 10 环节演示已全部完成')
   }
 }
 </script>
@@ -643,7 +678,7 @@ const handleHandoff = () => {
       :title="demoEntry?.title ?? ''"
       :subtitle="demoEntry?.subtitle ?? ''"
       :icon="Lightbulb"
-      :wide="demoNodeId === 'research-agent' || demoNodeId === 'coding-agent' || demoNodeId === 'experiment-reproduction' || demoNodeId === 'data-agent' || demoNodeId === 'experiment-result' || demoNodeId === 'paper-reviewer' || demoNodeId === 'final-paper' || isContentStudio"
+      :wide="demoNodeId === 'research-agent' || demoNodeId === 'coding-agent' || demoNodeId === 'experiment-reproduction' || demoNodeId === 'data-agent' || demoNodeId === 'experiment-result' || demoNodeId === 'paper-reviewer' || demoNodeId === 'final-paper' || isContentStudio || isBidConsultant"
       @close="closeDemo"
     >
       <QuestionOriginDemo v-if="demoNodeId === 'research-question'" @handoff="handleHandoff" />
@@ -657,6 +692,7 @@ const handleHandoff = () => {
       <PaperReviewerDemo v-else-if="demoNodeId === 'paper-reviewer'" @handoff="handleHandoff" />
       <PaperReviewerDemo v-else-if="demoNodeId === 'final-paper'" initial-view="paper" @handoff="handleHandoff" />
       <ContentStudioDemo v-else-if="isContentStudio" :initial-view="studioInitialView" @handoff="handleHandoff" />
+      <BidConsultantDemo v-else-if="isBidConsultant" :initial-step="bidInitialStep" @handoff="handleHandoff" />
     </NodeDemoModal>
 
     <!-- 轻提示 -->
