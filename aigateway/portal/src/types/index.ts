@@ -103,6 +103,63 @@ export interface SolutionFunding {
   result: SolutionResult[]
 }
 
+export type SkillCategory =
+  | '投标'
+  | '外贸'
+  | '合同'
+  | '内容'
+  | '数据'
+  | '营销'
+  | '财务'
+  | '客服'
+  | '电商'
+  | '人力'
+  | '法务'
+  | '研发'
+  | '企业服务'
+
+export interface SkillPlan {
+  id: string
+  name: string
+  price: string
+  period: string
+  description: string
+  features: string[]
+  cta: string
+  isPopular?: boolean
+}
+
+export interface SkillInputField {
+  key: string
+  label: string
+  type: 'text' | 'textarea' | 'select'
+  placeholder: string
+  required?: boolean
+  options?: string[]
+}
+
+export interface Skill {
+  slug: string
+  name: string
+  category: SkillCategory
+  tagline: string
+  description: string
+  icon: string
+  badge: string
+  price: string
+  highlights: string[]
+  scenarios: string[]
+  inputFields: SkillInputField[]
+  systemPrompt: string
+  defaultModel: string
+  sampleInput: Record<string, string>
+  sampleOutput: string
+  faq: FaqItem[]
+  status: 'online' | 'coming-soon'
+  plans: SkillPlan[]
+  theme?: Record<string, string>
+}
+
 export interface Solution {
   slug: string
   name: string
@@ -133,4 +190,50 @@ export interface Solution {
   ctaTitlePrefix?: string
   ctaTitleGradient?: string
   ctaSubtitle?: string
+}
+
+/** 专家团协作流程节点 */
+export type TeamFlowMode = 'plan' | 'parallel' | 'sequential' | 'merge'
+
+export interface TeamFlowNode {
+  step: number
+  role: string // 专家角色名，如「投标经理」
+  skillSlug: string // 关联 Skill
+  mode: TeamFlowMode // 总指挥 / 并行 / 串行 / 汇总
+  title: string // 该步做什么
+  description: string
+  input: string // 输入来源描述
+  output: string // 输出产物描述
+  /** 过程快照：该节点完成后展示的简要成果（增强协作过程可信度） */
+  snapshot?: string
+  duration: string // 预估耗时（Mock）
+}
+
+/** 专家团队成员 */
+export interface TeamMember {
+  skillSlug: string
+  role: string // 团队内角色名，如「总指挥」
+  responsibility: string // 负责环节
+}
+
+/** 专家团（多专家协作流程） */
+export interface ExpertTeam {
+  slug: string
+  name: string
+  industry: string // 投标 / 外贸 / 内容增长
+  tagline: string
+  description: string
+  icon: string
+  badge: string // 并行 / 串行 / 混合
+  price: string
+  highlights: string[]
+  scenarios: string[]
+  members: TeamMember[]
+  flow: TeamFlowNode[] // 协作流程（核心）
+  inputFields: SkillInputField[]
+  sampleTask: string // 示例任务
+  sampleDeliverable: string // 最终交付物示例
+  faq: FaqItem[]
+  status: 'online' | 'coming-soon'
+  plans: SkillPlan[]
 }

@@ -24,6 +24,37 @@ const router = createRouter({
       component: () => import('@/pages/SolutionDetailPage.vue'),
     },
     {
+      path: '/skills',
+      name: 'skills',
+      component: () => import('@/pages/SkillsPage.vue'),
+    },
+    {
+      path: '/skills/:slug',
+      name: 'skill-detail',
+      component: () => import('@/pages/SkillDetailPage.vue'),
+    },
+    {
+      path: '/skills/:slug/use',
+      name: 'skill-use',
+      component: () => import('@/pages/SkillUsePage.vue'),
+    },
+    {
+      path: '/teams',
+      name: 'teams',
+      // 专家团列表已合并进 /skills，保留路由做旧链接重定向
+      redirect: { path: '/skills', query: { tab: 'team' } },
+    },
+    {
+      path: '/teams/:slug',
+      name: 'team-detail',
+      component: () => import('@/pages/TeamDetailPage.vue'),
+    },
+    {
+      path: '/teams/:slug/use',
+      name: 'team-use',
+      component: () => import('@/pages/TeamUsePage.vue'),
+    },
+    {
       path: '/docs',
       name: 'docs',
       component: () => import('@/pages/DocsPage.vue'),

@@ -18,9 +18,17 @@ const mobileMenuOpen = ref(false)
 const navLinks = [
   { name: '首页', to: '/' },
   { name: '模型广场', to: '/models' },
+  { name: 'Skill · 专家 · 专家团', to: '/skills', match: ['/skills', '/teams'] },
   { name: '解决方案', to: '/solutions' },
   { name: '文档中心', to: '/docs' },
 ]
+
+/** 激活态判断：/skills 项在访问 /skills* 或 /teams*（专家团详情/使用页）时保持高亮 */
+const isActive = (link: { to: string; match?: string[] }) => {
+  if (link.to === '/') return route.path === '/'
+  const prefixes = link.match ?? [link.to]
+  return prefixes.some((p) => route.path.startsWith(p))
+}
 
 let scrollHandler: (() => void) | null = null
 
@@ -74,7 +82,7 @@ onUnmounted(() => {
           :to="link.to"
           :class="[
             'px-4 py-1.5 text-xs font-semibold rounded-full transition-all',
-            route.path === link.to
+            isActive(link)
               ? 'bg-white text-slate-900 shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
           ]"
@@ -126,7 +134,7 @@ onUnmounted(() => {
         @click="mobileMenuOpen = false"
         :class="[
           'block px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors',
-          route.path === link.to
+          isActive(link)
             ? 'bg-blue-50 text-blue-600'
             : 'text-slate-700 hover:bg-slate-100 hover:text-blue-600'
         ]"
