@@ -5,7 +5,7 @@ import AppHeader from '@/components/AppHeader.vue'
 import FooterSection from '@/components/FooterSection.vue'
 import ContactFloat from '@/components/ContactFloat.vue'
 import {
-  BookOpen, Rocket, Terminal, HelpCircle, Wrench,
+  BookOpen, Rocket, Terminal, HelpCircle, Wrench, Store, Building2,
   ChevronDown, FileText, ChevronLeft, ChevronRight, ListTree, X, AlertCircle,
 } from 'lucide-vue-next'
 import docContent from '@/data/docs'
@@ -24,7 +24,37 @@ const contentEl = ref<HTMLElement | null>(null)
 const tocItems = ref<{ id: string; text: string }[]>([])
 
 const iconMap: Record<string, any> = {
-  BookOpen, Rocket, Terminal, HelpCircle, Wrench,
+  BookOpen, Rocket, Terminal, HelpCircle, Wrench, Store, Building2,
+}
+
+/** 文档分组元信息：business 产品说明 / developer 开发者文档（Nova AI Gateway 网关） */
+const groupMeta: { key: 'business' | 'developer'; label: string; desc: string }[] = [
+  { key: 'business', label: '产品说明', desc: 'AI 能力 · 行业解决方案' },
+  { key: 'developer', label: '开发者文档', desc: 'Nova AI Gateway 大模型统一接入网关' },
+]
+
+/** 当前激活的 Tab 分组 */
+const activeTab = ref<'business' | 'developer'>('business')
+
+/** 按当前 Tab 过滤章节 */
+const activeSections = computed(() => docContent.sections.filter((s) => s.group === activeTab.value))
+
+/** 切换 Tab：当前条目不属于新分组时，跳到该分组第一篇 */
+const switchTab = (key: 'business' | 'developer') => {
+  if (key === activeTab.value) return
+  activeTab.value = key
+  mobileTreeOpen.value = false
+  const belongs = docContent.sections.some(
+    (s) => s.group === key && s.children.some((c) => c.id === activeItemId.value),
+  )
+  if (!belongs) {
+    const first = activeSections.value[0]?.children[0]
+    if (first) {
+      activeItemId.value = first.id
+      history.replaceState(null, '', `#${first.id}`)
+    }
+  }
+  nextTick(buildToc)
 }
 
 const toggleSection = (id: string) => {
@@ -51,10 +81,10 @@ const activeItem = computed(() => {
   return null
 })
 
-// Flatten all items in order for prev/next navigation
+// Flatten items in the active tab for prev/next navigation
 const flatItems = computed(() => {
   const items: { section: DocSection; item: DocItem }[] = []
-  for (const section of docContent.sections) {
+  for (const section of activeSections.value) {
     for (const child of section.children) {
       items.push({ section, item: child })
     }
@@ -106,9 +136,10 @@ onMounted(() => {
   // Deep-link support: /docs#core-features
   const hash = window.location.hash.replace(/^#/, '')
   if (hash && !hash.startsWith('doc-h2-')) {
-    const valid = docContent.sections.some((s) => s.children.some((c) => c.id === hash))
-    if (valid) {
+    const section = docContent.sections.find((s) => s.children.some((c) => c.id === hash))
+    if (section) {
       activeItemId.value = hash
+      activeTab.value = section.group
     }
   }
   nextTick(buildToc)
@@ -122,6 +153,27 @@ onMounted(() => {
     <!-- Offset for fixed header -->
     <div class="pt-20" />
 
+    <!-- Doc Tabs: 产品说明 / 开发者文档 -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <div class="flex justify-center">
+        <div class="inline-flex p-1 rounded-full bg-white border border-slate-200 shadow-sm gap-1">
+          <button
+            v-for="g in groupMeta"
+            :key="g.key"
+            @click="switchTab(g.key)"
+            class="px-5 py-2 rounded-full text-xs font-semibold transition-all duration-300"
+            :class="
+              activeTab === g.key
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/25'
+                : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+            "
+          >
+            {{ g.label }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="flex">
       <!-- Left Sidebar: Doc Tree (desktop) -->
       <aside class="hidden lg:block w-[280px] shrink-0 border-r border-slate-200 bg-slate-50/50 sticky top-20 self-start h-[calc(100vh-80px)] overflow-y-auto">
@@ -132,7 +184,7 @@ onMounted(() => {
           </div>
 
           <nav class="space-y-1">
-            <div v-for="section in docContent.sections" :key="section.id">
+            <div v-for="section in activeSections" :key="section.id">
               <!-- Section Header -->
               <button
                 @click="toggleSection(section.id)"
@@ -186,6 +238,8 @@ onMounted(() => {
             <!-- Breadcrumb -->
             <div class="flex items-center gap-2 text-xs text-slate-400 mb-6">
               <span>文档中心</span>
+              <span class="text-slate-300">/</span>
+              <span class="text-slate-600 font-medium">{{ groupMeta.find((g) => g.key === activeTab)?.label }}</span>
               <span class="text-slate-300">/</span>
               <span class="text-slate-600 font-medium">{{ activeItem.section.title }}</span>
               <span class="text-slate-300">/</span>
@@ -290,7 +344,7 @@ onMounted(() => {
         </div>
 
         <nav class="space-y-1">
-          <div v-for="section in docContent.sections" :key="section.id">
+          <div v-for="section in activeSections" :key="section.id">
             <button
               @click="toggleSection(section.id)"
               class="flex items-center justify-between w-full px-3 py-2 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors"

@@ -22,13 +22,13 @@ const toggleFaq = (id: string) => {
           常见问题解答 · FAQ
         </div>
         <h2 class="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
-          关于 Nova Gateway 的
+          关于 AI 能力商城与
           <span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            核心疑问解答
+            AI 员工的疑问解答
           </span>
         </h2>
         <p class="text-slate-600 text-base">
-          有其他关于安全防护、API 兼容性与并发限制的疑问？可以查看下方回答或联系在线客服。
+          Skill、AI 员工、行业解决方案有什么区别？底层 API 如何接入？查看下方回答或联系在线客服。
         </p>
       </div>
 

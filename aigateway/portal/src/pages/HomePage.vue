@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { siteInfo } from '@/data/site'
 import AppHeader from '@/components/AppHeader.vue'
 import HeroSection from '@/components/HeroSection.vue'
-import FeatureSection from '@/components/FeatureSection.vue'
+import ProductLayerSection from '@/components/ProductLayerSection.vue'
+import UpgradePathSection from '@/components/UpgradePathSection.vue'
 import SkillEntryBanner from '@/components/SkillEntryBanner.vue'
 import TeamEntryBanner from '@/components/TeamEntryBanner.vue'
 import SolutionsSection from '@/components/SolutionsSection.vue'
+import AIEmployeeSection from '@/components/AIEmployeeSection.vue'
 // import InfrastructureSection from '@/components/InfrastructureSection.vue'
+import FeatureSection from '@/components/FeatureSection.vue'
 import PricingSection from '@/components/PricingSection.vue'
 import CtaBanner from '@/components/CtaBanner.vue'
 import FaqSection from '@/components/FaqSection.vue'
@@ -26,8 +28,9 @@ const handleOpenConsole = () => {
     <AppHeader :admin-url="adminUrl" @open-console="handleOpenConsole" />
 
     <main>
-      <HeroSection :admin-url="adminUrl" @open-console="handleOpenConsole" />
-      <FeatureSection />
+      <HeroSection />
+      <ProductLayerSection />
+      <UpgradePathSection />
       <section class="py-14 bg-white border-b border-slate-200/80">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
           <SkillEntryBanner />
@@ -35,9 +38,10 @@ const handleOpenConsole = () => {
         </div>
       </section>
       <SolutionsSection />
-      <!-- <InfrastructureSection /> -->
+      <AIEmployeeSection />
+      <FeatureSection />
       <PricingSection :admin-url="adminUrl" @open-console="handleOpenConsole" />
-      <CtaBanner :admin-url="adminUrl" @open-console="handleOpenConsole" />
+      <CtaBanner />
       <FaqSection />
     </main>
 

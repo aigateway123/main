@@ -1,17 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { ArrowRight, Terminal, Play, Sparkles } from 'lucide-vue-next'
-import PlaygroundModal from '@/components/PlaygroundModal.vue'
-
-defineProps<{
-  adminUrl: string
-}>()
-
-const emit = defineEmits<{
-  'open-console': []
-}>()
-
-const isPlaygroundOpen = ref(false)
+import { ArrowRight, Store, Bot, Sparkles } from 'lucide-vue-next'
 </script>
 
 <template>
@@ -25,41 +13,38 @@ const isPlaygroundOpen = ref(false)
         <div class="relative z-10 max-w-3xl space-y-6">
           <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/15 border border-white/20 text-white text-xs font-semibold backdrop-blur-md">
             <Sparkles class="w-3.5 h-3.5 text-yellow-300" />
-            <span>只需 1 分钟，完成全局 OpenAI SDK APIKey 替换</span>
+            <span>从能力商城到 AI 员工，一条路径持续升级</span>
           </div>
 
           <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
-            准备好升级您的企业级 <br />
-            AI 统一接入网关了吗？
+            准备好雇用您的第一位 <br />
+            AI 员工了吗？
           </h2>
 
           <p class="text-blue-100 text-base sm:text-lg max-w-2xl font-normal leading-relaxed">
-            立即注册即可免费试用。体验高并发并发控制、智能缓存降低 70% 成本与毫秒级故障自动切流。
+            先逛能力商城，用 Skill 验证效果；再升级为学习企业数据的专属 AI 员工，最后沉淀为行业解决方案。
           </p>
 
           <div class="flex flex-col sm:flex-row items-center gap-4 pt-2">
-            <button
-              @click="emit('open-console')"
+            <router-link
+              to="/skills"
               class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-white text-blue-600 hover:bg-slate-50 font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 group"
             >
-              <Terminal class="w-4 h-4 text-blue-600" />
-              <span>立即免费注册体验</span>
+              <Store class="w-4 h-4 text-blue-600" />
+              <span>逛逛能力商城</span>
               <ArrowRight class="w-4 h-4 text-blue-600 group-hover:translate-x-1 transition-transform" />
-            </button>
+            </router-link>
 
-            <button
-              @click="isPlaygroundOpen = true"
+            <a
+              href="/#ai-employee"
               class="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-blue-700/60 hover:bg-blue-700/80 border border-white/30 text-white font-semibold text-sm backdrop-blur-md transition-all flex items-center justify-center gap-2"
             >
-              <Play class="w-4 h-4 text-white fill-white/20" />
-              <span>进入在线 API 沙盒试用</span>
-            </button>
+              <Bot class="w-4 h-4 text-white" />
+              <span>定制你的 AI 员工</span>
+            </a>
           </div>
         </div>
       </div>
     </div>
-
-    <!-- Playground API Sandbox -->
-    <PlaygroundModal v-if="isPlaygroundOpen" @close="isPlaygroundOpen = false" />
   </section>
 </template>

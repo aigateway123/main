@@ -1,0 +1,6 @@
+{
+  "name": "爆款工厂 V1",
+  "description": "面向小红书创作者、带货团队和电商商家的 AI 内容增长及爆款分析 SaaS 工作台。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -29,13 +29,13 @@ const isPlaygroundOpen = ref(false)
       <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold uppercase tracking-wider">
           <Cpu class="w-3.5 h-3.5 text-blue-600" />
-          核心产品特性 · Core Features
+          底层 AI 基础设施 · AI Infrastructure
         </div>
         <h2 class="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
-          为现代化 AI 应用打造的<span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">全能 API 网关</span>
+          支撑上层全部能力的<span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">AI 基础设施基座</span>
         </h2>
         <p class="text-slate-600 text-base sm:text-lg leading-relaxed">
-          告别不同大模型 SDK 的繁琐封装与高昂宕机风险。Nova AI Gateway 汇聚全品类顶尖算力，赋予您的系统百万级并发与高可靠保证。
+          统一接入全品类顶尖模型、智能路由与成本管控。Skill、AI 员工与行业解决方案，都跑在这套基座之上 —— 稳定、省钱、安全。
         </p>
       </div>
 

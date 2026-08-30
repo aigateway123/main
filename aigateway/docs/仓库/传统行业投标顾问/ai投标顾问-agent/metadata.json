@@ -1,0 +1,6 @@
+{
+  "name": "AI投标顾问 Agent",
+  "description": "专业的AI招投标顾问：招标文件理解、资格审查、废标风险识别、评分项拆解、提分策略、能力匹配、作战任务清单与标书智能体检",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

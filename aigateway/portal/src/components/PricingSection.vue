@@ -27,20 +27,44 @@ const openContact = (e: MouseEvent) => {
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
       <!-- Section Header -->
-      <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+      <div class="text-center max-w-3xl mx-auto mb-10 space-y-4">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold uppercase tracking-wider">
           <Zap class="w-3.5 h-3.5 text-blue-600" />
-          按量计费 · Transparent Pricing
+          价格体系 · Pricing
         </div>
         <h2 class="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
-          按量计费，无隐形开支，
+          多种合作方式，
           <span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            开通即送体验额度
+            总有一档适合你
           </span>
         </h2>
         <p class="text-slate-600 text-base sm:text-lg">
-          无订阅费、无月费，用多少付多少，费用实时可查、成本一目了然。
+          能力商城按技能购买 · AI 员工按岗位定制 · 行业方案按企业规模报价 · 底层 API 按量计费。
         </p>
+      </div>
+
+      <!-- Price Anchors（商业模式 V2 对齐，模糊化不直接展示金额） -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-14">
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm hover:border-blue-300 hover:shadow-md transition-all">
+          <p class="text-xs font-semibold text-blue-600 mb-1">AI 能力商城</p>
+          <p class="text-2xl font-extrabold text-slate-900">即买即用</p>
+          <p class="text-xs text-slate-500 mt-1">Skill / 专家团，按技能付费</p>
+        </div>
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm hover:border-blue-300 hover:shadow-md transition-all">
+          <p class="text-xs font-semibold text-blue-600 mb-1">AI 员工定制</p>
+          <p class="text-2xl font-extrabold text-slate-900">按岗定制</p>
+          <p class="text-xs text-slate-500 mt-1">专属岗位，学习企业资料</p>
+        </div>
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm hover:border-blue-300 hover:shadow-md transition-all">
+          <p class="text-xs font-semibold text-blue-600 mb-1">行业解决方案</p>
+          <p class="text-2xl font-extrabold text-slate-900">按需报价</p>
+          <p class="text-xs text-slate-500 mt-1">工程 / 外贸 / 内容等行业</p>
+        </div>
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm hover:border-blue-300 hover:shadow-md transition-all">
+          <p class="text-xs font-semibold text-blue-600 mb-1">底层 API 网关</p>
+          <p class="text-2xl font-extrabold text-slate-900">按量计费</p>
+          <p class="text-xs text-slate-500 mt-1">开通即送体验额度</p>
+        </div>
       </div>
 
       <!-- 3 Pricing Model Cards -->

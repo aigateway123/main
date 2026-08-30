@@ -1,47 +1,34 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { ArrowRight, Code2, Copy, Check } from 'lucide-vue-next'
-import { codeSamples } from '@/data/codeSamples'
+import { ArrowRight, Store, Bot, Briefcase } from 'lucide-vue-next'
+import { skills } from '@/data/skills'
+import { expertTeams } from '@/data/expertTeams'
 
-defineProps<{
-  adminUrl: string
-}>()
+const skillCount = skills.filter((s) => s.status === 'online').length
+const teamCount = expertTeams.filter((t) => t.status === 'online').length
 
-const emit = defineEmits<{
-  'open-console': []
-}>()
-
-const selectedLang = ref('python')
-const copied = ref(false)
-
-const currentSample = computed(() => {
-  return codeSamples.find((s) => s.lang === selectedLang.value) || codeSamples[0]
-})
-
-const handleCopy = () => {
-  navigator.clipboard.writeText(currentSample.value.code)
-  copied.value = true
-  setTimeout(() => (copied.value = false), 2000)
-}
-
-const highlightUrl = (line: string) => {
-  const url = 'http://api.starnov.cn/v1'
-  if (line.includes(url)) {
-    const parts = line.split(url)
-    return {
-      hasHighlight: true,
-      before: parts[0],
-      url: url,
-      after: parts.slice(1).join(url),
-    }
-  }
-  return { hasHighlight: false }
-}
-
-const isComment = (line: string) => {
-  const trimmed = line.trim()
-  return trimmed.startsWith('#') || trimmed.startsWith('//')
-}
+const matrix = [
+  {
+    icon: Store,
+    title: 'AI 能力商城',
+    desc: `${skillCount} 个 Skill · ${teamCount} 支专家团，即买即用`,
+    to: '/skills',
+    cta: '逛能力商城',
+  },
+  {
+    icon: Bot,
+    title: 'AI 员工定制',
+    desc: '学习企业资料，配置专属 AI 员工',
+    to: '/#ai-employee',
+    cta: '了解定制',
+  },
+  {
+    icon: Briefcase,
+    title: '行业解决方案',
+    desc: '工程投标 · 外贸出海 · 内容增长',
+    to: '/#solutions',
+    cta: '查看方案',
+  },
+]
 </script>
 
 <template>
@@ -58,9 +45,7 @@ const isComment = (line: string) => {
       <div class="flex justify-center mb-6">
         <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50/80 border border-blue-200/80 text-blue-700 text-xs font-semibold shadow-sm hover:border-blue-300 transition-colors">
           <span class="flex h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
-          <span>Nova Gateway v2.5 发布</span>
-          <span class="text-slate-300">|</span>
-          <span>已支持 DeepSeek、智谱 GLM 等多模型统一接入</span>
+          <span>AI 能力商城 · {{ skillCount }} 个 Skill · {{ teamCount }} 支专家团 · 行业解决方案</span>
           <ArrowRight class="w-3.5 h-3.5 text-blue-600" />
         </div>
       </div>
@@ -68,110 +53,58 @@ const isComment = (line: string) => {
       <!-- Main Headline & Slogan -->
       <div class="text-center max-w-4xl mx-auto space-y-6">
         <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.12]">
-          一个 API 调用 <br class="hidden sm:inline" />
+          让每一家中小企业，<br class="hidden sm:inline" />
           <span class="bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 bg-clip-text text-transparent">
-            全品类顶级 AI 模型
+            都拥有自己的 AI 员工
           </span>
         </h1>
 
         <p class="text-xl sm:text-2xl text-slate-700 font-semibold tracking-wide">
-          统一接入 <span class="text-blue-600 font-bold">·</span> 智能路由 <span class="text-blue-600 font-bold">·</span> 成本优化
+          AI 能力商城 <span class="text-blue-600 font-bold">·</span> 定制 AI 员工 <span class="text-blue-600 font-bold">·</span> 行业智能化解决方案
         </p>
 
         <p class="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed font-normal">
-          企业级 AI 统一网关，兼容 OpenAI SDK 接口规范。免改造集成 DeepSeek、智谱 GLM 等主流大模型，支持多 Provider 自动故障切换，让您专注于业务而非基础设施。
+          底层 AI Gateway 统一接入全品类顶级模型，上层 Skill、AI 员工与行业方案开箱即用 —— 不用招人，也能组建一支专属 AI 团队。
         </p>
 
         <!-- CTA Buttons -->
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-          <button
-            @click="emit('open-console')"
+          <router-link
+            to="/skills"
             class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-base shadow-lg shadow-blue-600/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 group"
           >
-            <span>开始免费使用</span>
+            <span>逛能力商城</span>
             <ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </button>
+          </router-link>
+          <a
+            href="/#solutions"
+            class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-base transition-all flex items-center justify-center gap-2"
+          >
+            <span>了解行业解决方案</span>
+          </a>
         </div>
       </div>
 
-      <!-- Live Code Snippet Box -->
-      <div class="mt-12 max-w-5xl mx-auto">
-        <div class="rounded-2xl bg-slate-900 text-slate-100 border border-slate-800 shadow-2xl overflow-hidden">
-          <!-- Window Bar Header -->
-          <div class="flex flex-wrap items-center justify-between px-4 py-3 bg-slate-950/90 border-b border-slate-800 gap-2">
-            <div class="flex items-center gap-2">
-              <div class="flex gap-1.5">
-                <div class="w-3 h-3 rounded-full bg-red-500/80" />
-                <div class="w-3 h-3 rounded-full bg-yellow-500/80" />
-                <div class="w-3 h-3 rounded-full bg-emerald-500/80" />
-              </div>
-              <span class="text-xs font-mono text-slate-400 ml-2 hidden sm:inline-flex items-center gap-1.5">
-                <Code2 class="w-3.5 h-3.5 text-blue-400" />
-                {{ currentSample.filename }}
-              </span>
-            </div>
-
-            <!-- Language Selector Tabs -->
-            <div class="flex items-center gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
-              <button
-                v-for="sample in codeSamples"
-                :key="sample.lang"
-                @click="selectedLang = sample.lang"
-                :class="[
-                  'px-3 py-1 text-xs font-medium rounded-md transition-all',
-                  selectedLang === sample.lang
-                    ? 'bg-blue-600 text-white font-semibold shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                ]"
-              >
-                {{ sample.label.split(' ')[0] }}
-              </button>
-            </div>
-
-            <!-- Copy Code Button -->
-            <button
-              @click="handleCopy"
-              class="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-colors"
-            >
-              <template v-if="copied">
-                <Check class="w-3.5 h-3.5 text-emerald-400" />
-                <span class="text-emerald-400 font-semibold">已复制</span>
-              </template>
-              <template v-else>
-                <Copy class="w-3.5 h-3.5 text-slate-400" />
-                <span>复制代码</span>
-              </template>
-            </button>
+      <!-- Product Matrix Cards -->
+      <div class="mt-14 grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl mx-auto">
+        <router-link
+          v-for="item in matrix"
+          :key="item.title"
+          :to="item.to"
+          class="group relative p-6 rounded-2xl bg-white border border-slate-200 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 transition-all duration-300 flex items-start gap-4"
+        >
+          <div class="w-11 h-11 shrink-0 rounded-xl bg-blue-50 border border-blue-100 p-2.5 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
+            <component :is="item.icon" class="w-5 h-5" />
           </div>
-
-          <!-- Code Content Box -->
-          <div class="p-4 sm:p-6 bg-slate-950 font-mono text-xs sm:text-sm text-slate-200 overflow-x-auto min-h-[420px]">
-            <div v-for="(line, i) in currentSample.code.split('\n')" :key="i" class="flex leading-[1.15]">
-              <span class="w-8 text-slate-600 select-none text-right pr-4 text-xs shrink-0">{{ i + 1 }}</span>
-              <span class="whitespace-pre-wrap break-words" :class="isComment(line) ? 'text-slate-500 italic' : 'text-slate-300'">
-                <template v-if="highlightUrl(line).hasHighlight">
-                  {{ highlightUrl(line).before }}
-                  <span class="bg-blue-600/30 text-blue-300 font-bold px-1 rounded border border-blue-500/40">"http://api.starnov.cn/v1"</span>
-                  {{ highlightUrl(line).after }}
-                </template>
-                <template v-else>
-                  {{ line }}
-                </template>
-              </span>
-            </div>
+          <div class="min-w-0">
+            <h3 class="text-sm font-extrabold text-slate-900 flex items-center gap-1.5 group-hover:text-blue-700 transition-colors">
+              {{ item.title }}
+              <ArrowRight class="w-3.5 h-3.5 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+            </h3>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">{{ item.desc }}</p>
           </div>
-
-          <!-- Footer Notice -->
-          <div class="px-4 py-2.5 bg-slate-900/90 border-t border-slate-800 flex flex-wrap items-center justify-between text-xs text-slate-400">
-            <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-              <span>全网 API 端点地址: <code class="text-blue-300 font-mono">http://api.starnov.cn/v1</code></span>
-            </div>
-            <span class="text-slate-400">支持原生 OpenAI 客户端 / Python / JS / Go / LangChain</span>
-          </div>
-        </div>
+        </router-link>
       </div>
-
     </div>
   </section>
 </template>

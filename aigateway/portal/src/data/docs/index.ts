@@ -1,4 +1,6 @@
 import type { DocContent } from '@/types/docs'
+import marketplaceSection from './sections/marketplace'
+import solutionsSection from './sections/solutions'
 
 const docContent: DocContent = {
   defaultItemId: 'what-is',
@@ -7,6 +9,7 @@ const docContent: DocContent = {
       id: 'intro',
       title: '产品简介',
       icon: 'BookOpen',
+      group: 'developer',
       children: [
         {
           id: 'what-is',
@@ -83,10 +86,13 @@ const docContent: DocContent = {
         },
       ],
     },
+    marketplaceSection,
+    solutionsSection,
     {
       id: 'quickstart',
       title: '快速入门',
       icon: 'Rocket',
+      group: 'developer',
       children: [
         {
           id: 'get-api-key',
@@ -295,6 +301,7 @@ func main() {
       id: 'tool-integration',
       title: '工具接入',
       icon: 'Wrench',
+      group: 'developer',
       children: [
         {
           id: 'tools-trae',
@@ -460,6 +467,7 @@ export ANTHROPIC_SMALL_FAST_MODEL="deepseek-v4-flash"    # 后台轻量模型（
       id: 'api',
       title: 'API 接口',
       icon: 'Terminal',
+      group: 'developer',
       children: [
         {
           id: 'chat-completions',
@@ -835,6 +843,7 @@ console.log(resp.content[0].text);</code></pre>
       id: 'faq',
       title: '常见问题',
       icon: 'HelpCircle',
+      group: 'developer',
       children: [
         {
           id: 'faq-access',
