@@ -55,16 +55,15 @@ const layers: Layer[] = [
 
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
       <!-- Section Header -->
-      <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+      <div class="text-center max-w-5xl mx-auto mb-16 space-y-4">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold uppercase tracking-wider">
           <Layers class="w-3.5 h-3.5 text-blue-600" />
           产品架构 · One Platform
         </div>
-        <h2 class="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
-          从一套 AI 能力基础设施，<br class="hidden sm:inline" />
-          到一家企业的<span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">完整 AI 团队</span>
+        <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight sm:whitespace-nowrap">
+          从一套 AI 能力基础设施，到一家企业的<span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">完整 AI 团队</span>
         </h2>
-        <p class="text-slate-600 text-base sm:text-lg leading-relaxed">
+        <p class="text-slate-600 text-base sm:text-lg leading-relaxed sm:whitespace-nowrap">
           底层赚算力和模型的钱，中间赚 AI 能力的钱，上层赚企业解决方案的钱 —— 五层业务，一条路径。
         </p>
       </div>

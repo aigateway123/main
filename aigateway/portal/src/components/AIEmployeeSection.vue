@@ -45,7 +45,7 @@ const openContact = (e: MouseEvent) => {
           <Bot class="w-3.5 h-3.5 text-blue-600" />
           AI 员工定制 · AI Employee
         </div>
-        <h2 class="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
+        <h2 class="text-xl sm:text-5xl font-extrabold text-slate-900 tracking-tight whitespace-nowrap">
           从「买一个技能」到<span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">「雇一个 AI 员工」</span>
         </h2>
         <p class="text-slate-600 text-base sm:text-lg">

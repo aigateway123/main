@@ -32,7 +32,7 @@ const matrix = [
 </script>
 
 <template>
-  <section class="relative pt-32 pb-20 overflow-hidden bg-white text-slate-900 flex flex-col justify-center border-b border-slate-100">
+  <section class="relative min-h-screen pt-32 pb-20 overflow-hidden bg-white text-slate-900 flex flex-col justify-center border-b border-slate-100">
     <!-- Background Gradients & Mesh Accent -->
     <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-[radial-gradient(ellipse_at_top,rgba(37,99,235,0.08),transparent_70%)] pointer-events-none" />
     <div class="absolute top-1/3 left-1/4 w-[400px] h-[300px] bg-indigo-500/5 blur-[120px] rounded-full pointer-events-none" />
@@ -51,9 +51,9 @@ const matrix = [
       </div>
 
       <!-- Main Headline & Slogan -->
-      <div class="text-center max-w-4xl mx-auto space-y-6">
-        <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.12]">
-          让每一家中小企业，<br class="hidden sm:inline" />
+      <div class="text-center max-w-5xl mx-auto space-y-6">
+        <h1 class="text-3xl sm:text-5xl lg:text-[3.4rem] font-extrabold tracking-tight text-slate-900 leading-[1.15] sm:whitespace-nowrap">
+          让每一家中小企业，
           <span class="bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 bg-clip-text text-transparent">
             都拥有自己的 AI 员工
           </span>
@@ -63,7 +63,7 @@ const matrix = [
           AI 能力商城 <span class="text-blue-600 font-bold">·</span> 定制 AI 员工 <span class="text-blue-600 font-bold">·</span> 行业智能化解决方案
         </p>
 
-        <p class="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed font-normal">
+        <p class="text-sm sm:text-base text-slate-600 max-w-4xl mx-auto leading-relaxed font-normal sm:whitespace-nowrap">
           底层 AI Gateway 统一接入全品类顶级模型，上层 Skill、AI 员工与行业方案开箱即用 —— 不用招人，也能组建一支专属 AI 团队。
         </p>
 

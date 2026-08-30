@@ -262,7 +262,7 @@ const handleHandoff = () => {
               返回解决方案中心
             </button>
 
-            <div class="text-center max-w-4xl mx-auto space-y-6">
+            <div class="text-center max-w-5xl mx-auto space-y-6">
               <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold shadow-sm" :class="theme.badge">
                 <GraduationCap class="w-3.5 h-3.5" :class="theme.badgeIcon" />
                 {{ solution.tag }} · 第一期上线
@@ -270,7 +270,7 @@ const handleHandoff = () => {
                 <span>Nova AIGateway V2.5</span>
               </div>
 
-              <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.12]">
+              <h1 class="text-2xl md:text-3xl lg:text-4xl xl:text-[2.5rem] font-extrabold tracking-tight text-slate-900 leading-[1.2] md:whitespace-nowrap">
                 {{ heroTitlePrefix }}
                 <span :class="theme.heroGradientText">{{ heroTitleGradient }}</span>
               </h1>
@@ -341,7 +341,7 @@ const handleHandoff = () => {
                 <Layers class="w-3.5 h-3.5" :class="theme.badgeIcon" />
                 核心能力 · Core Capabilities
               </div>
-              <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+              <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight text-center">
                 {{ capabilitiesTitlePrefix }}<span :class="theme.sectionGradientText">{{ capabilitiesTitleGradient }}</span>
               </h2>
             </div>

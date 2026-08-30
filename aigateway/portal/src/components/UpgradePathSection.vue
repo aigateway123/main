@@ -47,14 +47,13 @@ const steps: Step[] = [
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
       <!-- Section Header -->
-      <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+      <div class="text-center max-w-5xl mx-auto mb-16 space-y-4">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold uppercase tracking-wider">
           <TrendingUp class="w-3.5 h-3.5 text-blue-600" />
           客户成长路径 · Growth Path
         </div>
-        <h2 class="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
-          从一个小小的技能，<br class="hidden sm:inline" />
-          到<span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">一套企业级解决方案</span>
+        <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight sm:whitespace-nowrap">
+          从一个小小的技能，到<span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">一套企业级解决方案</span>
         </h2>
         <p class="text-slate-600 text-base sm:text-lg">
           以「AI 投标」为例 —— 客户的需求每深入一步，能力与投入就升一级，全程无需更换平台。

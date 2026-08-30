@@ -39,16 +39,16 @@ const onTouchEnd = (e: TouchEvent) => {
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
       <!-- Section Header -->
-      <div class="text-center max-w-3xl mx-auto mb-14 space-y-4">
+      <div class="text-center max-w-5xl mx-auto mb-14 space-y-4">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold uppercase tracking-wider">
           <Briefcase class="w-3.5 h-3.5 text-blue-600" />
           行业解决方案 · Industry AI
         </div>
-        <h2 class="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
+        <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight sm:whitespace-nowrap">
           不止是一个 API 网关，更是<span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">场景化解决方案</span>
         </h2>
         <p class="text-slate-600 text-base sm:text-lg leading-relaxed">
-          高校科研 · 内容增长 · 工程投标 —— 每个行业都有一套开箱即用的 AI 智能中心，左右滑动查看。
+          每个行业都有一套开箱即用的 AI 智能中心
         </p>
       </div>
 
