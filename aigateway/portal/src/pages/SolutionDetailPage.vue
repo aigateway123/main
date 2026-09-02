@@ -382,7 +382,7 @@ const handleHandoff = () => {
                 核心能力 · Core Capabilities
               </div>
               <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight text-center">
-                {{ capabilitiesTitlePrefix }}<span :class="theme.sectionGradientText">{{ capabilitiesTitleGradient }}</span>
+                {{ capabilitiesTitlePrefix }}<span class="bg-gradient-to-r" :class="theme.sectionGradientText">{{ capabilitiesTitleGradient }}</span>
               </h2>
             </div>
 
@@ -411,13 +411,16 @@ const handleHandoff = () => {
           <div class="absolute bottom-0 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
           <div class="mx-auto px-4 sm:px-6 lg:px-8 relative z-10" :class="isEnvAgent ? 'max-w-7xl' : 'max-w-5xl'">
             <!-- Section Header -->
-            <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+            <div class="text-center mx-auto mb-16 space-y-4" :class="isEnvAgent ? 'max-w-4xl' : 'max-w-3xl'">
               <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider" :class="theme.badge">
                 <Workflow class="w-3.5 h-3.5" :class="theme.badgeIcon" />
                 {{ pipelineBadge }}
               </div>
-              <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-                {{ pipelineTitlePrefix }}<span :class="theme.sectionGradientText">{{ pipelineTitleGradient }}</span>
+              <h2
+                class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight"
+                :class="isEnvAgent ? 'lg:whitespace-nowrap' : ''"
+              >
+                {{ pipelineTitlePrefix }}<span class="bg-gradient-to-r" :class="theme.sectionGradientText">{{ pipelineTitleGradient }}</span>
               </h2>
               <p class="text-slate-600 text-sm sm:text-base">{{ pipelineDesc }}</p>
             </div>
