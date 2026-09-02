@@ -1464,6 +1464,63 @@ export const NODE_DEMOS: Record<string, NodeDemoEntry> = {
     title: '终点 · AI 员工矩阵业务闭环',
     subtitle: '8 位 AI 员工接力完成从商机捕获到经营驾驶的环保业务闭环',
   },
+  // ---- AI 贸易情报员 · 外贸客户与商机雷达（trade-intel） ----
+  'trade-start': {
+    nodeId: 'trade-start',
+    ready: true,
+    label: '打开工作台',
+    title: '起点 · 一次外贸情报任务',
+    subtitle: '输入产品与目标市场，打开 AI 贸易情报工作台，从需求输入页开始',
+  },
+  'trade-crawl': {
+    nodeId: 'trade-crawl',
+    ready: true,
+    label: '演示此环节',
+    title: '全网采集 Agent · 智能采集清洗',
+    subtitle: '看 AI 如何一句话启动 142 口岸全网抓取、清洗去重并补全企业画像',
+  },
+  'trade-customers': {
+    nodeId: 'trade-customers',
+    ready: true,
+    label: '演示此环节',
+    title: '客户情报 Agent · 情报矩阵',
+    subtitle: '看五维评分如何把全网企业拆成 A/B/C 级并输出画像与跟进动作',
+  },
+  'trade-suppliers': {
+    nodeId: 'trade-suppliers',
+    ready: true,
+    label: '演示此环节',
+    title: '供应商寻源 Agent · 多维比选',
+    subtitle: '看 AI 如何按认证 / 交期 / 价格优势对供应商打标比选并输出档案',
+  },
+  'trade-market': {
+    nodeId: 'trade-market',
+    ready: true,
+    label: '演示此环节',
+    title: '市场情报 Agent · 区域研判',
+    subtitle: '看区域机会指数、政策解读与进入壁垒如何生成市场优先级判断',
+  },
+  'trade-competitors': {
+    nodeId: 'trade-competitors',
+    ready: true,
+    label: '演示此环节',
+    title: '竞品情报 Agent · 突围洞察',
+    subtitle: '看竞品多维对比矩阵如何产出成本 / 交期 / 定制错位打法弹药',
+  },
+  'trade-radar': {
+    nodeId: 'trade-radar',
+    ready: true,
+    label: '演示此环节',
+    title: '商机雷达 Agent · 实时商机',
+    subtitle: '看 7x24 全网扫描如何把碎片情报整理成可直接跟进的商机卡',
+  },
+  'trade-end': {
+    nodeId: 'trade-end',
+    ready: true,
+    label: '查看成果',
+    title: '终点 · 情报到成单闭环',
+    subtitle: '从需求输入到全网情报研判与商机跟进的获客闭环已就绪',
+  },
 }
 
 // Demo 完成后流转到的下一节点 id（终点无下一节点）

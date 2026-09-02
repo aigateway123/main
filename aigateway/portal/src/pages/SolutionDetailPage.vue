@@ -18,9 +18,11 @@ import ContentStudioDemo from '@/components/demos/ContentStudioDemo.vue'
 import BidConsultantDemo from '@/components/demos/BidConsultantDemo.vue'
 import EnvEmployeeMatrixDemo from '@/components/demos/EnvEmployeeMatrixDemo.vue'
 import EnvModuleGrid from '@/components/EnvModuleGrid.vue'
+import TradeIntelDemo from '@/components/demos/TradeIntelDemo.vue'
 import type { StudioView } from '@/data/contentStudioData'
 import type { StepKey } from '@/data/bidConsultantData'
 import type { EnvEmployeeId } from '@/data/envAgentData'
+import type { TradeView } from '@/data/tradeIntelData'
 import { NODE_DEMOS, NEXT_NODE_BY_ID } from '@/data/nodeDemos'
 import {
   GraduationCap, ArrowLeft, ArrowRight, Layers, Users, Bot, Wallet,
@@ -29,6 +31,7 @@ import {
   Radar, ScanSearch, Wand2, MessageSquare, Gauge, Database,
   FileSearch, ShieldAlert, UserCheck, AlertTriangle, Calculator, TrendingUp, GitCompare, CheckSquare, FolderTree, Activity, Stethoscope,
   ShieldCheck, Trophy, FileCheck2, Recycle, Handshake,
+  Factory, Globe, Compass, Zap,
 } from 'lucide-vue-next'
 import { solutions } from '@/data/solutions'
 import type { FunctionalComponent } from 'vue'
@@ -87,6 +90,11 @@ const iconMap: Record<string, FunctionalComponent> = {
   FileCheck2,
   Recycle,
   Handshake,
+  // AI 贸易情报员节点 / 能力图标
+  Factory,
+  Globe,
+  Compass,
+  Zap,
 }
 
 // 解决方案主题 class（缺省回退高校科研蓝色主题）
@@ -201,6 +209,22 @@ const envInitialEmployee = computed<EnvEmployeeId | 'overview'>(() =>
   demoNodeId.value ? (ENV_VIEW_BY_NODE[demoNodeId.value] ?? 'overview') : 'overview',
 )
 
+// ---- AI 贸易情报员：节点 → 贸易情报工作台视图定位 ----
+const TRADE_VIEW_BY_NODE: Record<string, TradeView> = {
+  'trade-start': 'home',
+  'trade-crawl': 'progress',
+  'trade-customers': 'customers',
+  'trade-suppliers': 'suppliers',
+  'trade-market': 'market',
+  'trade-competitors': 'competitors',
+  'trade-radar': 'radar',
+  'trade-end': 'home',
+}
+const isTradeIntel = computed(() => (demoNodeId.value ? demoNodeId.value in TRADE_VIEW_BY_NODE : false))
+const tradeInitialView = computed<TradeView>(() =>
+  demoNodeId.value ? (TRADE_VIEW_BY_NODE[demoNodeId.value] ?? 'home') : 'home',
+)
+
 const startNode = computed(() => solution.value?.pipeline.find((s) => s.endpoint) ?? null)
 const endNode = computed(() => solution.value?.pipeline.filter((s) => s.endpoint).pop() ?? null)
 const mainStages = computed(() => solution.value?.pipeline.filter((s) => !s.endpoint) ?? [])
@@ -255,6 +279,7 @@ const handleHandoff = () => {
   const isStudio = !!nodeId && nodeId in CONTENT_STUDIO_VIEW_BY_NODE
   const isBid = !!nodeId && nodeId in BID_STEP_BY_NODE
   const isEnv = !!nodeId && nodeId in ENV_VIEW_BY_NODE
+  const isTrade = !!nodeId && nodeId in TRADE_VIEW_BY_NODE
   const nextId = nodeId ? NEXT_NODE_BY_ID[nodeId] : null
   demoOpen.value = false
   demoNodeId.value = null
@@ -272,7 +297,9 @@ const handleHandoff = () => {
           ? '投标链路 10 环节演示已全部完成'
           : isEnv
             ? '环保业务模块演示已完成，可继续体验其他模块'
-            : '科研链路 10 环节演示已全部完成',
+            : isTrade
+              ? '商贸情报链路演示已全部完成'
+              : '科研链路 10 环节演示已全部完成',
     )
   }
 }
@@ -729,7 +756,7 @@ const handleHandoff = () => {
       :title="demoEntry?.title ?? ''"
       :subtitle="demoEntry?.subtitle ?? ''"
       :icon="Lightbulb"
-      :wide="demoNodeId === 'research-agent' || demoNodeId === 'coding-agent' || demoNodeId === 'experiment-reproduction' || demoNodeId === 'data-agent' || demoNodeId === 'experiment-result' || demoNodeId === 'paper-reviewer' || demoNodeId === 'final-paper' || isContentStudio || isBidConsultant || isEnvMatrix"
+      :wide="demoNodeId === 'research-agent' || demoNodeId === 'coding-agent' || demoNodeId === 'experiment-reproduction' || demoNodeId === 'data-agent' || demoNodeId === 'experiment-result' || demoNodeId === 'paper-reviewer' || demoNodeId === 'final-paper' || isContentStudio || isBidConsultant || isEnvMatrix || isTradeIntel"
       @close="closeDemo"
     >
       <QuestionOriginDemo v-if="demoNodeId === 'research-question'" @handoff="handleHandoff" />
@@ -745,6 +772,7 @@ const handleHandoff = () => {
       <ContentStudioDemo v-else-if="isContentStudio" :initial-view="studioInitialView" @handoff="handleHandoff" />
       <BidConsultantDemo v-else-if="isBidConsultant" :initial-step="bidInitialStep" @handoff="handleHandoff" />
       <EnvEmployeeMatrixDemo v-else-if="isEnvMatrix" :initial-employee="envInitialEmployee" @handoff="handleHandoff" />
+      <TradeIntelDemo v-else-if="isTradeIntel" :initial-view="tradeInitialView" @handoff="handleHandoff" />
     </NodeDemoModal>
 
     <!-- 轻提示 -->

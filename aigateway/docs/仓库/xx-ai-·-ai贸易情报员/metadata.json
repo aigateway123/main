@@ -1,0 +1,6 @@
+{
+  "name": "XX AI · AI贸易情报员",
+  "description": "专为传统外贸与制造企业打造的全球商业情报采集平台，实现输入需求、全球企业智能采集、清洗识别、客户画像、采购潜力评分、商机挖掘与AI开发信生成。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

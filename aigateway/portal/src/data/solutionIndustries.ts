@@ -7,7 +7,7 @@
 // ============================================================================
 import type { FunctionalComponent } from 'vue'
 import {
-  GraduationCap, Flame, Trophy, Leaf, Cpu, LineChart, BookOpen,
+  GraduationCap, Flame, Trophy, Leaf, Cpu, LineChart, BookOpen, Ship,
 } from 'lucide-vue-next'
 
 export interface SolutionIndustry {
@@ -58,6 +58,14 @@ export const SOLUTION_INDUSTRIES: SolutionIndustry[] = [
     solutionSlugs: ['env-agent'],
   },
   {
+    id: 'trade',
+    name: '传统商贸',
+    icon: 'Ship',
+    desc: '寻客户、找供应商、读市场，把碎片信息整理成可跟进商机的商贸情报中枢',
+    status: 'online',
+    solutionSlugs: ['trade-intel'],
+  },
+  {
     id: 'rd',
     name: '企业研发',
     icon: 'Cpu',
@@ -92,6 +100,7 @@ export const INDUSTRY_ICONS: Record<string, FunctionalComponent> = {
   Cpu,
   LineChart,
   BookOpen,
+  Ship,
 }
 
 export interface IndustryTone {
@@ -137,6 +146,13 @@ export const INDUSTRY_TONES: Record<string, IndustryTone> = {
     tabActive: 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20',
     card: 'hover:border-emerald-300 hover:shadow-emerald-600/10',
   },
+  trade: {
+    badge: 'bg-sky-50 text-sky-700 border border-sky-200',
+    chip: 'bg-sky-50 text-sky-700 border border-sky-100',
+    iconBox: 'bg-gradient-to-tr from-sky-500 to-blue-700',
+    tabActive: 'bg-sky-600 text-white border-sky-600 shadow-md shadow-sky-600/20',
+    card: 'hover:border-sky-300 hover:shadow-sky-600/10',
+  },
   rd: {
     badge: 'bg-slate-100 text-slate-600 border border-slate-200',
     chip: 'bg-slate-50 text-slate-500 border border-slate-200',
@@ -166,6 +182,7 @@ export const INDUSTRY_BTN: Record<string, string> = {
   content: 'bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600',
   bid: 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700',
   env: 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700',
+  trade: 'bg-gradient-to-r from-sky-500 to-blue-700 hover:from-sky-600 hover:to-blue-800',
   rd: 'bg-gradient-to-r from-slate-500 to-slate-700 hover:from-slate-600 hover:to-slate-800',
   finance: 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700',
   'edu-it': 'bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700',
