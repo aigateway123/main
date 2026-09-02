@@ -1393,6 +1393,77 @@ export const NODE_DEMOS: Record<string, NodeDemoEntry> = {
     title: '终点 · AI 投标作战报告',
     subtitle: '一页纸投标作战决策报告：建议参与 / 谨慎参与 / 不建议参与',
   },
+  // ---- 环保 AI 员工矩阵 · 8 大岗位工作台（env-agent） ----
+  'env-start': {
+    nodeId: 'env-start',
+    ready: true,
+    label: '打开工作台',
+    title: '起点 · 一个环保业务需求',
+    subtitle: '输入一个环保业务需求，打开 AI 员工全景驾驶舱，从 8 大岗位开始',
+  },
+  'env-sales': {
+    nodeId: 'env-sales',
+    ready: true,
+    label: '演示此环节',
+    title: 'AI环保销售员 · 商机捕获',
+    subtitle: '客户一段话口语诉求 45 秒推演成客户画像、工艺方案与破冰话术',
+  },
+  'env-bid': {
+    nodeId: 'env-bid',
+    ready: true,
+    label: '演示此环节',
+    title: 'AI环保投标经理 · 投标作战',
+    subtitle: '200 页环保标书 3 分钟拆解评分、扫描废标红线并生成技术方案大纲',
+  },
+  'env-compliance': {
+    nodeId: 'env-compliance',
+    ready: true,
+    label: '演示此环节',
+    title: 'AI环保合规官 · 合规风控',
+    subtitle: '上传环评 / 排污许可 / 监测 / 危废台账，3 分钟穿透式合规体检',
+  },
+  'env-monitoring': {
+    nodeId: 'env-monitoring',
+    ready: true,
+    label: '演示此环节',
+    title: 'AI环境监测分析师 · 监测诊断',
+    subtitle: '对 30 天时序监测数据多因子归因，提前 8 小时预警超标并输出调控处方',
+  },
+  'env-waste': {
+    nodeId: 'env-waste',
+    ready: true,
+    label: '演示此环节',
+    title: 'AI危废管理助手 · 危废管理',
+    subtitle: '核验危废八位代码、计算库龄、排查混存，守住危废刑事合规底线',
+  },
+  'env-permit': {
+    nodeId: 'env-permit',
+    ready: true,
+    label: '演示此环节',
+    title: 'AI排污许可助手 · 排污申报',
+    subtitle: '匹配行业技术规范、构建治理拓扑，2 分钟就绪申报路线与核算底稿',
+  },
+  'env-reporter': {
+    nodeId: 'env-reporter',
+    ready: true,
+    label: '演示此环节',
+    title: 'AI环保报告员 · 报告编制',
+    subtitle: '多源 Excel 自动核算并按标准模板 1 分钟生成执行报告，一键导出',
+  },
+  'env-operations': {
+    nodeId: 'env-operations',
+    ready: true,
+    label: '演示此环节',
+    title: 'AI环保企业经营助手 · 经营驾驶',
+    subtitle: '穿透销售 / 项目 / 财务数据，输出老板每周一页决策看板与必办 5 件事',
+  },
+  'env-end': {
+    nodeId: 'env-end',
+    ready: true,
+    label: '查看成果',
+    title: '终点 · AI 员工矩阵业务闭环',
+    subtitle: '8 位 AI 员工接力完成从商机捕获到经营驾驶的环保业务闭环',
+  },
 }
 
 // Demo 完成后流转到的下一节点 id（终点无下一节点）
@@ -1430,4 +1501,15 @@ export const NEXT_NODE_BY_ID: Record<string, string> = {
   'proposal-writer': 'health-check',
   'health-check': 'bid-report',
   'bid-report': '',
+  // 环保 AI 员工矩阵（业务闭环：获客 → 投标 → 合规 → 监测 → 危废 → 排污 → 报告 → 经营）
+  'env-start': 'env-sales',
+  'env-sales': 'env-bid',
+  'env-bid': 'env-compliance',
+  'env-compliance': 'env-monitoring',
+  'env-monitoring': 'env-waste',
+  'env-waste': 'env-permit',
+  'env-permit': 'env-reporter',
+  'env-reporter': 'env-operations',
+  'env-operations': 'env-end',
+  'env-end': '',
 }
