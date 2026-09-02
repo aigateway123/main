@@ -91,13 +91,13 @@ const handleOpenPitchGuide = (agentId?: EnvEmployeeId) => {
       </div>
     </footer>
 
-    <!-- 完成此环节，进入下一步 -->
+    <!-- 完成演示，返回解决方案 -->
     <button
       class="fixed bottom-6 right-6 z-30 flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-xs font-bold text-white px-4 py-2.5 shadow-lg shadow-emerald-600/30 cursor-pointer transition-all"
       @click="emit('handoff')"
     >
       <CheckCircle2 class="w-4 h-4" />
-      完成此环节，进入下一步
+      完成演示，返回解决方案
     </button>
 
     <!-- 现场销售对客演练指南 -->

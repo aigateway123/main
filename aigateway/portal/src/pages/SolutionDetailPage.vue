@@ -17,6 +17,7 @@ import PaperReviewerDemo from '@/components/demos/PaperReviewerDemo.vue'
 import ContentStudioDemo from '@/components/demos/ContentStudioDemo.vue'
 import BidConsultantDemo from '@/components/demos/BidConsultantDemo.vue'
 import EnvEmployeeMatrixDemo from '@/components/demos/EnvEmployeeMatrixDemo.vue'
+import EnvModuleGrid from '@/components/EnvModuleGrid.vue'
 import type { StudioView } from '@/data/contentStudioData'
 import type { StepKey } from '@/data/bidConsultantData'
 import type { EnvEmployeeId } from '@/data/envAgentData'
@@ -204,6 +205,9 @@ const startNode = computed(() => solution.value?.pipeline.find((s) => s.endpoint
 const endNode = computed(() => solution.value?.pipeline.filter((s) => s.endpoint).pop() ?? null)
 const mainStages = computed(() => solution.value?.pipeline.filter((s) => !s.endpoint) ?? [])
 
+// 环保方案：详情页链路区改为「8 大业务模块矩阵」平铺（无先后主流程）
+const isEnvAgent = computed(() => solution.value?.slug === 'env-agent')
+
 // 展开状态：同一时刻只展开一个节点/分支，默认展开第一个主节点（Research Agent，含并行分支）
 const expandedId = ref<string | null>(null)
 const toggleStage = (id: string) => {
@@ -267,7 +271,7 @@ const handleHandoff = () => {
         : isBid
           ? '投标链路 10 环节演示已全部完成'
           : isEnv
-            ? '环保 AI 员工矩阵全链路 10 环节演示已全部完成'
+            ? '环保业务模块演示已完成，可继续体验其他模块'
             : '科研链路 10 环节演示已全部完成',
     )
   }
@@ -405,7 +409,7 @@ const handleHandoff = () => {
         <!-- ============ 科研全流程（Agent 协作链路） ============ -->
         <section class="py-20 bg-slate-50/60 border-b border-slate-200/80 relative overflow-hidden">
           <div class="absolute bottom-0 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
-          <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div class="mx-auto px-4 sm:px-6 lg:px-8 relative z-10" :class="isEnvAgent ? 'max-w-7xl' : 'max-w-5xl'">
             <!-- Section Header -->
             <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
               <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider" :class="theme.badge">
@@ -418,8 +422,16 @@ const handleHandoff = () => {
               <p class="text-slate-600 text-sm sm:text-base">{{ pipelineDesc }}</p>
             </div>
 
-            <!-- 链路 -->
-            <div class="relative">
+            <!-- 环保业务模块矩阵（8 模块平铺；环保方案不使用通用链路渲染） -->
+            <EnvModuleGrid
+              v-if="isEnvAgent"
+              :stages="mainStages"
+              :demo-btn-class="theme.demoBtn"
+              @demo="openDemo"
+            />
+
+            <!-- 链路（通用科研全流程；环保方案 v-else 不渲染） -->
+            <div v-else class="relative">
               <!-- 主线 -->
               <div class="absolute left-[22px] lg:left-[27px] top-12 bottom-12 w-px bg-gradient-to-b" :class="theme.sectionLine" />
 

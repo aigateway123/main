@@ -1501,15 +1501,4 @@ export const NEXT_NODE_BY_ID: Record<string, string> = {
   'proposal-writer': 'health-check',
   'health-check': 'bid-report',
   'bid-report': '',
-  // 环保 AI 员工矩阵（业务闭环：获客 → 投标 → 合规 → 监测 → 危废 → 排污 → 报告 → 经营）
-  'env-start': 'env-sales',
-  'env-sales': 'env-bid',
-  'env-bid': 'env-compliance',
-  'env-compliance': 'env-monitoring',
-  'env-monitoring': 'env-waste',
-  'env-waste': 'env-permit',
-  'env-permit': 'env-reporter',
-  'env-reporter': 'env-operations',
-  'env-operations': 'env-end',
-  'env-end': '',
 }
