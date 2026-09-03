@@ -1521,6 +1521,63 @@ export const NODE_DEMOS: Record<string, NodeDemoEntry> = {
     title: '终点 · 情报到成单闭环',
     subtitle: '从需求输入到全网情报研判与商机跟进的获客闭环已就绪',
   },
+  // ---- AI 跨境电商选品情报员 · 选品情报工作台（ecom-intel） ----
+  'ecom-start': {
+    nodeId: 'ecom-start',
+    ready: true,
+    label: '打开工作台',
+    title: '起点 · 一句话选品需求',
+    subtitle: '输入市场/品类/预算与目标毛利，打开 AI 选品情报工作台，从需求输入页开始',
+  },
+  'ecom-execution': {
+    nodeId: 'ecom-execution',
+    ready: true,
+    label: '演示此环节',
+    title: 'AI 检索与多源采集 Agent · 全网扫描',
+    subtitle: '看 12 步检索流水线如何扫描 1,286 款在售品 × 382 竞品 × 12,846 条评论',
+  },
+  'ecom-market': {
+    nodeId: 'ecom-market',
+    ready: true,
+    label: '演示此环节',
+    title: '市场情报 Agent · 大盘透视',
+    subtitle: '看站点类目热度、机会指数与高潜子类目如何自动研判',
+  },
+  'ecom-competitor': {
+    nodeId: 'ecom-competitor',
+    ready: true,
+    label: '演示此环节',
+    title: '竞品雷达 Agent · 竞品拆解',
+    subtitle: '看竞品价格带/差评软肋对比如何产出错位打法弹药',
+  },
+  'ecom-consumer': {
+    nodeId: 'ecom-consumer',
+    ready: true,
+    label: '演示此环节',
+    title: '买家洞察 Agent · 需求提炼',
+    subtitle: '看 12,846 条差评如何归因成可执行的改良需求清单',
+  },
+  'ecom-supplier': {
+    nodeId: 'ecom-supplier',
+    ready: true,
+    label: '演示此环节',
+    title: '供应链 Agent · 工厂匹配',
+    subtitle: '看产业带供应商如何按认证/MOQ/交期/单价智能比对',
+  },
+  'ecom-profit': {
+    nodeId: 'ecom-profit',
+    ready: true,
+    label: '演示此环节',
+    title: '利润测算 Agent · 利润模型',
+    subtitle: '看全成本单件 P&L 与月销四档敏感度、年化 ROI 如何联动测算',
+  },
+  'ecom-report': {
+    nodeId: 'ecom-report',
+    ready: true,
+    label: '查看成果',
+    title: '终点 · 爆款选品报告',
+    subtitle: '从一句话需求到机会排行榜与立项行动清单的选品闭环已就绪',
+  },
 }
 
 // Demo 完成后流转到的下一节点 id（终点无下一节点）
@@ -1558,4 +1615,13 @@ export const NEXT_NODE_BY_ID: Record<string, string> = {
   'proposal-writer': 'health-check',
   'health-check': 'bid-report',
   'bid-report': '',
+  // AI 跨境电商选品情报员
+  'ecom-start': 'ecom-execution',
+  'ecom-execution': 'ecom-market',
+  'ecom-market': 'ecom-competitor',
+  'ecom-competitor': 'ecom-consumer',
+  'ecom-consumer': 'ecom-supplier',
+  'ecom-supplier': 'ecom-profit',
+  'ecom-profit': 'ecom-report',
+  'ecom-report': '',
 }

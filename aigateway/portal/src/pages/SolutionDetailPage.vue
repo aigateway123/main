@@ -19,10 +19,12 @@ import BidConsultantDemo from '@/components/demos/BidConsultantDemo.vue'
 import EnvEmployeeMatrixDemo from '@/components/demos/EnvEmployeeMatrixDemo.vue'
 import EnvModuleGrid from '@/components/EnvModuleGrid.vue'
 import TradeIntelDemo from '@/components/demos/TradeIntelDemo.vue'
+import EcomSelectionDemo from '@/components/demos/EcomSelectionDemo.vue'
 import type { StudioView } from '@/data/contentStudioData'
 import type { StepKey } from '@/data/bidConsultantData'
 import type { EnvEmployeeId } from '@/data/envAgentData'
 import type { TradeView } from '@/data/tradeIntelData'
+import type { EcomView } from '@/data/ecomIntelData'
 import { NODE_DEMOS, NEXT_NODE_BY_ID } from '@/data/nodeDemos'
 import {
   GraduationCap, ArrowLeft, ArrowRight, Layers, Users, Bot, Wallet,
@@ -31,7 +33,7 @@ import {
   Radar, ScanSearch, Wand2, MessageSquare, Gauge, Database,
   FileSearch, ShieldAlert, UserCheck, AlertTriangle, Calculator, TrendingUp, GitCompare, CheckSquare, FolderTree, Activity, Stethoscope,
   ShieldCheck, Trophy, FileCheck2, Recycle, Handshake,
-  Factory, Globe, Compass, Zap,
+  Factory, Globe, Compass, Zap, ShoppingBag, Swords,
 } from 'lucide-vue-next'
 import { solutions } from '@/data/solutions'
 import type { FunctionalComponent } from 'vue'
@@ -95,6 +97,9 @@ const iconMap: Record<string, FunctionalComponent> = {
   Globe,
   Compass,
   Zap,
+  // AI 跨境电商选品情报员节点 / 能力图标
+  ShoppingBag,
+  Swords,
 }
 
 // 解决方案主题 class（缺省回退高校科研蓝色主题）
@@ -225,6 +230,22 @@ const tradeInitialView = computed<TradeView>(() =>
   demoNodeId.value ? (TRADE_VIEW_BY_NODE[demoNodeId.value] ?? 'home') : 'home',
 )
 
+// ---- AI 跨境电商选品情报员：节点 → 选品情报工作台视图定位 ----
+const ECOM_VIEW_BY_NODE: Record<string, EcomView> = {
+  'ecom-start': 'home',
+  'ecom-execution': 'agent-executing',
+  'ecom-market': 'market-intel',
+  'ecom-competitor': 'competitor-analysis',
+  'ecom-consumer': 'consumer-insights',
+  'ecom-supplier': 'supplier-hub',
+  'ecom-profit': 'profit-calc',
+  'ecom-report': 'selection-report',
+}
+const isEcomIntel = computed(() => (demoNodeId.value ? demoNodeId.value in ECOM_VIEW_BY_NODE : false))
+const ecomInitialView = computed<EcomView>(() =>
+  demoNodeId.value ? (ECOM_VIEW_BY_NODE[demoNodeId.value] ?? 'home') : 'home',
+)
+
 const startNode = computed(() => solution.value?.pipeline.find((s) => s.endpoint) ?? null)
 const endNode = computed(() => solution.value?.pipeline.filter((s) => s.endpoint).pop() ?? null)
 const mainStages = computed(() => solution.value?.pipeline.filter((s) => !s.endpoint) ?? [])
@@ -280,6 +301,7 @@ const handleHandoff = () => {
   const isBid = !!nodeId && nodeId in BID_STEP_BY_NODE
   const isEnv = !!nodeId && nodeId in ENV_VIEW_BY_NODE
   const isTrade = !!nodeId && nodeId in TRADE_VIEW_BY_NODE
+  const isEcom = !!nodeId && nodeId in ECOM_VIEW_BY_NODE
   const nextId = nodeId ? NEXT_NODE_BY_ID[nodeId] : null
   demoOpen.value = false
   demoNodeId.value = null
@@ -299,7 +321,9 @@ const handleHandoff = () => {
             ? '环保业务模块演示已完成，可继续体验其他模块'
             : isTrade
               ? '商贸情报链路演示已全部完成'
-              : '科研链路 10 环节演示已全部完成',
+              : isEcom
+                ? '跨境电商选品链路演示已全部完成'
+                : '科研链路 10 环节演示已全部完成',
     )
   }
 }
@@ -756,7 +780,7 @@ const handleHandoff = () => {
       :title="demoEntry?.title ?? ''"
       :subtitle="demoEntry?.subtitle ?? ''"
       :icon="Lightbulb"
-      :wide="demoNodeId === 'research-agent' || demoNodeId === 'coding-agent' || demoNodeId === 'experiment-reproduction' || demoNodeId === 'data-agent' || demoNodeId === 'experiment-result' || demoNodeId === 'paper-reviewer' || demoNodeId === 'final-paper' || isContentStudio || isBidConsultant || isEnvMatrix || isTradeIntel"
+      :wide="demoNodeId === 'research-agent' || demoNodeId === 'coding-agent' || demoNodeId === 'experiment-reproduction' || demoNodeId === 'data-agent' || demoNodeId === 'experiment-result' || demoNodeId === 'paper-reviewer' || demoNodeId === 'final-paper' || isContentStudio || isBidConsultant || isEnvMatrix || isTradeIntel || isEcomIntel"
       @close="closeDemo"
     >
       <QuestionOriginDemo v-if="demoNodeId === 'research-question'" @handoff="handleHandoff" />
@@ -773,6 +797,7 @@ const handleHandoff = () => {
       <BidConsultantDemo v-else-if="isBidConsultant" :initial-step="bidInitialStep" @handoff="handleHandoff" />
       <EnvEmployeeMatrixDemo v-else-if="isEnvMatrix" :initial-employee="envInitialEmployee" @handoff="handleHandoff" />
       <TradeIntelDemo v-else-if="isTradeIntel" :initial-view="tradeInitialView" @handoff="handleHandoff" />
+      <EcomSelectionDemo v-else-if="isEcomIntel" :initial-view="ecomInitialView" @handoff="handleHandoff" />
     </NodeDemoModal>
 
     <!-- 轻提示 -->
