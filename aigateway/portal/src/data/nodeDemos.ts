@@ -1578,6 +1578,63 @@ export const NODE_DEMOS: Record<string, NodeDemoEntry> = {
     title: '终点 · 爆款选品报告',
     subtitle: '从一句话需求到机会排行榜与立项行动清单的选品闭环已就绪',
   },
+  // ---- AI 知识产权顾问 · 知识产权分析工作台（ip-counsel） ----
+  'ip-start': {
+    nodeId: 'ip-start',
+    ready: true,
+    label: '打开工作台',
+    title: '起点 · 一句话知产体检需求',
+    subtitle: '输入产品/目标市场与主要竞对，打开 AI 知识产权顾问工作台，从需求输入页开始',
+  },
+  'ip-execution': {
+    nodeId: 'ip-execution',
+    ready: true,
+    label: '演示此环节',
+    title: 'AI 多智能体协同 Agent · 全链路执行',
+    subtitle: '看 12 步知产体检流水线如何检索 12,846 件专利、识别风险与机会',
+  },
+  'ip-search': {
+    nodeId: 'ip-search',
+    ready: true,
+    label: '演示此环节',
+    title: '专利检索 Agent · 全球专利语义检索',
+    subtitle: '看全球专利库如何被语义检索并初筛 1,286 相关 / 328 高相关专利',
+  },
+  'ip-overview': {
+    nodeId: 'ip-overview',
+    ready: true,
+    label: '演示此环节',
+    title: '专利分析 Agent · 风险与机会总览',
+    subtitle: '看 8 项高风险与 17 个布局机会如何在总览页一屏透视',
+  },
+  'ip-competitor': {
+    nodeId: 'ip-competitor',
+    ready: true,
+    label: '演示此环节',
+    title: '竞品情报 Agent · 2D 攻防地图',
+    subtitle: '看 23 家竞品如何落位 8 大技术分支攻防矩阵并深潜 8 家重点企业',
+  },
+  'ip-risk': {
+    nodeId: 'ip-risk',
+    ready: true,
+    label: '演示此环节',
+    title: '侵权风险 Agent · 白盒权利要求比对',
+    subtitle: '看白盒技术特征比对如何锁定 8 项高危侵权与 FTO 建议',
+  },
+  'ip-layout': {
+    nodeId: 'ip-layout',
+    ready: true,
+    label: '演示此环节',
+    title: '布局建议 Agent · 四层金字塔布局',
+    subtitle: '看四层防御-进攻布局路线与 17 个专利空白机会的落地清单',
+  },
+  'ip-report': {
+    nodeId: 'ip-report',
+    ready: true,
+    label: '查看成果',
+    title: '终点 · 知识产权战略报告',
+    subtitle: '从一句话需求到给高管的知产风险地图与行动清单闭环已就绪',
+  },
 }
 
 // Demo 完成后流转到的下一节点 id（终点无下一节点）
@@ -1624,4 +1681,13 @@ export const NEXT_NODE_BY_ID: Record<string, string> = {
   'ecom-supplier': 'ecom-profit',
   'ecom-profit': 'ecom-report',
   'ecom-report': '',
+  // AI 知识产权顾问
+  'ip-start': 'ip-execution',
+  'ip-execution': 'ip-search',
+  'ip-search': 'ip-overview',
+  'ip-overview': 'ip-competitor',
+  'ip-competitor': 'ip-risk',
+  'ip-risk': 'ip-layout',
+  'ip-layout': 'ip-report',
+  'ip-report': '',
 }

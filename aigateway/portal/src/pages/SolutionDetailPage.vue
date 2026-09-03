@@ -20,11 +20,13 @@ import EnvEmployeeMatrixDemo from '@/components/demos/EnvEmployeeMatrixDemo.vue'
 import EnvModuleGrid from '@/components/EnvModuleGrid.vue'
 import TradeIntelDemo from '@/components/demos/TradeIntelDemo.vue'
 import EcomSelectionDemo from '@/components/demos/EcomSelectionDemo.vue'
+import IpCounselDemo from '@/components/demos/IpCounselDemo.vue'
 import type { StudioView } from '@/data/contentStudioData'
 import type { StepKey } from '@/data/bidConsultantData'
 import type { EnvEmployeeId } from '@/data/envAgentData'
 import type { TradeView } from '@/data/tradeIntelData'
 import type { EcomView } from '@/data/ecomIntelData'
+import type { IpView } from '@/data/ipIntelData'
 import { NODE_DEMOS, NEXT_NODE_BY_ID } from '@/data/nodeDemos'
 import {
   GraduationCap, ArrowLeft, ArrowRight, Layers, Users, Bot, Wallet,
@@ -34,6 +36,7 @@ import {
   FileSearch, ShieldAlert, UserCheck, AlertTriangle, Calculator, TrendingUp, GitCompare, CheckSquare, FolderTree, Activity, Stethoscope,
   ShieldCheck, Trophy, FileCheck2, Recycle, Handshake,
   Factory, Globe, Compass, Zap, ShoppingBag, Swords,
+  Scale, Search, Building2,
 } from 'lucide-vue-next'
 import { solutions } from '@/data/solutions'
 import type { FunctionalComponent } from 'vue'
@@ -100,6 +103,10 @@ const iconMap: Record<string, FunctionalComponent> = {
   // AI 跨境电商选品情报员节点 / 能力图标
   ShoppingBag,
   Swords,
+  // AI 知识产权顾问节点 / 能力图标
+  Scale,
+  Search,
+  Building2,
 }
 
 // 解决方案主题 class（缺省回退高校科研蓝色主题）
@@ -246,6 +253,22 @@ const ecomInitialView = computed<EcomView>(() =>
   demoNodeId.value ? (ECOM_VIEW_BY_NODE[demoNodeId.value] ?? 'home') : 'home',
 )
 
+// ---- AI 知识产权顾问：节点 → 知产分析工作台视图定位 ----
+const IP_VIEW_BY_NODE: Record<string, IpView> = {
+  'ip-start': 'home',
+  'ip-execution': 'workflow',
+  'ip-search': 'search',
+  'ip-overview': 'overview',
+  'ip-competitor': 'competitors',
+  'ip-risk': 'risks',
+  'ip-layout': 'layout',
+  'ip-report': 'report',
+}
+const isIpIntel = computed(() => (demoNodeId.value ? demoNodeId.value in IP_VIEW_BY_NODE : false))
+const ipInitialView = computed<IpView>(() =>
+  demoNodeId.value ? (IP_VIEW_BY_NODE[demoNodeId.value] ?? 'home') : 'home',
+)
+
 const startNode = computed(() => solution.value?.pipeline.find((s) => s.endpoint) ?? null)
 const endNode = computed(() => solution.value?.pipeline.filter((s) => s.endpoint).pop() ?? null)
 const mainStages = computed(() => solution.value?.pipeline.filter((s) => !s.endpoint) ?? [])
@@ -302,6 +325,7 @@ const handleHandoff = () => {
   const isEnv = !!nodeId && nodeId in ENV_VIEW_BY_NODE
   const isTrade = !!nodeId && nodeId in TRADE_VIEW_BY_NODE
   const isEcom = !!nodeId && nodeId in ECOM_VIEW_BY_NODE
+  const isIp = !!nodeId && nodeId in IP_VIEW_BY_NODE
   const nextId = nodeId ? NEXT_NODE_BY_ID[nodeId] : null
   demoOpen.value = false
   demoNodeId.value = null
@@ -323,7 +347,9 @@ const handleHandoff = () => {
               ? '商贸情报链路演示已全部完成'
               : isEcom
                 ? '跨境电商选品链路演示已全部完成'
-                : '科研链路 10 环节演示已全部完成',
+                : isIp
+                  ? '知识产权链路演示已全部完成'
+                  : '科研链路 10 环节演示已全部完成',
     )
   }
 }
@@ -780,7 +806,7 @@ const handleHandoff = () => {
       :title="demoEntry?.title ?? ''"
       :subtitle="demoEntry?.subtitle ?? ''"
       :icon="Lightbulb"
-      :wide="demoNodeId === 'research-agent' || demoNodeId === 'coding-agent' || demoNodeId === 'experiment-reproduction' || demoNodeId === 'data-agent' || demoNodeId === 'experiment-result' || demoNodeId === 'paper-reviewer' || demoNodeId === 'final-paper' || isContentStudio || isBidConsultant || isEnvMatrix || isTradeIntel || isEcomIntel"
+      :wide="demoNodeId === 'research-agent' || demoNodeId === 'coding-agent' || demoNodeId === 'experiment-reproduction' || demoNodeId === 'data-agent' || demoNodeId === 'experiment-result' || demoNodeId === 'paper-reviewer' || demoNodeId === 'final-paper' || isContentStudio || isBidConsultant || isEnvMatrix || isTradeIntel || isEcomIntel || isIpIntel"
       @close="closeDemo"
     >
       <QuestionOriginDemo v-if="demoNodeId === 'research-question'" @handoff="handleHandoff" />
@@ -798,6 +824,7 @@ const handleHandoff = () => {
       <EnvEmployeeMatrixDemo v-else-if="isEnvMatrix" :initial-employee="envInitialEmployee" @handoff="handleHandoff" />
       <TradeIntelDemo v-else-if="isTradeIntel" :initial-view="tradeInitialView" @handoff="handleHandoff" />
       <EcomSelectionDemo v-else-if="isEcomIntel" :initial-view="ecomInitialView" @handoff="handleHandoff" />
+      <IpCounselDemo v-else-if="isIpIntel" :initial-view="ipInitialView" @handoff="handleHandoff" />
     </NodeDemoModal>
 
     <!-- 轻提示 -->
