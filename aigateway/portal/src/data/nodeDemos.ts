@@ -1635,6 +1635,77 @@ export const NODE_DEMOS: Record<string, NodeDemoEntry> = {
     title: '终点 · 知识产权战略报告',
     subtitle: '从一句话需求到给高管的知产风险地图与行动清单闭环已就绪',
   },
+  // ---- AI 法务员工 · 企业法律事务工作台（legal-employee） ----
+  'legal-start': {
+    nodeId: 'legal-start',
+    ready: true,
+    label: '打开工作台',
+    title: '起点 · 收案派单',
+    subtitle: '一句话/一份文件，合同初审 / 合规扫描 / 法规检索 / 知识问答四类法务任务即开即用',
+  },
+  'legal-execution': {
+    nodeId: 'legal-execution',
+    ready: true,
+    label: '演示此环节',
+    title: '合同初审 Agent · AI 初审执行',
+    subtitle: '看《设备采购合同》13 步条款级扫描推理如何自动完成并生成风险结论',
+  },
+  'legal-overview': {
+    nodeId: 'legal-overview',
+    ready: true,
+    label: '演示此环节',
+    title: '审查结论 Agent · 合同健康分与风险分布',
+    subtitle: '看审查总览如何用健康分、风险分级与关键关注点一屏呈现审查结论',
+  },
+  'legal-risk': {
+    nodeId: 'legal-risk',
+    ready: true,
+    label: '演示此环节',
+    title: '风险研判 Agent · P0/P1 白盒研判',
+    subtitle: '看逐条高风险的原条款 / AI 分析 / 影响点与示范条款白盒研判',
+  },
+  'legal-clause': {
+    nodeId: 'legal-clause',
+    ready: true,
+    label: '演示此环节',
+    title: '条款改写 Agent · 示范条款对照',
+    subtitle: '看高风险条款的原文 vs AI 建议条款逐条对照与采纳操作',
+  },
+  'legal-ops': {
+    nodeId: 'legal-ops',
+    ready: true,
+    label: '演示此环节',
+    title: '履约监控 Agent · 合同库到期预警',
+    subtitle: '看 1,286 份合同库如何按类型 / 状态 / 风险筛选并预警到期续约',
+  },
+  'legal-regulation': {
+    nodeId: 'legal-regulation',
+    ready: true,
+    label: '演示此环节',
+    title: '法规研判 Agent · 多国法规检索',
+    subtitle: '看业务痛点如何映射相关法条、关键条款与 AI 通俗解读及落地步骤',
+  },
+  'legal-compliance': {
+    nodeId: 'legal-compliance',
+    ready: true,
+    label: '演示此环节',
+    title: '合规排查 Agent · 8 大维度风险地图',
+    subtitle: '看企业合规画像如何按 8 大合规维度评分并输出 P0/P1 整改计划',
+  },
+  'legal-taskboard': {
+    nodeId: 'legal-taskboard',
+    ready: true,
+    label: '演示此环节',
+    title: '任务协同 Agent · 任务与待办归档',
+    subtitle: '看我的任务 / 待处理合同 / 历史记录如何统一协同流转',
+  },
+  'legal-report': {
+    nodeId: 'legal-report',
+    ready: true,
+    label: '查看成果',
+    title: '终点 · 法律报告归档',
+    subtitle: '从收案到法律报告归档与知识库沉淀的法务闭环已就绪',
+  },
 }
 
 // Demo 完成后流转到的下一节点 id（终点无下一节点）
@@ -1690,4 +1761,15 @@ export const NEXT_NODE_BY_ID: Record<string, string> = {
   'ip-risk': 'ip-layout',
   'ip-layout': 'ip-report',
   'ip-report': '',
+  // AI 法务员工
+  'legal-start': 'legal-execution',
+  'legal-execution': 'legal-overview',
+  'legal-overview': 'legal-risk',
+  'legal-risk': 'legal-clause',
+  'legal-clause': 'legal-ops',
+  'legal-ops': 'legal-regulation',
+  'legal-regulation': 'legal-compliance',
+  'legal-compliance': 'legal-taskboard',
+  'legal-taskboard': 'legal-report',
+  'legal-report': '',
 }

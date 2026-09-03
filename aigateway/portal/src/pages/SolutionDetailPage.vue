@@ -21,12 +21,14 @@ import EnvModuleGrid from '@/components/EnvModuleGrid.vue'
 import TradeIntelDemo from '@/components/demos/TradeIntelDemo.vue'
 import EcomSelectionDemo from '@/components/demos/EcomSelectionDemo.vue'
 import IpCounselDemo from '@/components/demos/IpCounselDemo.vue'
+import LegalEmployeeDemo from '@/components/demos/LegalEmployeeDemo.vue'
 import type { StudioView } from '@/data/contentStudioData'
 import type { StepKey } from '@/data/bidConsultantData'
 import type { EnvEmployeeId } from '@/data/envAgentData'
 import type { TradeView } from '@/data/tradeIntelData'
 import type { EcomView } from '@/data/ecomIntelData'
 import type { IpView } from '@/data/ipIntelData'
+import type { LegalView, ReviewDeepLink } from '@/data/legalIntelData'
 import { NODE_DEMOS, NEXT_NODE_BY_ID } from '@/data/nodeDemos'
 import {
   GraduationCap, ArrowLeft, ArrowRight, Layers, Users, Bot, Wallet,
@@ -37,6 +39,7 @@ import {
   ShieldCheck, Trophy, FileCheck2, Recycle, Handshake,
   Factory, Globe, Compass, Zap, ShoppingBag, Swords,
   Scale, Search, Building2,
+  FilePlus2, FileEdit, FolderKanban, Landmark, ListTodo,
 } from 'lucide-vue-next'
 import { solutions } from '@/data/solutions'
 import type { FunctionalComponent } from 'vue'
@@ -107,6 +110,12 @@ const iconMap: Record<string, FunctionalComponent> = {
   Scale,
   Search,
   Building2,
+  // AI 法务员工节点 / 能力图标
+  FilePlus2,
+  FileEdit,
+  FolderKanban,
+  Landmark,
+  ListTodo,
 }
 
 // 解决方案主题 class（缺省回退高校科研蓝色主题）
@@ -269,6 +278,33 @@ const ipInitialView = computed<IpView>(() =>
   demoNodeId.value ? (IP_VIEW_BY_NODE[demoNodeId.value] ?? 'home') : 'home',
 )
 
+// ---- AI 法务员工：节点 → 法务工作台视图定位 + 合同审查深链 ----
+const LEGAL_VIEW_BY_NODE: Record<string, LegalView> = {
+  'legal-start': 'home',
+  'legal-execution': 'contract-review',
+  'legal-overview': 'contract-review',
+  'legal-risk': 'contract-review',
+  'legal-clause': 'contract-review',
+  'legal-ops': 'contract-management',
+  'legal-regulation': 'regulation-search',
+  'legal-compliance': 'enterprise-compliance',
+  'legal-taskboard': 'my-tasks',
+  'legal-report': 'legal-reports',
+}
+const isLegal = computed(() => (demoNodeId.value ? demoNodeId.value in LEGAL_VIEW_BY_NODE : false))
+const legalInitialView = computed<LegalView>(() =>
+  demoNodeId.value ? (LEGAL_VIEW_BY_NODE[demoNodeId.value] ?? 'home') : 'home',
+)
+const legalReviewDeepLink = computed<ReviewDeepLink | undefined>(() => {
+  const id = demoNodeId.value
+  if (!id) return undefined
+  if (id === 'legal-execution') return { autoRun: true, stage: 'running' }
+  if (id === 'legal-overview') return { stage: 'result', tab: 'overview' }
+  if (id === 'legal-risk') return { stage: 'result', tab: 'risks', openFirstHighRisk: true }
+  if (id === 'legal-clause') return { stage: 'result', tab: 'comparisons' }
+  return undefined
+})
+
 const startNode = computed(() => solution.value?.pipeline.find((s) => s.endpoint) ?? null)
 const endNode = computed(() => solution.value?.pipeline.filter((s) => s.endpoint).pop() ?? null)
 const mainStages = computed(() => solution.value?.pipeline.filter((s) => !s.endpoint) ?? [])
@@ -326,6 +362,7 @@ const handleHandoff = () => {
   const isTrade = !!nodeId && nodeId in TRADE_VIEW_BY_NODE
   const isEcom = !!nodeId && nodeId in ECOM_VIEW_BY_NODE
   const isIp = !!nodeId && nodeId in IP_VIEW_BY_NODE
+  const isLegal = !!nodeId && nodeId in LEGAL_VIEW_BY_NODE
   const nextId = nodeId ? NEXT_NODE_BY_ID[nodeId] : null
   demoOpen.value = false
   demoNodeId.value = null
@@ -349,7 +386,9 @@ const handleHandoff = () => {
                 ? '跨境电商选品链路演示已全部完成'
                 : isIp
                   ? '知识产权链路演示已全部完成'
-                  : '科研链路 10 环节演示已全部完成',
+                  : isLegal
+                    ? '企业法务链路演示已全部完成'
+                    : '科研链路 10 环节演示已全部完成',
     )
   }
 }
@@ -806,7 +845,7 @@ const handleHandoff = () => {
       :title="demoEntry?.title ?? ''"
       :subtitle="demoEntry?.subtitle ?? ''"
       :icon="Lightbulb"
-      :wide="demoNodeId === 'research-agent' || demoNodeId === 'coding-agent' || demoNodeId === 'experiment-reproduction' || demoNodeId === 'data-agent' || demoNodeId === 'experiment-result' || demoNodeId === 'paper-reviewer' || demoNodeId === 'final-paper' || isContentStudio || isBidConsultant || isEnvMatrix || isTradeIntel || isEcomIntel || isIpIntel"
+      :wide="demoNodeId === 'research-agent' || demoNodeId === 'coding-agent' || demoNodeId === 'experiment-reproduction' || demoNodeId === 'data-agent' || demoNodeId === 'experiment-result' || demoNodeId === 'paper-reviewer' || demoNodeId === 'final-paper' || isContentStudio || isBidConsultant || isEnvMatrix || isTradeIntel || isEcomIntel || isIpIntel || isLegal"
       @close="closeDemo"
     >
       <QuestionOriginDemo v-if="demoNodeId === 'research-question'" @handoff="handleHandoff" />
@@ -825,6 +864,12 @@ const handleHandoff = () => {
       <TradeIntelDemo v-else-if="isTradeIntel" :initial-view="tradeInitialView" @handoff="handleHandoff" />
       <EcomSelectionDemo v-else-if="isEcomIntel" :initial-view="ecomInitialView" @handoff="handleHandoff" />
       <IpCounselDemo v-else-if="isIpIntel" :initial-view="ipInitialView" @handoff="handleHandoff" />
+      <LegalEmployeeDemo
+        v-else-if="isLegal"
+        :initial-view="legalInitialView"
+        :initial-review="legalReviewDeepLink"
+        @handoff="handleHandoff"
+      />
     </NodeDemoModal>
 
     <!-- 轻提示 -->
