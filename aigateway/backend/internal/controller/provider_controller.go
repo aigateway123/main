@@ -47,6 +47,31 @@ func (c *ProviderController) HandleCreate(w http.ResponseWriter, r *http.Request
 	})
 }
 
+// HandleTestEndpoint 端点连通性探测（不落库），供 Admin 表单即时验证。
+func (c *ProviderController) HandleTestEndpoint(w http.ResponseWriter, r *http.Request) {
+	var req dto.TestEndpointRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "VALID001", "invalid request body")
+		return
+	}
+
+	result, err := c.svc.TestEndpoint(r.Context(), &req)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrInvalidArgument):
+			writeError(w, http.StatusBadRequest, "VALID001", err.Error())
+		default:
+			c.logger.Error("test provider endpoint failed", "error", err)
+			writeError(w, http.StatusInternalServerError, "GATEWAY001", "test endpoint failed")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, types.APIResponse[*dto.TestEndpointResponse]{
+		Code: 0, Message: "success", Data: result,
+	})
+}
+
 func (c *ProviderController) HandleList(w http.ResponseWriter, r *http.Request) {
 	items, err := c.svc.List(r.Context())
 	if err != nil {

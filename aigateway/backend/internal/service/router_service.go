@@ -113,11 +113,15 @@ func endpointForProtocol(p *entity.Provider, protocol provider.ChatProtocol) (ba
 		if strings.TrimSpace(p.BaseURL) == "" {
 			return "", "", "", "", false
 		}
+		authType = p.AuthType
+		if authType == "" {
+			authType = "bearer"
+		}
 		apiPath = p.APIPath
 		if apiPath == "" {
 			apiPath = "/v1/chat/completions"
 		}
-		return strings.TrimRight(p.BaseURL, "/"), apiPath, p.APIKeyRef, "bearer", true
+		return strings.TrimRight(p.BaseURL, "/"), apiPath, p.APIKeyRef, authType, true
 	}
 }
 
@@ -224,7 +228,11 @@ func (s *RouterService) CallProvider(ctx context.Context, target *ProviderTarget
 			req.Header.Set(k, v)
 		}
 	default:
-		req.Header.Set("Authorization", "Bearer "+target.ProviderAPIKey)
+		if target.AuthType == "api_key" {
+			req.Header.Set("x-api-key", target.ProviderAPIKey)
+		} else {
+			req.Header.Set("Authorization", "Bearer "+target.ProviderAPIKey)
+		}
 	}
 
 	return s.httpClient.Do(req)

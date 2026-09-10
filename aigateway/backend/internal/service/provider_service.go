@@ -3,21 +3,31 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
 	"strings"
+	"time"
 
 	"aigateway/backend/internal/dto"
 	"aigateway/backend/internal/entity"
+	"aigateway/backend/internal/provider"
 	"aigateway/backend/internal/repository"
 )
 
 type ProviderService struct {
-	repo   repository.ProviderRepository
-	logger *slog.Logger
+	repo       repository.ProviderRepository
+	logger     *slog.Logger
+	httpClient *http.Client
 }
 
 func NewProviderService(repo repository.ProviderRepository, logger *slog.Logger) *ProviderService {
-	return &ProviderService{repo: repo, logger: logger}
+	return &ProviderService{
+		repo:       repo,
+		logger:     logger,
+		httpClient: &http.Client{Timeout: 6 * time.Second},
+	}
 }
 
 func (s *ProviderService) Create(ctx context.Context, req *dto.CreateProviderRequest) (*dto.ProviderResponse, error) {
@@ -122,6 +132,89 @@ func (s *ProviderService) Update(ctx context.Context, id int64, req *dto.UpdateP
 	return toProviderResponse(p), nil
 }
 
+// TestEndpoint 对指定端点发起一次轻量探测（GET，无请求体，不消耗 token），
+// 用于确认网络可达性与认证是否被接受；不落库。
+// 判定规则：网络错误/超时 → reachable=false；HTTP 401/403 → reachable=true 且 authOK=false；
+// 其他任意状态码 → reachable=true 且 authOK=true。
+func (s *ProviderService) TestEndpoint(ctx context.Context, req *dto.TestEndpointRequest) (*dto.TestEndpointResponse, error) {
+	baseURL := strings.TrimSpace(req.BaseURL)
+	if baseURL == "" {
+		return nil, &ValidationError{Message: "base url is required"}
+	}
+	if !strings.HasPrefix(baseURL, "http://") && !strings.HasPrefix(baseURL, "https://") {
+		return nil, &ValidationError{Message: "base url must start with http:// or https://"}
+	}
+
+	isAnthropic := strings.EqualFold(strings.TrimSpace(req.Protocol), string(provider.ProtocolAnthropic))
+
+	apiPath := strings.TrimSpace(req.APIPath)
+	if apiPath == "" {
+		if isAnthropic {
+			apiPath = "/v1/messages"
+		} else {
+			apiPath = "/v1/chat/completions"
+		}
+	}
+
+	authType := strings.TrimSpace(req.AuthType)
+	if authType == "" {
+		if isAnthropic {
+			authType = "api_key"
+		} else {
+			authType = "bearer"
+		}
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(baseURL, "/")+apiPath, nil)
+	if err != nil {
+		return &dto.TestEndpointResponse{Reachable: false, AuthOK: false, Message: err.Error()}, nil
+	}
+
+	apiKey := strings.TrimSpace(req.APIKeyRef)
+	if authType == "api_key" {
+		httpReq.Header.Set("x-api-key", apiKey)
+	} else {
+		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
+	}
+	if isAnthropic {
+		for k, v := range provider.AnthropicHeaders() {
+			httpReq.Header.Set(k, v)
+		}
+	}
+
+	start := time.Now()
+	resp, err := s.httpClient.Do(httpReq)
+	latencyMs := time.Since(start).Milliseconds()
+	if err != nil {
+		return &dto.TestEndpointResponse{
+			Reachable: false,
+			AuthOK:    false,
+			LatencyMs: latencyMs,
+			Message:   err.Error(),
+		}, nil
+	}
+	defer resp.Body.Close()
+	_, _ = io.Copy(io.Discard, resp.Body)
+
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		return &dto.TestEndpointResponse{
+			Reachable:  true,
+			AuthOK:     false,
+			StatusCode: resp.StatusCode,
+			LatencyMs:  latencyMs,
+			Message:    fmt.Sprintf("认证失败（HTTP %d），请检查 API Key 与认证方式", resp.StatusCode),
+		}, nil
+	}
+
+	return &dto.TestEndpointResponse{
+		Reachable:  true,
+		AuthOK:     true,
+		StatusCode: resp.StatusCode,
+		LatencyMs:  latencyMs,
+		Message:    fmt.Sprintf("端点可达（HTTP %d）", resp.StatusCode),
+	}, nil
+}
+
 // normalizeProviderEndpoints 归一化双协议端点配置：
 // base_url 系列列 = OpenAI 端点；anthropic_* = Anthropic 端点。
 // protocol_type 仅作主协议标识，由端点是否存在自动推导，不再驱动路由。
@@ -133,6 +226,7 @@ func normalizeProviderEndpoints(p *entity.Provider) error {
 	p.AnthropicAPIPath = strings.TrimSpace(p.AnthropicAPIPath)
 	p.AnthropicAPIKeyRef = strings.TrimSpace(p.AnthropicAPIKeyRef)
 	p.AnthropicAuthType = strings.TrimSpace(p.AnthropicAuthType)
+	p.AuthType = strings.TrimSpace(p.AuthType)
 
 	if p.BaseURL == "" && p.AnthropicBaseURL == "" {
 		return &ValidationError{Message: "at least one protocol endpoint (OpenAI or Anthropic) is required"}
@@ -150,7 +244,11 @@ func normalizeProviderEndpoints(p *entity.Provider) error {
 		}
 	}
 	if p.AuthType == "" {
-		p.AuthType = "api_key"
+		if p.BaseURL != "" {
+			p.AuthType = "bearer" // OpenAI 兼容端点默认 Bearer
+		} else {
+			p.AuthType = "api_key"
+		}
 	}
 
 	if p.BaseURL != "" {

@@ -58,3 +58,20 @@ type ProviderResponse struct {
 	CreatedAt string `json:"createdAt"`
 	UpdatedAt string `json:"updatedAt"`
 }
+
+// TestEndpointRequest 端点连通性探测请求（不落库，供 Admin 表单即时测试）。
+type TestEndpointRequest struct {
+	Protocol  string `json:"protocol"` // openai | anthropic，空视为 openai
+	BaseURL   string `json:"baseUrl"`
+	APIPath   string `json:"apiPath"`
+	AuthType  string `json:"authType"`
+	APIKeyRef string `json:"apiKeyRef"`
+}
+
+type TestEndpointResponse struct {
+	Reachable  bool   `json:"reachable"`
+	AuthOK     bool   `json:"authOk"`
+	StatusCode int    `json:"statusCode"`
+	LatencyMs  int64  `json:"latencyMs"`
+	Message    string `json:"message"`
+}

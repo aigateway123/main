@@ -177,6 +177,7 @@ func main() {
 	protectedMux.HandleFunc("GET /api/v1/providers/{id}", providerCtrl.HandleGetByID)
 	protectedMux.HandleFunc("PUT /api/v1/providers/{id}", providerCtrl.HandleUpdate)
 	protectedMux.HandleFunc("DELETE /api/v1/providers/{id}", providerCtrl.HandleDelete)
+	protectedMux.HandleFunc("POST /api/v1/providers/test-endpoint", providerCtrl.HandleTestEndpoint)
 
 	protectedMux.HandleFunc("POST /api/v1/models", modelCtrl.HandleCreate)
 	protectedMux.HandleFunc("GET /api/v1/models", modelCtrl.HandleList)
