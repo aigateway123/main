@@ -15,6 +15,8 @@
 # 注意：down.sql 会删除 anthropic_* 四列并清理 schema_migrations 记录（保证可重新升级）。
 #       已搬运的端点数据不会自动恢复，必须依赖迁移前备份表。
 #       reupgrade 模式会按备份表形态自动选择恢复方式（迁移前备份从 base_url 恢复）。
+#       本脚本只回滚迁移 014；迁移 015（auth_type 默认值与存量修正）不回滚 —— 它无结构变更与
+#       数据丢失，旧代码硬编码 Bearer 完全忽略 auth_type，新旧两种回滚场景下保留均无害。
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
@@ -42,7 +44,7 @@ rb_bak="$BACKUP_TABLE"
 
 # ---------- 1) 执行 down.sql ----------
 
-down_file="$(migration_file down)"
+down_file="$(migration_file "$MIGRATION_014" down)"
 info "执行 $(basename "$down_file") …"
 pq_stdin < "$down_file"
 ok "已删除 anthropic_* 四列并清理 schema_migrations 记录"

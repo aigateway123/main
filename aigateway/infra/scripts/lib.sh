@@ -65,17 +65,22 @@ dc() {
 
 # ---------- 迁移文件 ----------
 
-migration_file() { # $1 = up | down
-  local matches=("$REPO_ROOT"/backend/migrations/*_add_provider_anthropic_endpoint."$1".sql)
-  [[ -f "${matches[0]}" ]] || die "未找到迁移文件 *_add_provider_anthropic_endpoint.$1.sql"
-  printf '%s' "${matches[0]}"
+# 本次发布涉及的迁移（基名，不含 .up/.down 后缀）；按文件名升序执行
+MIGRATIONS=(
+  "20260910_014_add_provider_anthropic_endpoint"
+  "20260911_015_fix_provider_openai_auth_type"
+)
+MIGRATION_014="${MIGRATIONS[0]}"
+
+migration_file() { # $1 = 迁移基名  $2 = up | down
+  local f="$REPO_ROOT/backend/migrations/$1.$2.sql"
+  [[ -f "$f" ]] || die "未找到迁移文件：$1.$2.sql"
+  printf '%s' "$f"
 }
 
 # 迁移版本号 = 文件名首个 '_' 之前的部分（与 database.RunMigrations 的取值规则一致）
-migration_version() {
-  local base
-  base="$(basename "$(migration_file up)")"
-  printf '%s' "${base%%_*}"
+migration_version() { # $1 = 迁移基名
+  printf '%s' "${1%%_*}"
 }
 
 # ---------- 数据库访问 ----------
@@ -150,12 +155,26 @@ wait_gateway_healthy() {
 # $1 = 迁移前备份表名（可为空，为空则跳过存量对比）
 verify_migration() {
   local bak="${1:-}"
-  local v fail=0 c
-  v="$(migration_version)"
+  local fail=0 c m v
   local cols=(anthropic_base_url anthropic_api_path anthropic_api_key_ref anthropic_auth_type)
+  local versions=()
 
-  info "=== 迁移核对（version=$v）==="
+  for m in "${MIGRATIONS[@]}"; do
+    versions+=("$(migration_version "$m")")
+  done
 
+  info "=== 迁移核对（versions=${versions[*]}）==="
+
+  # 通用：版本记录必须存在
+  for v in "${versions[@]}"; do
+    if [[ "$(pq "SELECT count(*) FROM schema_migrations WHERE version='$v'")" == "1" ]]; then
+      ok "schema_migrations 已记录 $v"
+    else
+      warn "schema_migrations 缺少 $v"; fail=1
+    fi
+  done
+
+  # 014 专属：anthropic_* 四列存在
   for c in "${cols[@]}"; do
     if column_exists providers "$c"; then
       ok "列存在：providers.$c"
@@ -164,10 +183,22 @@ verify_migration() {
     fi
   done
 
-  if [[ "$(pq "SELECT count(*) FROM schema_migrations WHERE version='$v'")" == "1" ]]; then
-    ok "schema_migrations 已记录 $v"
+  # 015 专属：auth_type 语义已切到 OpenAI 端点认证方式
+  local default_auth stale_rows
+  default_auth="$(pq "SELECT column_default FROM information_schema.columns
+                      WHERE table_name='providers' AND column_name='auth_type'")"
+  if [[ "$default_auth" == *"bearer"* ]]; then
+    ok "providers.auth_type 列默认值为 bearer"
   else
-    warn "schema_migrations 缺少 $v"; fail=1
+    warn "providers.auth_type 列默认值为 ${default_auth:-<空>}，期望 bearer"; fail=1
+  fi
+
+  stale_rows="$(pq "SELECT count(*) FROM providers
+                   WHERE protocol_type = 'openai' AND base_url <> '' AND auth_type = 'api_key'")"
+  if [[ "$stale_rows" == "0" ]]; then
+    ok "存量 OpenAI 端点认证方式已修正为 bearer"
+  else
+    warn "仍有 $stale_rows 行 OpenAI 端点 auth_type=api_key（会以 x-api-key 认证导致 401）"; fail=1
   fi
 
   if [[ -n "$bak" ]] && table_exists "$bak"; then

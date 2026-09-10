@@ -6,7 +6,7 @@
 #   2) 迁移前备份    providers → 库内 providers_bak_<时间戳> + 宿主机 SQL 文件
 #   3) 拉取代码      git pull --ff-only
 #   4) 重建并启动    docker compose up -d --build（迁移随 gateway 启动自动执行）
-#   5) 迁移后核对    anthropic_* 列 / schema_migrations / 存量端点搬运对比
+#   5) 迁移后核对    014：anthropic_* 列 / 存量端点搬运；015：auth_type 默认值与存量修正
 #   6) 健康检查
 #
 # 用法：
@@ -72,7 +72,7 @@ fi
 
 # ---------- 4) 重建并启动 ----------
 
-info "重建并启动服务（迁移 014 随 gateway 启动自动执行）…"
+info "重建并启动服务（迁移 014 / 015 随 gateway 启动自动执行）…"
 dc up -d --build
 
 # ---------- 5)(6) 核对与健康检查 ----------
