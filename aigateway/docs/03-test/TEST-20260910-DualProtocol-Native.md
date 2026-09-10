@@ -32,6 +32,9 @@
 | 12 | `POST /v1/messages/count_tokens` | 估算 + 参数校验 |
 | 13 | 真实进程端到端（curl） | 配置校验、双协议路由、出站头与请求体、严格模式、回归 |
 | 14 | 真实 PostgreSQL 迁移（up + down） | 存量 anthropic Provider 数据搬运、列默认值、外键完整性、down 回滚与重新升级 |
+| 15 | v1.6.1 认证方式可配置 | OpenAI 端点 `auth_type` = `bearer` / `api_key` 时出站头分别为 `Authorization` / `x-api-key`；空值回退 `bearer`；新建 Provider 默认值按端点推导 |
+| 16 | v1.6.1 端点连通性测试 | `POST /api/v1/providers/test-endpoint` 四档判定（200 / 401 / 404 / 连接拒绝）、认证头传递、非法 Base URL 400 |
+| 17 | v1.6.1 真实 PostgreSQL 迁移 015 | 列默认值 `api_key` → `bearer`、存量 OpenAI 端点修正、down 回退、重新升级 |
 
 ---
 
@@ -134,6 +137,52 @@
 | 2 | Minor | `up.sql` 非幂等（`ADD COLUMN` 无 `IF NOT EXISTS`）；若处于「列存在但无版本记录」的中间态，迁移器重启将报 `column "anthropic_base_url" ... already exists` 并 `os.Exit(1)` | ⚠️ 已实测复现，未改动 up 脚本；运维须避免手工删记录，回滚一律走 `down.sql` |
 | 3 | Minor | 迁移文件名 `20260910_014_*` 的 version 前缀解析为 `20260910`（同 013 的 `20260811` 风格），**同日第二个迁移会被静默跳过**：实测放入 `20260910_015_noop.up.sql` 后重启，日志仅 `all migrations up to date`，探针表未创建 | ⚠️ 未改动文件名（避免影响已达成的 013 命名）；建议后续迁移改用 `YYYYMMDDNNNN_` 形式（如 `202609100014_`） |
 
+### 3.5 v1.6.1 增强验证（2026-09-10 实测）
+
+**（1）认证方式可配置 — 单测**
+
+新增 [provider_service_test.go](../../backend/internal/service/provider_service_test.go) 与 [router_service_test.go](../../backend/internal/service/router_service_test.go)：
+
+| 用例 | 断言 | 结果 |
+|------|------|:----:|
+| `TestNormalizeProviderEndpointsAuthTypeDefault` | 仅 OpenAI 端点 + 空 `authType` → `bearer`；仅 Anthropic 端点 → `api_key`；双端点 → `bearer`；显式 `api_key` 不被覆盖 | ✅ |
+| `TestNormalizeProviderEndpointsRequiresOneEndpoint` | 两种端点都空 → `ErrInvalidArgument`（HTTP 400 `VALID001`） | ✅ |
+| `TestEndpointForProtocolOpenAIAuthType` | OpenAI 分支 `authType` = `bearer` / `api_key` / 空→`bearer` | ✅ |
+| `TestEndpointForProtocolOpenAIMissingEndpoint` | 未配置 OpenAI 端点 → `ok=false` | ✅ |
+| `TestCallProviderOpenAIAuthHeaders` | `authType=api_key` → 头含 `x-api-key` 且**不含** `Authorization`；`bearer` → 反之 | ✅ |
+
+**（2）端点连通性测试 — 判定表与单测**
+
+| 情况 | reachable | authOk | message | 实测 |
+|------|:---------:|:------:|---------|:----:|
+| 网络错误 / 超时 | false | false | 原始错误（如 `dial tcp ...: connect: connection refused`） | ✅ `TestTestEndpointReachability/连接被拒绝` |
+| HTTP 401 / 403 | true | false | `认证失败（HTTP 401），请检查 API Key 与认证方式` | ✅ `TestTestEndpointReachability/HTTP 401` |
+| 其他任意状态码 | true | true | `端点可达（HTTP 404）` | ✅ `TestTestEndpointReachability/HTTP 200` 与 `/HTTP 404` |
+| 非法 Base URL（空 / 非 `http(s)://`） | — | — | HTTP 400 `VALID001` | ✅ `TestTestEndpointRejectsInvalidBaseURL` |
+
+认证头传递：`TestTestEndpointAuthHeaders` 断言 OpenAI `bearer` → `Authorization: Bearer ...` 且无 `x-api-key`；OpenAI `api_key` → `x-api-key` 且无 `Authorization`；Anthropic → `x-api-key` + `anthropic-version` 存在。全部 ✅。
+
+**（3）迁移 015 — 真实 PostgreSQL**
+
+环境同 §3.4（`nova_migration_test`，真实迁移器）。
+
+存量数据（迁移前）：`Plain-OpenAI`（`protocol_type='openai'`、`base_url='https://api.openai.com'`、`auth_type='api_key'`）、`Plain-OpenAI-NullKey`（同 `openai`、`auth_type='bearer'`）、`Legacy-Anthropic`（`anthropic`、`auth_type='bearer'`）。
+
+| 校验项 | 期望 | 实测 |
+|--------|------|:----:|
+| up 执行 | 迁移器日志 `migration applied version=20260911` | ✅ + `all migrations up to date` |
+| `schema_migrations` | 新增 `20260911` | ✅ |
+| `auth_type` 列默认值 | `bearer` | ✅ `'bearer'::character varying` |
+| 存量 OpenAI 端点修正 | `Plain-OpenAI` 由 `api_key` → `bearer` | ✅ |
+| 其他行不受影响 | `Legacy-Anthropic`（`protocol_type='anthropic'`）与已为 `bearer` 的行保持原值 | ✅ |
+| 残留统计 | `openai AND base_url<>'' AND auth_type='api_key'` 行数 = 0 | ✅ |
+| down 回滚 | 列默认值回 `api_key`、数据回 `api_key`、`20260911` 记录清除 | ✅ |
+| 重新升级 | up.sql 可再次执行 | ✅ 再次 `migration applied version=20260911` |
+
+**（4）前端构建**
+
+`vue-tsc --noEmit` ✅；`vite build` ✅（产物 `providers-page-*.js` 17.53 kB）。产物静态校验：含 `anthropicBaseUrl`（双端点表单）、`认证方式`、`测试连通`，且**不含** `协议类型`（确认已移除旧单选下拉）。
+
 ---
 
 ## 4. Reviewer 审查结论
@@ -160,6 +209,14 @@
 - [x] 至少需配置一种端点，否则 400 拦截
 - [x] Admin 表单支持双端点录入，列表展示协议徽标与双端点
 
+### v1.6.1 增强验收（追加）
+
+- [x] OpenAI 端点认证方式可选 `Bearer` / `x-api-key`，出站头按选择生效（单测断言）
+- [x] 存量 OpenAI Provider 认证方式未被改坏（迁移 015 修正为 `bearer`，真实 PostgreSQL 实测）
+- [x] 表单校验不再使用 `alert`，改为内联红字（至少一种端点 + URL 格式）
+- [x] 表单内可直接测试端点连通性，展示可达 / 认证 / 耗时
+- [x] 部署脚本核对迁移 015（列默认值 + 存量残留计数）
+
 ### 未覆盖 / 待办
 
 1. ~~**迁移 014 未在真实 PostgreSQL 执行**（本机 Docker 未运行）~~ → ✅ **已完成**：2026-09-10 在本机 PostgreSQL 14.20 独立库实测 up（存量搬运、默认值、外键完整性）与 down（回滚、重新升级、备份恢复），详见 §3.4。
@@ -175,6 +232,7 @@
 |------|------|------|
 | 2026-09-10 | v1.0 | 初始测试报告 |
 | 2026-09-10 | v1.1 | 补充 §3.4 真实 PostgreSQL 迁移验证；修复 `down.sql` 版本记录清理缺陷（Major）；状态更新为 PASS |
+| 2026-09-10 | v1.2 | 补充 §3.5 v1.6.1 增强验证（认证方式可配置单测、连通性测试判定表、迁移 015 真实 PostgreSQL、前端产物核对） |
 
 ---
 
