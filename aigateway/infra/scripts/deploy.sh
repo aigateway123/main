@@ -14,7 +14,7 @@
 #   bash infra/scripts/deploy.sh verify     # 仅核对迁移结果，不做任何变更
 #
 # 环境变量：
-#   COMPOSE_FILE=<path>  指定 compose 文件（默认 infra/docker/docker-compose.yml）
+#   COMPOSE_FILE=<path>  指定 compose 文件（默认仓库根目录 docker-compose.yml）
 #   ENV_FILE=<path>      指定 env 文件（默认自动探测仓库根目录 .env）
 #   SKIP_BACKUP=1        跳过迁移前备份（仅在你已手工备份过时使用）
 #   SKIP_PULL=1          跳过 git pull（用于本地演练）

@@ -3,7 +3,9 @@
 # 由 deploy.sh / rollback.sh source 引入，不单独执行。
 #
 # 约定：
-#   · compose 文件默认取 infra/docker/docker-compose.yml（服务器实际使用的编排文件）
+#   · compose 文件默认取仓库根目录 docker-compose.yml（生产实际编排，compose 项目名 aigateway）
+#     infra/docker/docker-compose.yml 是另一份含 portal 的编排，其项目名为 docker，与生产运行中的
+#     gateway/admin/postgres 不属于同一 compose 项目，故默认不使用（可用 COMPOSE_FILE 覆盖）
 #   · 数据库凭据不解析 .env，直接从 postgres 容器环境读取，避免两份配置漂移
 
 set -euo pipefail
@@ -26,10 +28,10 @@ ENV_FILE="${ENV_FILE:-}"
 resolve_compose_file() {
   if [[ -n "$COMPOSE_FILE" ]]; then
     [[ -f "$COMPOSE_FILE" ]] || die "COMPOSE_FILE 指向的文件不存在：$COMPOSE_FILE"
-  elif [[ -f "$REPO_ROOT/infra/docker/docker-compose.yml" ]]; then
-    COMPOSE_FILE="$REPO_ROOT/infra/docker/docker-compose.yml"
-  else
+  elif [[ -f "$REPO_ROOT/docker-compose.yml" ]]; then
     COMPOSE_FILE="$REPO_ROOT/docker-compose.yml"
+  else
+    COMPOSE_FILE="$REPO_ROOT/infra/docker/docker-compose.yml"
   fi
   [[ -f "$COMPOSE_FILE" ]] || die "未找到 docker-compose.yml，请用 COMPOSE_FILE 指定"
   info "compose 文件：$COMPOSE_FILE"
@@ -111,7 +113,8 @@ BACKUP_TABLE=""
 
 # 备份 providers：库内表（供 SQL 恢复）+ 宿主机 SQL 文件（防库级故障）
 backup_providers() { # $1 = 备份后缀
-  local suffix="$1" bak="providers_bak_${suffix}"
+  local suffix="$1"
+  local bak="providers_bak_${suffix}"
   table_exists providers || die "providers 表不存在，无法备份"
   if table_exists "$bak"; then
     die "备份表 $bak 已存在，请更换后缀"
