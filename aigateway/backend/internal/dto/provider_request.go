@@ -10,6 +10,12 @@ type CreateProviderRequest struct {
 	Priority      int    `json:"priority"`
 	Weight        int    `json:"weight"`
 	IsEnabledFlag bool   `json:"isEnabledFlag"`
+
+	// Anthropic 协议端点（可选）
+	AnthropicBaseURL   string `json:"anthropicBaseUrl,omitempty"`
+	AnthropicAPIPath   string `json:"anthropicApiPath,omitempty"`
+	AnthropicAPIKeyRef string `json:"anthropicApiKeyRef,omitempty"`
+	AnthropicAuthType  string `json:"anthropicAuthType,omitempty"`
 }
 
 type UpdateProviderRequest struct {
@@ -22,6 +28,12 @@ type UpdateProviderRequest struct {
 	Priority      int    `json:"priority"`
 	Weight        int    `json:"weight"`
 	IsEnabledFlag bool   `json:"isEnabledFlag"`
+
+	// Anthropic 协议端点（可选）
+	AnthropicBaseURL   string `json:"anthropicBaseUrl,omitempty"`
+	AnthropicAPIPath   string `json:"anthropicApiPath,omitempty"`
+	AnthropicAPIKeyRef string `json:"anthropicApiKeyRef,omitempty"`
+	AnthropicAuthType  string `json:"anthropicAuthType,omitempty"`
 }
 
 type ProviderResponse struct {
@@ -36,6 +48,13 @@ type ProviderResponse struct {
 	Weight          int     `json:"weight"`
 	IsEnabledFlag   bool    `json:"isEnabledFlag"`
 	APIPathOverride *string `json:"apiPathOverride,omitempty"`
-	CreatedAt       string  `json:"createdAt"`
-	UpdatedAt       string  `json:"updatedAt"`
+
+	// Anthropic 协议端点（可选）
+	AnthropicBaseURL   string `json:"anthropicBaseUrl,omitempty"`
+	AnthropicAPIPath   string `json:"anthropicApiPath,omitempty"`
+	AnthropicAPIKeyRef string `json:"anthropicApiKeyRef,omitempty"`
+	AnthropicAuthType  string `json:"anthropicAuthType,omitempty"`
+
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
 }

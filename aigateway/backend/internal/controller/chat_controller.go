@@ -230,6 +230,9 @@ func (c *ChatController) handleInbound(w http.ResponseWriter, r *http.Request, i
 			status, code, msg = http.StatusServiceUnavailable, "ROUTER001", "no provider bound to model"
 		case errors.Is(err, service.ErrNoProviderAvailable):
 			status, code, msg = http.StatusServiceUnavailable, "ROUTER001", "no available provider for model"
+		case errors.Is(err, service.ErrNoProviderForProtocol):
+			status, code, msg = http.StatusServiceUnavailable, "ROUTER001",
+				"no provider configured for "+string(inbound)+" protocol"
 		}
 		writeChatError(w, inbound, status, code, msg)
 		return

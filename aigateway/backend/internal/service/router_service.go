@@ -92,7 +92,37 @@ func (s *RouterService) ValidateApiKey(ctx context.Context, rawKey string) (user
 	return key.UserID, key.ID, nil
 }
 
-func (s *RouterService) SelectProvider(ctx context.Context, modelCode string) (*ProviderTarget, error) {
+// endpointForProtocol 返回 Provider 针对指定协议的原生端点配置；未配置该协议端点时 ok=false。
+// base_url 系列列 = OpenAI 端点；anthropic_* 列 = Anthropic 端点。
+func endpointForProtocol(p *entity.Provider, protocol provider.ChatProtocol) (baseURL, apiPath, apiKey, authType string, ok bool) {
+	switch protocol {
+	case provider.ProtocolAnthropic:
+		if strings.TrimSpace(p.AnthropicBaseURL) == "" {
+			return "", "", "", "", false
+		}
+		authType = p.AnthropicAuthType
+		if authType == "" {
+			authType = "api_key"
+		}
+		apiPath = p.AnthropicAPIPath
+		if apiPath == "" {
+			apiPath = "/v1/messages"
+		}
+		return strings.TrimRight(p.AnthropicBaseURL, "/"), apiPath, p.AnthropicAPIKeyRef, authType, true
+	default: // openai
+		if strings.TrimSpace(p.BaseURL) == "" {
+			return "", "", "", "", false
+		}
+		apiPath = p.APIPath
+		if apiPath == "" {
+			apiPath = "/v1/chat/completions"
+		}
+		return strings.TrimRight(p.BaseURL, "/"), apiPath, p.APIKeyRef, "bearer", true
+	}
+}
+
+// SelectProvider 按入站协议选择首个可用的 Provider 原生端点。
+func (s *RouterService) SelectProvider(ctx context.Context, modelCode string, protocol provider.ChatProtocol) (*ProviderTarget, error) {
 	model, err := s.modelRepo.GetByCode(ctx, modelCode)
 	if err != nil {
 		return nil, ErrModelNotFound
@@ -105,9 +135,6 @@ func (s *RouterService) SelectProvider(ctx context.Context, modelCode string) (*
 	bindings, err := s.bindingRepo.ListByModelID(ctx, model.ID)
 	if err != nil {
 		return nil, ErrInternal
-	}
-	if len(bindings) == 0 {
-		return nil, ErrNoProviderBound
 	}
 
 	var activeBindings []*entity.ModelProviderBinding
@@ -144,49 +171,37 @@ func (s *RouterService) SelectProvider(ctx context.Context, modelCode string) (*
 		return activeBindings[i].Weight > activeBindings[j].Weight
 	})
 
+	enabledCount := 0
 	for _, binding := range activeBindings {
-		provider, exists := providerCache[binding.ProviderID]
-		if !exists || !provider.IsEnabledFlag {
+		p, exists := providerCache[binding.ProviderID]
+		if !exists || !p.IsEnabledFlag {
 			continue
 		}
-
-		apiPath := provider.APIPath
-		// Use api_path_override if available
+		enabledCount++
+		baseURL, apiPath, apiKey, authType, ok := endpointForProtocol(p, protocol)
+		if !ok {
+			continue
+		}
 		if binding.APIPathOverride != nil && *binding.APIPathOverride != "" {
 			apiPath = *binding.APIPathOverride
 		}
-		if apiPath == "" {
-			apiPath = "/v1/chat/completions"
-		}
 		return &ProviderTarget{
-			ProviderID:     provider.ID,
-			ProviderName:   provider.ProviderName,
-			BaseURL:        strings.TrimRight(provider.BaseURL, "/"),
-			ProviderAPIKey: provider.APIKeyRef,
+			ProviderID:     p.ID,
+			ProviderName:   p.ProviderName,
+			BaseURL:        baseURL,
+			ProviderAPIKey: apiKey,
 			APIPath:        apiPath,
-			ProtocolType:   protocolOf(provider.ProtocolType),
-			AuthType:       authTypeOf(provider.AuthType),
+			ProtocolType:   protocol,
+			AuthType:       authType,
 			ModelID:        model.ID,
 			ModelCode:      model.ModelCode,
 		}, nil
 	}
 
-	return nil, ErrNoProviderAvailable
-}
-
-// protocolOf 归一化 Provider 协议，空值按 openai 处理（存量数据向后兼容）。
-func protocolOf(p string) provider.ChatProtocol {
-	if p == "anthropic" {
-		return provider.ProtocolAnthropic
+	if enabledCount == 0 {
+		return nil, ErrNoProviderAvailable
 	}
-	return provider.ProtocolOpenAI
-}
-
-func authTypeOf(a string) string {
-	if a == "bearer" {
-		return "bearer"
-	}
-	return "api_key"
+	return nil, ErrNoProviderForProtocol
 }
 
 func (s *RouterService) CallProvider(ctx context.Context, target *ProviderTarget, requestBody []byte) (*http.Response, error) {
@@ -215,9 +230,9 @@ func (s *RouterService) CallProvider(ctx context.Context, target *ProviderTarget
 	return s.httpClient.Do(req)
 }
 
-// CallWithFallback selects a provider and calls it, with automatic fallback to the next available provider on failure.
-// It returns the successful http response along with the target that was used.
-// requestBody 为入站协议（inbound）的原始请求体；请求会按各 Provider 的出站协议自动转换。
+// CallWithFallback 按入站协议选择 Provider 的原生端点并调用，失败自动切换下一个可用 Provider。
+// 请求体按入站协议原样透传（原生直连，不做跨协议转换）；无任何 Provider 配置该协议端点时返回
+// ErrNoProviderForProtocol。
 func (s *RouterService) CallWithFallback(ctx context.Context, modelCode string, requestBody []byte, inbound provider.ChatProtocol) (resp *http.Response, target *ProviderTarget, err error) {
 	model, err := s.modelRepo.GetByCode(ctx, modelCode)
 	if err != nil {
@@ -232,9 +247,6 @@ func (s *RouterService) CallWithFallback(ctx context.Context, modelCode string, 
 	if err != nil {
 		return nil, nil, ErrInternal
 	}
-	if len(bindings) == 0 {
-		return nil, nil, ErrNoProviderBound
-	}
 
 	var activeBindings []*entity.ModelProviderBinding
 	for _, b := range bindings {
@@ -246,21 +258,29 @@ func (s *RouterService) CallWithFallback(ctx context.Context, modelCode string, 
 		return nil, nil, ErrNoProviderBound
 	}
 
-	// Pre-fetch all relevant providers
+	// Pre-fetch all relevant providers and keep only those natively supporting inbound protocol
 	type candidate struct {
 		provider *entity.Provider
 		binding  *entity.ModelProviderBinding
 	}
 
 	var candidates []candidate
+	enabledCount := 0
 	for _, binding := range activeBindings {
 		p, err := s.providerRepo.GetByID(ctx, binding.ProviderID)
-		if err == nil && p.IsEnabledFlag {
+		if err != nil || !p.IsEnabledFlag {
+			continue
+		}
+		enabledCount++
+		if _, _, _, _, ok := endpointForProtocol(p, inbound); ok {
 			candidates = append(candidates, candidate{provider: p, binding: binding})
 		}
 	}
 	if len(candidates) == 0 {
-		return nil, nil, ErrNoProviderAvailable
+		if enabledCount == 0 {
+			return nil, nil, ErrNoProviderAvailable
+		}
+		return nil, nil, ErrNoProviderForProtocol
 	}
 
 	// Sort by priority (lower = higher priority), then by weight descending
@@ -274,44 +294,25 @@ func (s *RouterService) CallWithFallback(ctx context.Context, modelCode string, 
 	// Try each candidate in order
 	var lastErr error
 	for _, c := range candidates {
-		apiPath := c.provider.APIPath
-		// Use api_path_override if available
-		if c.binding.APIPathOverride != nil && *c.binding.APIPathOverride != "" {
+		baseURL, apiPath, apiKey, authType, _ := endpointForProtocol(c.provider, inbound)
+		// api_path_override 语义为 OpenAI 路径覆盖；Anthropic 端点固定使用 anthropic_api_path
+		if inbound != provider.ProtocolAnthropic && c.binding.APIPathOverride != nil && *c.binding.APIPathOverride != "" {
 			apiPath = *c.binding.APIPathOverride
-		}
-		if apiPath == "" {
-			apiPath = "/v1/chat/completions"
 		}
 		t := &ProviderTarget{
 			ProviderID:     c.provider.ID,
 			ProviderName:   c.provider.ProviderName,
-			BaseURL:        strings.TrimRight(c.provider.BaseURL, "/"),
-			ProviderAPIKey: c.provider.APIKeyRef,
+			BaseURL:        baseURL,
+			ProviderAPIKey: apiKey,
 			APIPath:        apiPath,
-			ProtocolType:   protocolOf(c.provider.ProtocolType),
-			AuthType:       authTypeOf(c.provider.AuthType),
+			ProtocolType:   inbound,
+			AuthType:       authType,
 			ModelID:        model.ID,
 			ModelCode:      model.ModelCode,
 		}
 
-		// 按出站协议转换请求体；转换失败跳过该 Provider
-		outboundBody := requestBody
-		if inbound != t.ProtocolType {
-			converted, convErr := provider.BuildOutboundRequest(inbound, t.ProtocolType, requestBody)
-			if convErr != nil {
-				s.logger.Warn("request conversion failed, skipping provider",
-					"provider", c.provider.ProviderName,
-					"inbound", inbound,
-					"outbound", t.ProtocolType,
-					"error", convErr,
-				)
-				lastErr = convErr
-				continue
-			}
-			outboundBody = converted
-		}
-
-		providerResp, callErr := s.CallProvider(ctx, t, outboundBody)
+		// 原生直连：请求体按入站协议原样透传，不做跨协议转换
+		providerResp, callErr := s.CallProvider(ctx, t, requestBody)
 		if callErr == nil && providerResp.StatusCode < 500 {
 			return providerResp, t, nil
 		}

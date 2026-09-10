@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -30,8 +31,10 @@ func (c *ProviderController) HandleCreate(w http.ResponseWriter, r *http.Request
 	result, err := c.svc.Create(r.Context(), &req)
 	if err != nil {
 		c.logger.Error("create provider failed", "error", err)
-		switch err {
-		case service.ErrDuplicateName:
+		switch {
+		case errors.Is(err, service.ErrInvalidArgument):
+			writeError(w, http.StatusBadRequest, "VALID001", err.Error())
+		case errors.Is(err, service.ErrDuplicateName):
 			writeError(w, http.StatusConflict, "VALID001", "provider name already exists")
 		default:
 			writeError(w, http.StatusInternalServerError, "GATEWAY001", "create provider failed")
@@ -93,10 +96,12 @@ func (c *ProviderController) HandleUpdate(w http.ResponseWriter, r *http.Request
 	result, err := c.svc.Update(r.Context(), id, &req)
 	if err != nil {
 		c.logger.Error("update provider failed", "error", err)
-		switch err {
-		case service.ErrProviderNotFound:
+		switch {
+		case errors.Is(err, service.ErrInvalidArgument):
+			writeError(w, http.StatusBadRequest, "VALID001", err.Error())
+		case errors.Is(err, service.ErrProviderNotFound):
 			writeError(w, http.StatusNotFound, "AUTH002", "provider not found")
-		case service.ErrDuplicateName:
+		case errors.Is(err, service.ErrDuplicateName):
 			writeError(w, http.StatusConflict, "VALID001", "name already exists")
 		default:
 			writeError(w, http.StatusInternalServerError, "GATEWAY001", "update failed")
