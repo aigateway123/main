@@ -4,8 +4,8 @@
 
 | 字段 | 值 |
 |------|-----|
-| 版本 | v1.1 |
-| 状态 | **PASS**（本地全链路 + 真实 PostgreSQL 迁移 up/down 验证通过；真实厂商端点待生产回归） |
+| 版本 | v1.3 |
+| 状态 | **PASS**（本地全链路 + 真实 PostgreSQL 迁移 up/down + 生产上线验证通过；真实厂商端点调用回归待补） |
 | Owner | QA Engineer |
 | 日期 | 2026-09-10 |
 | 测试对象 | backend `router_service.go` / `provider_service.go` / `provider_repo_pg.go` / `entity/provider.go` / `dto/provider_request.go` / 迁移 014 + admin 前端 |
@@ -183,6 +183,22 @@
 
 `vue-tsc --noEmit` ✅；`vite build` ✅（产物 `providers-page-*.js` 17.53 kB）。产物静态校验：含 `anthropicBaseUrl`（双端点表单）、`认证方式`、`测试连通`，且**不含** `协议类型`（确认已移除旧单选下拉）。
 
+### 3.6 生产上线验证（2026-09-10 实测）
+
+环境：ECS `101.200.198.113`，服务器本地 Docker Compose，代码 `50070fc`。
+
+| 检查项 | 结果 | 证据 |
+|--------|:----:|------|
+| 迁移执行 | ✅ | gateway 启动日志 `migration applied version=20260910` / `version=20260911`，随后 `all migrations up to date` |
+| 迁移核对（`deploy.sh` 全部断言） | ✅ | 版本记录 2 条、`anthropic_*` 四列存在、`auth_type` 列默认值 `bearer`、OpenAI 端点 `api_key` 残留 0 行、存量 anthropic 端点搬运正确、存量 openai 端点未被改动 |
+| 迁移前备份 | ✅ | 库内表 `providers_bak_20260910125503`（7 行）+ 宿主机 `infra/scripts/backups/providers_20260910125503.sql` |
+| 终态数据 | ✅ | 4 个 OpenAI 端点 `auth_type=bearer`（智谱 / MiniMax / 快快网络 / ssrf-test）；3 个 Anthropic 端点已搬运至 `anthropic_*` 且认证方式保持原值（DeepSeek `bearer` / 千问 `api_key` / Kimi `bearer`） |
+| 前端构建上线 | ✅ | 入口 chunk `index-Dp0DFNph.js` → `index-DsHtu5Ah.js`；`providers-page-MfeTTl6i.js` 中 `anthropicBaseUrl`=1、`协议类型`=0、`认证方式`=1、`测试连通`=1；chunk HTTP 200 |
+| 新增接口可达 | ✅ | `POST /api/v1/providers/test-endpoint` → 401（存在且受 RBAC 保护，非 404） |
+| 只读复核 | ✅ | `bash infra/scripts/deploy.sh verify` 退出码 0 |
+| 上线脚本缺陷修复 | ✅ | 见 [RN-008 §9.5](../08-Release/RN-20260910-P1-Iteration-008.md)：compose 文件默认值指向错误导致 `init_pg` 直接退出；`backup_providers` 的 `local` 变量展开在 `set -u` 下报 `unbound variable` |
+| 真实上游调用回归（双协议 + 流式） | ⏳ | 需有效上游 API Key，待补 |
+
 ---
 
 ## 4. Reviewer 审查结论
@@ -222,7 +238,8 @@
 1. ~~**迁移 014 未在真实 PostgreSQL 执行**（本机 Docker 未运行）~~ → ✅ **已完成**：2026-09-10 在本机 PostgreSQL 14.20 独立库实测 up（存量搬运、默认值、外键完整性）与 down（回滚、重新升级、备份恢复），详见 §3.4。
 2. **真实厂商端点未实测**：本次为 mock 上游验证，建议生产环境对智谱 / 千问的 OpenAI 与 Anthropic 端点各做一次真实回归（含流式）。
 3. **`anthropic_api_path` 默认值**：非 Anthropic Provider 该列保持列默认 `'/v1/messages'`（`anthropic_base_url` 为空，不参与路由），Admin 编辑时 Anthropic 区会显示该默认路径。
-4. **生产升级前置动作（新增）**：迁移 014 会**清空**存量 anthropic Provider 的 `base_url` / `api_path` / `api_key_ref`（不可逆），部署前必须备份 `providers` 表；回滚预案须按 §3.4 顺序执行（备份 → 回滚 → 重新升级 → 从备份人工恢复端点）。
+4. ~~**生产升级前置动作**~~ → ✅ **已执行**：2026-09-10 上线时先备份 `providers`（`providers_bak_20260910125503`）再执行迁移 014 / 015，核对通过，详见 §3.6。
+5. **生产真实调用回归待补**：生产已上线并完成迁移 / 前端 / 接口 / 只读复核，但 `/v1/chat/completions` 与 `/v1/messages`（含流式）对真实上游的调用需有效 API Key，尚未执行。
 
 ---
 
@@ -233,6 +250,7 @@
 | 2026-09-10 | v1.0 | 初始测试报告 |
 | 2026-09-10 | v1.1 | 补充 §3.4 真实 PostgreSQL 迁移验证；修复 `down.sql` 版本记录清理缺陷（Major）；状态更新为 PASS |
 | 2026-09-10 | v1.2 | 补充 §3.5 v1.6.1 增强验证（认证方式可配置单测、连通性测试判定表、迁移 015 真实 PostgreSQL、前端产物核对） |
+| 2026-09-10 | v1.3 | 补充 §3.6 生产上线验证（迁移执行与核对、备份、终态数据、前端 chunk 校验、接口可达、只读复核），记录上线时修复的两处部署脚本缺陷；待办仅剩真实上游调用回归 |
 
 ---
 
