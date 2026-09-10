@@ -8,6 +8,11 @@ export interface ProviderResponse {
   apiPath: string
   protocolType: string
   authType: string
+  // Anthropic 协议端点（可选）
+  anthropicBaseUrl?: string
+  anthropicApiPath?: string
+  anthropicApiKeyRef?: string
+  anthropicAuthType?: string
   priority: number
   weight: number
   isEnabledFlag: boolean
@@ -22,6 +27,11 @@ export interface CreateProviderRequest {
   apiPath?: string
   protocolType?: string
   authType?: string
+  // Anthropic 协议端点（可选）
+  anthropicBaseUrl?: string
+  anthropicApiPath?: string
+  anthropicApiKeyRef?: string
+  anthropicAuthType?: string
   priority?: number
   weight?: number
   isEnabledFlag?: boolean

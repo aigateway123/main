@@ -8,11 +8,41 @@ import {
   type ProviderResponse,
 } from '@/api/providers'
 
+interface ProviderForm {
+  providerName: string
+  baseUrl: string
+  apiPath: string
+  apiKeyRef: string
+  anthropicBaseUrl: string
+  anthropicApiPath: string
+  anthropicApiKeyRef: string
+  anthropicAuthType: string
+  priority: number
+  weight: number
+  isEnabledFlag: boolean
+}
+
+function emptyForm(): ProviderForm {
+  return {
+    providerName: '',
+    baseUrl: '',
+    apiPath: '/v1/chat/completions',
+    apiKeyRef: '',
+    anthropicBaseUrl: '',
+    anthropicApiPath: '/v1/messages',
+    anthropicApiKeyRef: '',
+    anthropicAuthType: 'api_key',
+    priority: 100,
+    weight: 100,
+    isEnabledFlag: true,
+  }
+}
+
 const providers = ref<ProviderResponse[]>([])
 const loading = ref(false)
 const showForm = ref(false)
 const editingId = ref<number | null>(null)
-const form = ref({ providerName: '', baseUrl: '', apiKeyRef: '', apiPath: '/v1/chat/completions', protocolType: 'openai', authType: 'api_key', priority: 100, weight: 100, isEnabledFlag: true })
+const form = ref<ProviderForm>(emptyForm())
 
 async function load() {
   loading.value = true
@@ -25,7 +55,7 @@ async function load() {
 
 function openCreate() {
   editingId.value = null
-  form.value = { providerName: '', baseUrl: '', apiKeyRef: '', apiPath: '/v1/chat/completions', protocolType: 'openai', authType: 'api_key', priority: 100, weight: 100, isEnabledFlag: true }
+  form.value = emptyForm()
   showForm.value = true
 }
 
@@ -33,11 +63,13 @@ function openEdit(p: ProviderResponse) {
   editingId.value = p.id
   form.value = {
     providerName: p.providerName,
-    baseUrl: p.baseUrl,
+    baseUrl: p.baseUrl ?? '',
+    apiPath: p.apiPath || '/v1/chat/completions',
     apiKeyRef: p.apiKeyRef ?? '',
-    apiPath: p.apiPath ?? '/v1/chat/completions',
-    protocolType: p.protocolType || 'openai',
-    authType: p.authType || 'api_key',
+    anthropicBaseUrl: p.anthropicBaseUrl ?? '',
+    anthropicApiPath: p.anthropicApiPath || '/v1/messages',
+    anthropicApiKeyRef: p.anthropicApiKeyRef ?? '',
+    anthropicAuthType: p.anthropicAuthType || 'api_key',
     priority: p.priority,
     weight: p.weight,
     isEnabledFlag: p.isEnabledFlag,
@@ -45,19 +77,28 @@ function openEdit(p: ProviderResponse) {
   showForm.value = true
 }
 
-function handleProtocolChange() {
-  // 协议切换为 Anthropic 时，认证方式默认 x-api-key；切回 OpenAI 时恢复 Bearer 语义（authType 由后端按 openai 忽略）
-  if (form.value.protocolType !== 'anthropic') {
-    form.value.authType = 'api_key'
-  }
-}
-
 async function handleSave() {
+  if (!form.value.baseUrl.trim() && !form.value.anthropicBaseUrl.trim()) {
+    alert('请至少配置一种协议的端点（OpenAI 或 Anthropic）')
+    return
+  }
+  // 未配置的协议不提交端点细节，避免写入无意义的路径/Key
+  const payload = { ...form.value }
+  if (!payload.baseUrl.trim()) {
+    payload.baseUrl = ''
+    payload.apiPath = ''
+    payload.apiKeyRef = ''
+  }
+  if (!payload.anthropicBaseUrl.trim()) {
+    payload.anthropicBaseUrl = ''
+    payload.anthropicApiPath = ''
+    payload.anthropicApiKeyRef = ''
+  }
   try {
     if (editingId.value) {
-      await updateProviderApi(editingId.value, form.value)
+      await updateProviderApi(editingId.value, payload)
     } else {
-      await createProviderApi(form.value)
+      await createProviderApi(payload)
     }
     showForm.value = false
     await load()
@@ -106,7 +147,7 @@ onMounted(load)
     <!-- Form Modal -->
     <Teleport to="body">
       <div v-if="showForm" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4" @click.self="showForm = false">
-        <div class="bg-white w-full max-w-md rounded-lg border border-border shadow-xl p-6 space-y-5 animate-in zoom-in-95 duration-150">
+        <div class="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg border border-border shadow-xl p-6 space-y-5 animate-in zoom-in-95 duration-150">
           <div class="flex items-start justify-between border-b border-border pb-3">
             <h3 class="text-xl font-bold text-text-primary">{{ editingId ? '编辑' : '添加' }} Provider</h3>
             <button class="text-text-secondary hover:text-text-primary p-1 rounded cursor-pointer" @click="showForm = false">
@@ -119,39 +160,67 @@ onMounted(load)
               <input v-model="form.providerName" type="text" placeholder="openai"
                 class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
             </div>
-            <div class="space-y-1.5">
-              <label class="text-xs font-semibold text-text-primary">Base URL</label>
-              <input v-model="form.baseUrl" type="text" placeholder="https://api.openai.com"
-                class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
-            </div>
-            <div class="space-y-1.5">
-              <label class="text-xs font-semibold text-text-primary">API 路径</label>
-              <input v-model="form.apiPath" type="text" placeholder="/v1/chat/completions"
-                class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-              <div class="space-y-1.5">
-                <label class="text-xs font-semibold text-text-primary">协议类型</label>
-                <select v-model="form.protocolType" @change="handleProtocolChange"
-                  class="w-full h-9 px-2 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary">
-                  <option value="openai">OpenAI 兼容</option>
-                  <option value="anthropic">Anthropic</option>
-                </select>
+
+            <!-- OpenAI 端点 -->
+            <div class="space-y-3 rounded border border-border p-3">
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border bg-sky-50 text-sky-700 border-sky-200/60">OpenAI</span>
+                <span class="text-[11px] text-text-secondary">/v1/chat/completions 入站走此端点，留空表示不启用</span>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                  <label class="text-xs font-semibold text-text-primary">Base URL</label>
+                  <input v-model="form.baseUrl" type="text" placeholder="https://api.openai.com"
+                    class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
+                </div>
+                <div class="space-y-1.5">
+                  <label class="text-xs font-semibold text-text-primary">API 路径</label>
+                  <input v-model="form.apiPath" type="text" placeholder="/v1/chat/completions"
+                    class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
+                </div>
               </div>
               <div class="space-y-1.5">
-                <label class="text-xs font-semibold text-text-primary">认证方式</label>
-                <select v-model="form.authType" :disabled="form.protocolType !== 'anthropic'"
-                  class="w-full h-9 px-2 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary disabled:bg-slate-50 disabled:text-text-secondary">
-                  <option value="api_key">x-api-key</option>
-                  <option value="bearer">Bearer</option>
-                </select>
+                <label class="text-xs font-semibold text-text-primary">API Key 引用</label>
+                <input v-model="form.apiKeyRef" type="text" placeholder="OPENAI_API_KEY"
+                  class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
               </div>
             </div>
-            <div class="space-y-1.5">
-              <label class="text-xs font-semibold text-text-primary">API Key 引用</label>
-              <input v-model="form.apiKeyRef" type="text" placeholder="OPENAI_API_KEY"
-                class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
+
+            <!-- Anthropic 端点 -->
+            <div class="space-y-3 rounded border border-border p-3">
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border bg-violet-50 text-violet-700 border-violet-200/60">Anthropic</span>
+                <span class="text-[11px] text-text-secondary">/v1/messages 入站走此端点，留空表示不启用</span>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                  <label class="text-xs font-semibold text-text-primary">Base URL</label>
+                  <input v-model="form.anthropicBaseUrl" type="text" placeholder="https://api.anthropic.com"
+                    class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
+                </div>
+                <div class="space-y-1.5">
+                  <label class="text-xs font-semibold text-text-primary">API 路径</label>
+                  <input v-model="form.anthropicApiPath" type="text" placeholder="/v1/messages"
+                    class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                  <label class="text-xs font-semibold text-text-primary">API Key 引用</label>
+                  <input v-model="form.anthropicApiKeyRef" type="text" placeholder="ANTHROPIC_API_KEY"
+                    class="w-full h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary" />
+                </div>
+                <div class="space-y-1.5">
+                  <label class="text-xs font-semibold text-text-primary">认证方式</label>
+                  <select v-model="form.anthropicAuthType"
+                    class="w-full h-9 px-2 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary">
+                    <option value="api_key">x-api-key</option>
+                    <option value="bearer">Bearer</option>
+                  </select>
+                </div>
+              </div>
             </div>
+
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1.5">
                 <label class="text-xs font-semibold text-text-primary">优先级</label>
@@ -188,9 +257,8 @@ onMounted(load)
           <thead>
             <tr class="bg-[#f8f9fa] border-b border-border text-text-secondary font-semibold h-10">
               <th class="px-4 py-2">名称</th>
-              <th class="px-4 py-2">Base URL</th>
               <th class="px-4 py-2">协议</th>
-              <th class="px-4 py-2">API 路径</th>
+              <th class="px-4 py-2">端点</th>
               <th class="px-4 py-2">优先级</th>
               <th class="px-4 py-2">权重</th>
               <th class="px-4 py-2">状态</th>
@@ -204,23 +272,31 @@ onMounted(load)
               :class="['h-12 transition-colors hover:bg-[#eff6ff]/60', index % 2 === 0 ? 'bg-white' : 'bg-[#fafbfc]']"
             >
               <td class="px-4 py-2 font-bold text-text-primary">{{ p.providerName }}</td>
-              <td class="px-4 py-2 max-w-[200px] truncate">
-                <code class="bg-[#f8f9fa] px-1.5 py-0.5 rounded text-[11px]">{{ p.baseUrl }}</code>
-              </td>
               <td class="px-4 py-2">
-                <span
-                  :class="[
-                    'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border',
-                    (p.protocolType || 'openai') === 'anthropic'
-                      ? 'bg-violet-50 text-violet-700 border-violet-200/60'
-                      : 'bg-sky-50 text-sky-700 border-sky-200/60',
-                  ]"
-                >
-                  {{ (p.protocolType || 'openai') === 'anthropic' ? 'Anthropic' : 'OpenAI' }}
-                </span>
+                <div class="flex flex-wrap gap-1">
+                  <span
+                    v-if="p.baseUrl"
+                    class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border bg-sky-50 text-sky-700 border-sky-200/60"
+                  >OpenAI</span>
+                  <span
+                    v-if="p.anthropicBaseUrl"
+                    class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border bg-violet-50 text-violet-700 border-violet-200/60"
+                  >Anthropic</span>
+                  <span
+                    v-if="!p.baseUrl && !p.anthropicBaseUrl"
+                    class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border bg-rose-50 text-rose-700 border-rose-200/60"
+                  >未配置</span>
+                </div>
               </td>
-              <td class="px-4 py-2">
-                <code class="bg-[#f8f9fa] px-1.5 py-0.5 rounded text-[11px]">{{ p.apiPath || '/v1/chat/completions' }}</code>
+              <td class="px-4 py-2 space-y-1">
+                <div v-if="p.baseUrl" class="flex items-center gap-1.5">
+                  <span class="w-14 shrink-0 text-[10px] text-text-secondary">OpenAI</span>
+                  <code class="bg-[#f8f9fa] px-1.5 py-0.5 rounded text-[11px] max-w-[240px] truncate">{{ p.baseUrl }}{{ p.apiPath || '/v1/chat/completions' }}</code>
+                </div>
+                <div v-if="p.anthropicBaseUrl" class="flex items-center gap-1.5">
+                  <span class="w-14 shrink-0 text-[10px] text-text-secondary">Anthropic</span>
+                  <code class="bg-[#f8f9fa] px-1.5 py-0.5 rounded text-[11px] max-w-[240px] truncate">{{ p.anthropicBaseUrl }}{{ p.anthropicApiPath || '/v1/messages' }}</code>
+                </div>
               </td>
               <td class="px-4 py-2">{{ p.priority }}</td>
               <td class="px-4 py-2">{{ p.weight }}</td>
