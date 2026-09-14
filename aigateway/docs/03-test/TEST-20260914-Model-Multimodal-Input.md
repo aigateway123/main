@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |------|-----|
-| 版本 | v1.1 |
-| 状态 | **✅ 已执行**（30/33 PASS，2 项阻塞，1 项 N/A；无 FAIL） |
+| 版本 | v1.2 |
+| 状态 | **✅ 已执行**（43/52 PASS，8 项阻塞，1 项 N/A；无 FAIL） |
 | Owner | QA Engineer |
 | 日期 | 2026-09-14 |
-| 测试对象 | backend `entity/model.go` / `dto/model_request.go` / `repository/model_repo_pg.go` / `repository/model_repository.go` / `service/model_service.go` / 迁移 `202609140001` + admin 模型管理页 |
+| 测试对象 | 后端 `entity/model.go` / `dto/model_request.go` / `repository/model_repo_pg.go` / `repository/model_repository.go` / `service/model_service.go` / `controller/model_controller.go` / 迁移 `202609140001` + admin 模型管理页（含筛选） |
 | 关联文档 | [ARCH-20260914-Model-Multimodal-Input.md](../02-architecture/ARCH-20260914-Model-Multimodal-Input.md)、[REV-20260914-ARCH-Model-Multimodal-Input.md](../review/REV-20260914-ARCH-Model-Multimodal-Input.md) |
 | 前置 | 迁移 `202609140001_add_model_multimodal` |
 | 执行人 | QA Engineer（AI）+ 本地环境 |
@@ -28,6 +28,7 @@
 | 7 | 对外契约回归 | `/v1/models`（OpenAI / Anthropic 兼容）不暴露该字段；推理链路不受影响 |
 | 8 | Admin 前端 | 表单开关、非 chat 禁用、列表标签、保存刷新 |
 | 9 | memory 模式 | seed 数据标记一致 |
+| 10 | **多模态输入筛选（新增）** | 列表按 `supportsMultimodal` 过滤、与 `modelType` 组合、非法值、Admin 下拉端到端 |
 
 ---
 
@@ -117,6 +118,42 @@
 |----|:------:|------|----------|----------|:----:|
 | TC-33 | P1 | `memory` 模式 `GET /api/v1/models` | `gpt-4o-mini` = true，其余 false | `gpt-4o-mini` → `supportMultimodal=true`；`deepseek-chat`/`glm-4`/`qwen-max`/`glm-image`/`wan2.7-image-pro`/`qwen-image-2.0` → `false` | ✅ PASS |
 
+### 3.8 多模态输入筛选 — 后端 API（新增，2026-09-14 执行）
+
+环境：真实 gateway 进程（`STORAGE_DRIVER=memory`，`127.0.0.1:8080`），`curl` + JWT（`admin@test.com`）。脚本 `/tmp/qa_mm_filter.sh`，原始输出 `/tmp/qa_mm_filter_result.txt`。
+数据基线：7 条 seed + 1 条 QA 造数 = 8 条，其中仅 `gpt-4o-mini` 为 `true`。
+
+| ID | 优先级 | 步骤 | 预期结果 | 实际结果 | 结果 |
+|----|:------:|------|----------|----------|:----:|
+| TC-34 | P0 | `GET /api/v1/models`（无过滤参数） | 返回全部 | **HTTP 200**，7 条（该步在造数前执行） | ✅ PASS |
+| TC-35 | P0 | `?supportsMultimodal=true` | 只返回多模态模型 | **HTTP 200**，1 条 = `gpt-4o-mini` | ✅ PASS |
+| TC-36 | P0 | `?supportsMultimodal=false` | 只返回非多模态模型 | **HTTP 200**，6 条，不含 `gpt-4o-mini` | ✅ PASS |
+| TC-37 | P1 | `?modelType=chat&supportsMultimodal=true` | 交集正确 | **HTTP 200**，1 条 = `gpt-4o-mini` | ✅ PASS |
+| TC-38 | P1 | `?modelType=image&supportsMultimodal=true` | 交集为空 | **HTTP 200**，0 条 | ✅ PASS |
+| TC-39 | P1 | `?modelType=chat&supportsMultimodal=false` | 交集正确 | **HTTP 200**，3 条（`deepseek-chat` / `glm-4` / `qwen-max`） | ✅ PASS |
+| TC-40 | P1 | `?modelType=image&supportsMultimodal=false` | 交集正确 | **HTTP 200**，3 条（`glm-image` / `wan2.7-image-pro` / `qwen-image-2.0`） | ✅ PASS |
+| TC-41 | P1 | `?supportsMultimodal=bogus`（非法值） | 400 `VALID001` | **HTTP 400** `VALID001` `invalid supportsMultimodal` | ✅ PASS |
+| TC-42 | P2 | `?supportsMultimodal=1` | 按 true 处理（`ParseBool` 兼容） | **HTTP 200**，1 条 | ✅ PASS |
+| TC-43 | P0 | 新建 `supportsMultimodal=true` 的模型后过滤；再改为 `false` 后过滤 | 过滤结果随数据同步变化 | true 过滤 1 → **2** 条（含新建 `qa-filter-mm`）；改为 false 后回到 **1** 条 | ✅ PASS |
+| TC-44 | P0 | `GET /v1/models`（API Key 鉴权） | 不暴露该字段 | **HTTP 200**，`grep -c supportsMultimodal` = **0** | ✅ PASS |
+| TC-52 | P1 | 真实 PostgreSQL（`STORAGE_DRIVER=postgres`）下执行 TC-35 ~ TC-40 | PG SQL 分支（`AND supports_multimodal = $n`）生效 | 未执行（本地无可用 PG） | ⛔ 阻塞 |
+
+### 3.9 多模态输入筛选 — Admin 端到端（浏览器实机）
+
+环境：`vite dev`（`127.0.0.1:3000`，`/api` 代理至 gateway `:8080`）+ 浏览器实机走查；数据基线同 §3.8（8 条模型）。
+
+| ID | 优先级 | 步骤 | 预期结果 | 实际结果 | 结果 |
+|----|:------:|------|----------|----------|:----:|
+| TC-45 | P0 | 打开模型管理页观察筛选栏 | 「模型类型」右侧新增「多模态输入」下拉，选项为 全部 / 🖼️ 支持多模态 / 仅文本输入 | 位置与三项文案均符合；value 分别为 `''` / `'true'` / `'false'` | ✅ PASS |
+| TC-46 | P0 | 类型=全部 + 多模态=🖼️ 支持多模态 | 1 行 | 1 行（GPT-4o Mini，标签「🖼️ 多模态」） | ✅ PASS |
+| TC-47 | P0 | 多模态=仅文本输入 | 7 行 | 7 行 | ✅ PASS |
+| TC-48 | P1 | 类型=🖼️ 图片 + 多模态=仅文本输入 | 3 行 | 3 行（GLM-Image / Wan2.7-Image-Pro / Qwen-Image-2.0） | ✅ PASS |
+| TC-49 | P1 | 类型=🖼️ 图片 + 多模态=🖼️ 支持多模态 | 0 行 | 0 行，表格显示「暂无 Model」 | ✅ PASS |
+| TC-50 | P1 | 两个筛选均复位为「全部」 | 8 行 | 8 行 | ✅ PASS |
+| TC-51 | P0 | 观察列表请求 URL 与状态码 | 带 `supportsMultimodal`；组合时形如 `?modelType=image&supportsMultimodal=false`；全部 200 | 5 种组合请求 URL 与预期一致且均为 **200**；两个筛选均为「全部」时不带查询参数 | ✅ PASS |
+
+> 走查中控制台出现过一次瞬时 `SyntaxError: Unexpected token '<'`（仅首个标签页冷加载），新建标签页与多次刷新均未复现，判定为 Vite 开发期噪声，与本次改动无关。
+
 ---
 
 ## 4. 本地门禁
@@ -137,8 +174,11 @@
 - [x] TC-17 ~ TC-20：异常路径返回正确状态码
 - [x] TC-21：对外契约无泄漏（TC-23/24 需上游 Key，未覆盖）
 - [x] TC-25 ~ TC-32：前端交互与端到端贯通
+- [x] **TC-34 ~ TC-44：筛选后端过滤（含与 `modelType` 组合、非法值 400、数据变更同步）**
+- [x] **TC-45 ~ TC-51：Admin「多模态输入」下拉端到端贯通，请求参数正确、无泄漏**
 - [ ] TC-01 ~ TC-05：迁移与存量兼容 — **待测试环境补测**
-- [x] 已执行部分：不通过项 = 0（30 PASS / 0 FAIL）
+- [ ] TC-52：PostgreSQL 驱动下的筛选 SQL 分支 — **待测试环境补测**
+- [x] 已执行部分：不通过项 = 0（43 PASS / 0 FAIL）
 
 ---
 
@@ -148,15 +188,23 @@
 |------|------|
 | 后端 API 验收脚本 | `/tmp/qa_mm.sh` |
 | 后端 API 原始输出（含全部 HTTP 码与响应体） | `/tmp/qa_mm_result.txt` |
+| 筛选验收脚本 | `/tmp/qa_mm_filter.sh` |
+| 筛选验收原始输出 | `/tmp/qa_mm_filter_result.txt` |
+| 筛选验收 gateway 日志 | `/tmp/nova-gw-mm2.log` |
 | gateway 运行日志 | `/tmp/nova-gw.log` |
-| 前端构建产物 | `aigateway/admin/dist/assets/models-page-DIMCrE9k.js` |
+| 前端构建产物 | `aigateway/admin/dist/assets/models-page-mXV0XO1z.js` |
 | UI 走查截图（11 张，00~11） | `/var/folders/s8/yw_tg1j11mx59fsw1b15zdw80000gn/T/trae/screenshots/` |
+| 筛选 UI 走查截图（6 张，`step3`~`step8`） | 同上目录 |
 
 执行命令（后端）：
 
 ```bash
 STORAGE_DRIVER=memory GATEWAY_PORT=18080 /tmp/nova-gw
 bash /tmp/qa_mm.sh
+
+# 筛选功能（v1.2 追加）
+STORAGE_DRIVER=memory GATEWAY_PORT=8080 /tmp/nova-gw > /tmp/nova-gw-mm2.log 2>&1 &
+bash /tmp/qa_mm_filter.sh
 ```
 
 ---
@@ -183,6 +231,7 @@ bash /tmp/qa_mm.sh
 | 2 | TC-23 / TC-24 | 需有效上游 Provider Key | 配置真实 Provider 后验证图片输入转发 |
 | 3 | 真实厂商多模态调用 | 本期字段为「仅标记」，不涉及网关校验与转发改动 | 随发布后回归一并确认 |
 | 4 | 重启持久化 | 验收使用 memory 存储 | 随 TC-01~05 在 PG 环境一并验证 |
+| 5 | TC-52（筛选的 PostgreSQL 分支） | 本地无可用 PostgreSQL | 在 PG 环境分别请求 `?supportsMultimodal=true` / `=false`（含与 `modelType` 组合），核对结果集与 SQL 占位参数 |
 
 ---
 
@@ -192,6 +241,7 @@ bash /tmp/qa_mm.sh
 |------|------|------|
 | 2026-09-14 | v1.0 | 初始用例文档（33 条，待执行） |
 | 2026-09-14 | v1.1 | 回填执行结果：30 PASS / 0 FAIL / 2 阻塞 / 1 N/A；补充证据清单与 5 项非阻断问题 |
+| 2026-09-14 | v1.2 | 新增迭代内功能「多模态输入筛选」用例 TC-34 ~ TC-52（后端 12 条 + Admin 端到端 7 条）并回填实测结果；修正 v1.1 通过数统计（按用例逐条计为 25 PASS / 7 阻塞 / 1 N/A）；合计 43 PASS / 8 阻塞 / 1 N/A |
 
 ---
 
