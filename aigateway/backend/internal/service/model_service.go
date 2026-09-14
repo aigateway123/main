@@ -49,12 +49,18 @@ func (s *ModelService) Create(ctx context.Context, req *dto.CreateModelRequest) 
 		isPublic = *req.IsPublic
 	}
 
+	supportsMultimodal := false
+	if req.SupportsMultimodal != nil {
+		supportsMultimodal = *req.SupportsMultimodal
+	}
+
 	m := &entity.Model{
-		ModelName:   req.ModelName,
-		ModelCode:   req.ModelCode,
-		ModelType:   modelType,
-		ModelStatus: "active",
-		IsPublic:    isPublic,
+		ModelName:          req.ModelName,
+		ModelCode:          req.ModelCode,
+		ModelType:          modelType,
+		ModelStatus:        "active",
+		IsPublic:           isPublic,
+		SupportsMultimodal: supportsMultimodal,
 	}
 
 	if err := s.modelRepo.Create(ctx, m); err != nil {
@@ -160,19 +166,25 @@ func (s *ModelService) Delete(ctx context.Context, id int64) error {
 }
 
 func (s *ModelService) Update(ctx context.Context, id int64, req *dto.UpdateModelRequest) (*dto.ModelResponse, error) {
-	modelType := "chat"
-	if req.ModelType != nil {
-		modelType = *req.ModelType
-	}
-
 	existing, err := s.modelRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, ErrModelNotFound
 	}
 
+	// 可选字段在请求缺省时继承既有值，避免部分更新将其覆盖为零值。
+	modelType := existing.ModelType
+	if req.ModelType != nil {
+		modelType = *req.ModelType
+	}
+
 	isPublic := existing.IsPublic
 	if req.IsPublic != nil {
 		isPublic = *req.IsPublic
+	}
+
+	supportsMultimodal := existing.SupportsMultimodal
+	if req.SupportsMultimodal != nil {
+		supportsMultimodal = *req.SupportsMultimodal
 	}
 
 	modelCode := req.ModelCode
@@ -181,12 +193,13 @@ func (s *ModelService) Update(ctx context.Context, id int64, req *dto.UpdateMode
 	}
 
 	m := &entity.Model{
-		ID:          id,
-		ModelName:   req.ModelName,
-		ModelCode:   modelCode,
-		ModelType:   modelType,
-		ModelStatus: req.ModelStatus,
-		IsPublic:    isPublic,
+		ID:                 id,
+		ModelName:          req.ModelName,
+		ModelCode:          modelCode,
+		ModelType:          modelType,
+		ModelStatus:        req.ModelStatus,
+		IsPublic:           isPublic,
+		SupportsMultimodal: supportsMultimodal,
 	}
 
 	if err := s.modelRepo.Update(ctx, m); err != nil {
@@ -228,14 +241,15 @@ func (s *ModelService) UnbindProvider(ctx context.Context, bindingID int64) erro
 
 func toModelResponse(m *entity.Model) *dto.ModelResponse {
 	return &dto.ModelResponse{
-		ID:          m.ID,
-		ModelName:   m.ModelName,
-		ModelCode:   m.ModelCode,
-		ModelType:   m.ModelType,
-		ModelStatus: m.ModelStatus,
-		IsPublic:    m.IsPublic,
-		CreatedAt:   m.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		CreatedTime: m.CreatedAt.Unix(),
-		UpdatedAt:   m.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:                 m.ID,
+		ModelName:          m.ModelName,
+		ModelCode:          m.ModelCode,
+		ModelType:          m.ModelType,
+		ModelStatus:        m.ModelStatus,
+		IsPublic:           m.IsPublic,
+		SupportsMultimodal: m.SupportsMultimodal,
+		CreatedAt:          m.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		CreatedTime:        m.CreatedAt.Unix(),
+		UpdatedAt:          m.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }

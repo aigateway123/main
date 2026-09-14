@@ -1,30 +1,33 @@
 package dto
 
 type CreateModelRequest struct {
-	ModelName string  `json:"modelName"`
-	ModelCode string  `json:"modelCode"`
-	ModelType *string `json:"modelType,omitempty"`
-	IsPublic  *bool   `json:"isPublic,omitempty"`
+	ModelName          string  `json:"modelName"`
+	ModelCode          string  `json:"modelCode"`
+	ModelType          *string `json:"modelType,omitempty"`
+	IsPublic           *bool   `json:"isPublic,omitempty"`
+	SupportsMultimodal *bool   `json:"supportsMultimodal,omitempty"`
 }
 
 type UpdateModelRequest struct {
-	ModelName   string  `json:"modelName"`
-	ModelCode   string  `json:"modelCode"`
-	ModelStatus string  `json:"modelStatus"`
-	ModelType   *string `json:"modelType,omitempty"`
-	IsPublic    *bool   `json:"isPublic,omitempty"`
+	ModelName          string  `json:"modelName"`
+	ModelCode          string  `json:"modelCode"`
+	ModelStatus        string  `json:"modelStatus"`
+	ModelType          *string `json:"modelType,omitempty"`
+	IsPublic           *bool   `json:"isPublic,omitempty"`
+	SupportsMultimodal *bool   `json:"supportsMultimodal,omitempty"`
 }
 
 type ModelResponse struct {
-	ID          int64  `json:"id"`
-	ModelName   string `json:"modelName"`
-	ModelCode   string `json:"modelCode"`
-	ModelType   string `json:"modelType"`
-	ModelStatus string `json:"modelStatus"`
-	IsPublic    bool   `json:"isPublic"`
-	CreatedAt   string `json:"createdAt"`
-	CreatedTime int64  `json:"-"`
-	UpdatedAt   string `json:"updatedAt"`
+	ID                 int64  `json:"id"`
+	ModelName          string `json:"modelName"`
+	ModelCode          string `json:"modelCode"`
+	ModelType          string `json:"modelType"`
+	ModelStatus        string `json:"modelStatus"`
+	IsPublic           bool   `json:"isPublic"`
+	SupportsMultimodal bool   `json:"supportsMultimodal"`
+	CreatedAt          string `json:"createdAt"`
+	CreatedTime        int64  `json:"-"`
+	UpdatedAt          string `json:"updatedAt"`
 }
 
 type ModelDetailResponse struct {

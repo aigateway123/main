@@ -3,15 +3,16 @@ package entity
 import "time"
 
 type Model struct {
-	ID          int64      `json:"id"`
-	ModelName   string     `json:"modelName"`
-	ModelCode   string     `json:"modelCode"`
-	ModelType   string     `json:"modelType"`
-	ModelStatus string     `json:"modelStatus"`
-	IsPublic    bool       `json:"isPublic"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	UpdatedAt   time.Time  `json:"updatedAt"`
-	DeletedAt   *time.Time `json:"deletedAt,omitempty"`
+	ID                 int64      `json:"id"`
+	ModelName          string     `json:"modelName"`
+	ModelCode          string     `json:"modelCode"`
+	ModelType          string     `json:"modelType"`
+	ModelStatus        string     `json:"modelStatus"`
+	IsPublic           bool       `json:"isPublic"`
+	SupportsMultimodal bool       `json:"supportsMultimodal"`
+	CreatedAt          time.Time  `json:"createdAt"`
+	UpdatedAt          time.Time  `json:"updatedAt"`
+	DeletedAt          *time.Time `json:"deletedAt,omitempty"`
 }
 
 type ModelProviderBinding struct {

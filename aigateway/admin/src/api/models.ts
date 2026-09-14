@@ -7,6 +7,7 @@ export interface ModelResponse {
   modelStatus: string
   modelType: 'chat' | 'image' | 'embedding'
   isPublic: boolean
+  supportsMultimodal: boolean
   createdAt: string
   updatedAt: string
 }
@@ -30,6 +31,7 @@ export interface CreateModelRequest {
   modelCode: string
   modelType?: string
   isPublic?: boolean
+  supportsMultimodal?: boolean
 }
 
 export interface UpdateModelRequest {
@@ -38,6 +40,7 @@ export interface UpdateModelRequest {
   modelStatus?: string
   modelType?: string
   isPublic?: boolean
+  supportsMultimodal?: boolean
 }
 
 export interface BindProviderRequest {

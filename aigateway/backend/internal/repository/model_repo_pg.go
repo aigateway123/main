@@ -19,13 +19,13 @@ func NewPostgresModelRepository(pool *pgxpool.Pool) *PostgresModelRepository {
 }
 
 const (
-	modelColumns = "id, model_name, model_code, model_type, model_status, is_public, created_at, updated_at, deleted_at"
+	modelColumns = "id, model_name, model_code, model_type, model_status, is_public, supports_multimodal, created_at, updated_at, deleted_at"
 )
 
 func (r *PostgresModelRepository) scanModel(row pgx.Row) (*entity.Model, error) {
 	var m entity.Model
 	err := row.Scan(
-		&m.ID, &m.ModelName, &m.ModelCode, &m.ModelType, &m.ModelStatus, &m.IsPublic,
+		&m.ID, &m.ModelName, &m.ModelCode, &m.ModelType, &m.ModelStatus, &m.IsPublic, &m.SupportsMultimodal,
 		&m.CreatedAt, &m.UpdatedAt, &m.DeletedAt,
 	)
 	if err != nil {
@@ -42,13 +42,13 @@ func (r *PostgresModelRepository) Create(ctx context.Context, m *entity.Model) e
 	if modelType == "" {
 		modelType = "chat"
 	}
-	query := `INSERT INTO models (model_name, model_code, model_type, model_status, is_public, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+	query := `INSERT INTO models (model_name, model_code, model_type, model_status, is_public, supports_multimodal, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, created_at, updated_at`
 
 	now := time.Now()
 	err := r.pool.QueryRow(ctx, query,
-		m.ModelName, m.ModelCode, modelType, m.ModelStatus, m.IsPublic, now, now,
+		m.ModelName, m.ModelCode, modelType, m.ModelStatus, m.IsPublic, m.SupportsMultimodal, now, now,
 	).Scan(&m.ID, &m.CreatedAt, &m.UpdatedAt)
 	if err != nil {
 		if isPgDuplicateError(err) {
@@ -90,7 +90,7 @@ func (r *PostgresModelRepository) List(ctx context.Context, modelType string) ([
 	for rows.Next() {
 		var m entity.Model
 		err := rows.Scan(
-			&m.ID, &m.ModelName, &m.ModelCode, &m.ModelType, &m.ModelStatus, &m.IsPublic,
+			&m.ID, &m.ModelName, &m.ModelCode, &m.ModelType, &m.ModelStatus, &m.IsPublic, &m.SupportsMultimodal,
 			&m.CreatedAt, &m.UpdatedAt, &m.DeletedAt,
 		)
 		if err != nil {
@@ -102,8 +102,8 @@ func (r *PostgresModelRepository) List(ctx context.Context, modelType string) ([
 }
 
 func (r *PostgresModelRepository) Update(ctx context.Context, m *entity.Model) error {
-	query := `UPDATE models SET model_name = $1, model_code = $2, model_type = $3, model_status = $4, is_public = $5, updated_at = $6
-		WHERE id = $7 AND deleted_at IS NULL`
+	query := `UPDATE models SET model_name = $1, model_code = $2, model_type = $3, model_status = $4, is_public = $5, supports_multimodal = $6, updated_at = $7
+		WHERE id = $8 AND deleted_at IS NULL`
 
 	modelType := m.ModelType
 	if modelType == "" {
@@ -112,7 +112,7 @@ func (r *PostgresModelRepository) Update(ctx context.Context, m *entity.Model) e
 
 	now := time.Now()
 	result, err := r.pool.Exec(ctx, query,
-		m.ModelName, m.ModelCode, modelType, m.ModelStatus, m.IsPublic, now, m.ID,
+		m.ModelName, m.ModelCode, modelType, m.ModelStatus, m.IsPublic, m.SupportsMultimodal, now, m.ID,
 	)
 	if err != nil {
 		if isPgDuplicateError(err) {

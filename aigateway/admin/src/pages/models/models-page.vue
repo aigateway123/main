@@ -13,7 +13,7 @@ const modelDetails = ref<Record<number, ModelDetailResponse>>({})
 const loading = ref(false)
 const showForm = ref(false)
 const editingId = ref<number | null>(null)
-const form = ref({ modelName: '', modelCode: '', modelStatus: 'active', modelType: 'chat', isPublic: true })
+const form = ref({ modelName: '', modelCode: '', modelStatus: 'active', modelType: 'chat', isPublic: true, supportsMultimodal: false })
 const bindForm = ref({ providerId: 0, weight: 100, apiPathOverride: '' })
 const showBind = ref(false)
 
@@ -34,18 +34,18 @@ async function load() {
 }
 
 function openCreate() {
-  editingId.value = null; form.value = { modelName: '', modelCode: '', modelStatus: 'active', modelType: 'chat', isPublic: true }; showForm.value = true
+  editingId.value = null; form.value = { modelName: '', modelCode: '', modelStatus: 'active', modelType: 'chat', isPublic: true, supportsMultimodal: false }; showForm.value = true
 }
 function openEdit(m: ModelResponse) {
-  editingId.value = m.id; form.value = { modelName: m.modelName, modelCode: m.modelCode, modelStatus: m.modelStatus, modelType: m.modelType, isPublic: m.isPublic ?? true }; showForm.value = true
+  editingId.value = m.id; form.value = { modelName: m.modelName, modelCode: m.modelCode, modelStatus: m.modelStatus, modelType: m.modelType, isPublic: m.isPublic ?? true, supportsMultimodal: m.supportsMultimodal ?? false }; showForm.value = true
 }
 async function handleSave() {
   try {
     if (editingId.value) {
-      const payload: UpdateModelRequest = { modelName: form.value.modelName, modelCode: form.value.modelCode, modelStatus: form.value.modelStatus, isPublic: form.value.isPublic }
+      const payload: UpdateModelRequest = { modelName: form.value.modelName, modelCode: form.value.modelCode, modelStatus: form.value.modelStatus, isPublic: form.value.isPublic, supportsMultimodal: form.value.supportsMultimodal }
       await updateModelApi(editingId.value, payload)
     } else {
-      await createModelApi({ modelName: form.value.modelName, modelCode: form.value.modelCode, modelType: form.value.modelType, isPublic: form.value.isPublic })
+      await createModelApi({ modelName: form.value.modelName, modelCode: form.value.modelCode, modelType: form.value.modelType, isPublic: form.value.isPublic, supportsMultimodal: form.value.supportsMultimodal })
     }
     showForm.value = false; await load()
   } catch (e: unknown) {
@@ -160,6 +160,17 @@ onMounted(load)
                 <span class="text-xs text-text-primary">{{ form.isPublic ? '开放：所有角色均可获取该模型' : '私有：仅已授权的账号可获取该模型' }}</span>
               </label>
             </div>
+            <div class="space-y-1.5">
+              <label class="text-xs font-semibold text-text-primary">多模态输入</label>
+              <label :class="['flex items-center gap-2 p-2.5 rounded border border-border select-none', form.modelType === 'chat' ? 'bg-[#f8f9fa] cursor-pointer' : 'bg-slate-50 opacity-60 cursor-not-allowed']">
+                <input type="checkbox" v-model="form.supportsMultimodal" :disabled="form.modelType !== 'chat'"
+                  class="rounded text-primary focus:ring-primary disabled:cursor-not-allowed" />
+                <span class="text-xs text-text-primary">
+                  <template v-if="form.modelType !== 'chat'">仅对话模型支持多模态输入标记</template>
+                  <template v-else>{{ form.supportsMultimodal ? '允许：可输入图片等非文本内容' : '不允许：仅接受文本输入' }}</template>
+                </span>
+              </label>
+            </div>
             <div v-if="editingId" class="space-y-1.5">
               <label class="text-xs font-semibold text-text-primary">状态</label>
               <select v-model="form.modelStatus"
@@ -229,7 +240,7 @@ onMounted(load)
         <table class="w-full text-left text-xs border-collapse">
           <thead>
             <tr class="bg-[#f8f9fa] border-b border-border text-text-secondary font-semibold h-10">
-              <th class="px-4 py-2">名称</th><th class="px-4 py-2">编码</th><th class="px-4 py-2">类型</th><th class="px-4 py-2">状态</th><th class="px-4 py-2">可见性</th><th class="px-4 py-2">绑定的 Provider</th><th class="px-4 py-2">操作</th>
+              <th class="px-4 py-2">名称</th><th class="px-4 py-2">编码</th><th class="px-4 py-2">类型</th><th class="px-4 py-2">多模态输入</th><th class="px-4 py-2">状态</th><th class="px-4 py-2">可见性</th><th class="px-4 py-2">绑定的 Provider</th><th class="px-4 py-2">操作</th>
             </tr>
           </thead>
           <tbody v-if="!loading && models.length > 0" class="divide-y divide-border">
@@ -248,6 +259,15 @@ onMounted(load)
                   :class="['inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border', getModelTypeTag(m.modelType).cls]"
                 >
                   {{ getModelTypeTag(m.modelType).label }}
+                </span>
+                <span v-else class="text-text-secondary">—</span>
+              </td>
+              <td class="px-4 py-2">
+                <span
+                  v-if="m.supportsMultimodal"
+                  class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border bg-indigo-50 text-indigo-700 border-indigo-200/60"
+                >
+                  🖼️ 多模态
                 </span>
                 <span v-else class="text-text-secondary">—</span>
               </td>
