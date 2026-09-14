@@ -19,11 +19,16 @@ const showBind = ref(false)
 
 // 模型类型筛选
 const filterModelType = ref('')
+// 多模态输入筛选：'' = 全部，'true' = 支持多模态，'false' = 不支持
+const filterMultimodal = ref('')
 
 async function load() {
   loading.value = true
   try {
-    models.value = await listModelsApi(filterModelType.value || undefined)
+    models.value = await listModelsApi(
+      filterModelType.value || undefined,
+      filterMultimodal.value === '' ? undefined : filterMultimodal.value === 'true',
+    )
     providers.value = await listProvidersApi()
     const details: Record<number, ModelDetailResponse> = {}
     for (const m of models.value) {
@@ -118,6 +123,14 @@ onMounted(load)
           <option value="chat">💬 对话</option>
           <option value="image">🖼️ 图片</option>
           <option value="embedding">🧩 向量</option>
+        </select>
+        <label class="text-xs font-semibold text-text-primary">多模态输入：</label>
+        <select v-model="filterMultimodal"
+          class="h-9 px-3 text-xs bg-white border border-border rounded text-text-primary focus:outline-none focus:border-primary w-40"
+          @change="load">
+          <option value="">全部</option>
+          <option value="true">🖼️ 支持多模态</option>
+          <option value="false">仅文本输入</option>
         </select>
       </div>
     </div>

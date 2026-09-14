@@ -184,7 +184,7 @@ func (c *ChatController) handleInbound(w http.ResponseWriter, r *http.Request, i
 	// Look up model for billing check (need modelID)
 	var chatModelID int64
 	if c.billingSvc != nil {
-		models, listErr := c.modelSvc.List(r.Context(), "")
+		models, listErr := c.modelSvc.List(r.Context(), "", nil)
 		if listErr == nil {
 			for _, m := range models {
 				if m.ModelCode == model {
@@ -446,7 +446,7 @@ func (c *ChatController) HandleCountTokens(w http.ResponseWriter, r *http.Reques
 
 	// 校验模型存在（与 Anthropic 官方 count_tokens 契约一致：不存在返回 404 not_found_error）
 	modelExists := false
-	if models, listErr := c.modelSvc.List(r.Context(), ""); listErr == nil {
+	if models, listErr := c.modelSvc.List(r.Context(), "", nil); listErr == nil {
 		for _, m := range models {
 			if m.ModelCode == req.Model {
 				modelExists = true
@@ -544,7 +544,7 @@ func (c *ChatController) HandleListOpenAIModels(w http.ResponseWriter, r *http.R
 	}
 
 	// List models
-	models, err := c.modelSvc.List(r.Context(), "")
+	models, err := c.modelSvc.List(r.Context(), "", nil)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "GATEWAY001", "failed to list models")
 		return

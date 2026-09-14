@@ -49,9 +49,10 @@ export interface BindProviderRequest {
   apiPathOverride?: string
 }
 
-export async function listModelsApi(modelType?: string): Promise<ModelResponse[]> {
+export async function listModelsApi(modelType?: string, supportsMultimodal?: boolean): Promise<ModelResponse[]> {
   const params: Record<string, string> = {}
   if (modelType) params.modelType = modelType
+  if (supportsMultimodal !== undefined) params.supportsMultimodal = String(supportsMultimodal)
   const res = await httpClient.get('/api/v1/models', { params })
   return res.data.data
 }

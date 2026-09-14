@@ -49,6 +49,17 @@ func (c *ModelController) HandleCreate(w http.ResponseWriter, r *http.Request) {
 func (c *ModelController) HandleList(w http.ResponseWriter, r *http.Request) {
 	modelType := r.URL.Query().Get("modelType")
 
+	// supportsMultimodal 为空表示不按多模态输入过滤
+	var supportsMultimodal *bool
+	if v := r.URL.Query().Get("supportsMultimodal"); v != "" {
+		parsed, err := strconv.ParseBool(v)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "VALID001", "invalid supportsMultimodal")
+			return
+		}
+		supportsMultimodal = &parsed
+	}
+
 	// Admin sees all models; other roles only see granted models.
 	var items []*dto.ModelResponse
 	var err error
@@ -60,9 +71,9 @@ func (c *ModelController) HandleList(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if ok && !isAdmin {
-		items, err = c.svc.ListForUser(r.Context(), userID, modelType)
+		items, err = c.svc.ListForUser(r.Context(), userID, modelType, supportsMultimodal)
 	} else {
-		items, err = c.svc.List(r.Context(), modelType)
+		items, err = c.svc.List(r.Context(), modelType, supportsMultimodal)
 	}
 	if err != nil {
 		c.logger.Error("list models failed", "error", err)
@@ -92,7 +103,7 @@ func (c *ModelController) HandleGetByID(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 	if ok && !isAdmin {
-		models, lerr := c.svc.ListForUser(r.Context(), userID, "")
+		models, lerr := c.svc.ListForUser(r.Context(), userID, "", nil)
 		if lerr == nil {
 			found := false
 			for _, m := range models {

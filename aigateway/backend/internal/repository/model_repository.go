@@ -12,7 +12,8 @@ type ModelRepository interface {
 	Create(ctx context.Context, m *entity.Model) error
 	GetByID(ctx context.Context, id int64) (*entity.Model, error)
 	GetByCode(ctx context.Context, code string) (*entity.Model, error)
-	List(ctx context.Context, modelType string) ([]*entity.Model, error)
+	// supportsMultimodal 为 nil 表示不按多模态输入过滤
+	List(ctx context.Context, modelType string, supportsMultimodal *bool) ([]*entity.Model, error)
 	Update(ctx context.Context, m *entity.Model) error
 	Delete(ctx context.Context, id int64) error
 }
@@ -102,16 +103,16 @@ func (r *InMemoryModelRepository) GetByCode(_ context.Context, code string) (*en
 	return m, nil
 }
 
-func (r *InMemoryModelRepository) List(_ context.Context, modelType string) ([]*entity.Model, error) {
+func (r *InMemoryModelRepository) List(_ context.Context, modelType string, supportsMultimodal *bool) ([]*entity.Model, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	var result []*entity.Model
 	for _, m := range r.items {
-		if m.DeletedAt == nil {
-			if modelType == "" || m.ModelType == modelType {
-				result = append(result, m)
-			}
+		if m.DeletedAt == nil &&
+			(modelType == "" || m.ModelType == modelType) &&
+			(supportsMultimodal == nil || m.SupportsMultimodal == *supportsMultimodal) {
+			result = append(result, m)
 		}
 	}
 	return result, nil

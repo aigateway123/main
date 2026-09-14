@@ -116,8 +116,8 @@ func (s *ModelService) GetByID(ctx context.Context, id int64) (*dto.ModelDetailR
 	}, nil
 }
 
-func (s *ModelService) List(ctx context.Context, modelType string) ([]*dto.ModelResponse, error) {
-	items, err := s.modelRepo.List(ctx, modelType)
+func (s *ModelService) List(ctx context.Context, modelType string, supportsMultimodal *bool) ([]*dto.ModelResponse, error) {
+	items, err := s.modelRepo.List(ctx, modelType, supportsMultimodal)
 	if err != nil {
 		return nil, ErrInternal
 	}
@@ -131,7 +131,7 @@ func (s *ModelService) List(ctx context.Context, modelType string) ([]*dto.Model
 
 // ListForUser returns models granted to the given user (user_model_permissions).
 // Admin role is handled by the caller (returns all models via List).
-func (s *ModelService) ListForUser(ctx context.Context, userID int64, modelType string) ([]*dto.ModelResponse, error) {
+func (s *ModelService) ListForUser(ctx context.Context, userID int64, modelType string, supportsMultimodal *bool) ([]*dto.ModelResponse, error) {
 	authorizedIDs, err := s.userModelPermRepo.ListModelIDsByUserID(ctx, userID)
 	if err != nil {
 		return nil, ErrInternal
@@ -141,7 +141,7 @@ func (s *ModelService) ListForUser(ctx context.Context, userID int64, modelType 
 		authorizedSet[id] = struct{}{}
 	}
 
-	items, err := s.modelRepo.List(ctx, modelType)
+	items, err := s.modelRepo.List(ctx, modelType, supportsMultimodal)
 	if err != nil {
 		return nil, ErrInternal
 	}

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"aigateway/backend/internal/entity"
@@ -71,15 +72,19 @@ func (r *PostgresModelRepository) GetByCode(ctx context.Context, code string) (*
 	return r.scanModel(row)
 }
 
-func (r *PostgresModelRepository) List(ctx context.Context, modelType string) ([]*entity.Model, error) {
-	var query string
+func (r *PostgresModelRepository) List(ctx context.Context, modelType string, supportsMultimodal *bool) ([]*entity.Model, error) {
+	query := `SELECT ` + modelColumns + ` FROM models WHERE deleted_at IS NULL`
 	var args []any
 	if modelType != "" {
-		query = `SELECT ` + modelColumns + ` FROM models WHERE deleted_at IS NULL AND model_type = $1 ORDER BY model_name ASC`
 		args = append(args, modelType)
-	} else {
-		query = `SELECT ` + modelColumns + ` FROM models WHERE deleted_at IS NULL ORDER BY model_name ASC`
+		query += fmt.Sprintf(" AND model_type = $%d", len(args))
 	}
+	if supportsMultimodal != nil {
+		args = append(args, *supportsMultimodal)
+		query += fmt.Sprintf(" AND supports_multimodal = $%d", len(args))
+	}
+	query += " ORDER BY model_name ASC"
+
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
