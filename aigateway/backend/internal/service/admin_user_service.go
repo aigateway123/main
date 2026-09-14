@@ -235,7 +235,7 @@ func (s *AdminUserService) GetStudentModels(ctx context.Context, userID int64) (
 		authorizedSet[id] = struct{}{}
 	}
 
-	models, err := s.modelRepo.List(ctx, "")
+	models, err := s.modelRepo.List(ctx, "", nil)
 	if err != nil {
 		return nil, nil, ErrInternal
 	}
@@ -270,7 +270,7 @@ func (s *AdminUserService) GetStudentModels(ctx context.Context, userID int64) (
 
 func (s *AdminUserService) SetStudentModels(ctx context.Context, userID int64, modelIDs []int64) (int, error) {
 	// Only public models are allowed for grant.
-	models, err := s.modelRepo.List(ctx, "")
+	models, err := s.modelRepo.List(ctx, "", nil)
 	if err != nil {
 		return 0, ErrInternal
 	}

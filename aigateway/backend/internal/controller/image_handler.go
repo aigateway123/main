@@ -135,7 +135,7 @@ func (h *ImageHandler) HandleGenerations(w http.ResponseWriter, r *http.Request)
 
 	// 5. Check model access (authorization-based)
 	if h.billingSvc != nil {
-		models, listErr := h.modelSvc.List(r.Context(), "")
+		models, listErr := h.modelSvc.List(r.Context(), "", nil)
 		if listErr == nil {
 			for _, m := range models {
 				if m.ModelCode == req.Model {

@@ -25,7 +25,7 @@ func NewPricingService(pricingRepo repository.ModelPricingRepository, modelRepo 
 }
 
 func (s *PricingService) List(ctx context.Context) ([]*dto.AdminPricingItem, error) {
-	models, err := s.modelRepo.List(ctx, "")
+	models, err := s.modelRepo.List(ctx, "", nil)
 	if err != nil {
 		return nil, ErrInternal
 	}
